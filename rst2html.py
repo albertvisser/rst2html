@@ -50,11 +50,11 @@ def list_all(inputlist,naam):
 
 def all_source(naam):
     all_source = [f for f in os.listdir(source) if os.path.splitext(f)[1] == ".rst"]
-    return list_all(all_source,naam)
+    return list_all(sorted(all_source),naam)
 
 def all_html(naam):
     all_html = [f for f in os.listdir(root) if os.path.splitext(f)[1] == ".html"]
-    return list_all(all_html,naam)
+    return list_all(sorted(all_html),naam)
 
 class Rst2Html(object):
 
