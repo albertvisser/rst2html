@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
 import cherrypy
 import sys
 sys.path.append('.')
 import os,shutil
 from docutils.core import publish_string
+from docutils.parsers.rst import directives
 from settings import root, source, css
+from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
 template = "rst2html.html"
 settpl = "settings.html"
 setfn = "settings.py"
@@ -63,6 +66,13 @@ class Rst2Html(object):
         self.source = source
         with open(template) as f_in:
             self.output = f_in.read()
+        directives.register_directive("startc", StartCols)
+        directives.register_directive("endc", EndCols)
+        directives.register_directive("firstc", FirstCol)
+        directives.register_directive("nextc", NextCol)
+        directives.register_directive("clearc", ClearCol)
+        directives.register_directive("spacer", Spacer)
+        directives.register_directive("bottom", Bottom)
 
     @cherrypy.expose
     def index(self):
