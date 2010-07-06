@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>ReStructured Text translator</title>
+<script type="text/javascript">
+function do_sub(x) {{
+    document.forms[0].action = x;
+    document.forms[0].submit();
+    return true
+    }}
+</script></head>
+<body>
+<form action="" method="post">
+<input type="button" value="Load source" onclick="javascript: do_sub('load'); return true;"/>
+<input type="button" value="Save source" onclick="javascript: do_sub('save'); return true;"/>
+<input type="button" value="Convert to html and show" onclick="javascript: do_sub('convert'); return true;"/>
+<input type="button" value="Save converted html" onclick="javascript: do_sub('store'); return true;"/>
+<br/><br/>
+source: <select name="rstfile"><option>-- new --</option>{0}</select>
+target: <select name="htmlfile"><option>-- new --</option>{1}</select>
+new name: <input type="text" name="newfile" value="{2}"/>
+<br/><b>{3}</b><br/>
+<textarea name="rstdata" cols="78" rows="40">{4}</textarea>
+</form>
+</body>
+</html>
