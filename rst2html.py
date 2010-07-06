@@ -84,6 +84,7 @@ class Rst2Html(object):
             try:
                 with open(os.path.join(source,rstfile)) as f_in:
                     rstdata = f_in.read()
+                htmlfile = os.path.splitext(rstfile)[0] + ".html"
             except IOError as e:
                 mld = str(e)
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
