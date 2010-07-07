@@ -10,6 +10,8 @@ function do_sub(x) {{
 </script></head>
 <body>
 <form action="" method="post">
+<table >
+<tr><td colspan="2">
 <input type="button" value="Load source" onclick="javascript: do_sub('load'); return true;"/>
 <input type="button" value="Save source" onclick="javascript: do_sub('save'); return true;"/>
 <input type="button" value="Convert to html and show" onclick="javascript: do_sub('convert'); return true;"/>
@@ -19,7 +21,21 @@ source: <select name="rstfile"><option>-- new --</option>{0}</select>
 target: <select name="htmlfile"><option>-- new --</option>{1}</select>
 new name: <input type="text" name="newfile" value="{2}"/>
 <br/><b>{3}</b><br/>
+</td></tr>
+<tr><td>
 <textarea name="rstdata" cols="78" rows="40">{4}</textarea>
+</td><td valign="top">
+Directives t.b.v. formatting:
+<dl>
+<dt>.. startc:: <i>x</i></dt><dd>start kolomweergave van x cellen breed (x = 12 of 16)</dd>
+<dt>.. firstc:: <i>x</i> <i>class</i></dt><dd>start eerste kolom met breedte van x cellen met evt. class</dd>
+<dt>.. nextc:: <i>x</i> <i>class</i></dt><dd>start volgende kolom met breedte van x cellen met evt. class</dd>
+<dt>.. clearc::</dt><dd>einde regel na laatste kolom</dd>
+<dt>.. spacer:: <i>x</i></dt><dd>maak lege ruimte van met breedte van x cellen</dd>
+<dt>.. bottom:: <i>x</i> [<i>filename</i>]</dt><dd>maak navgatiefooter van x cellen breed evt. met verwijzing naar volgende document</dd>
+<dt>.. endc: </dt><dd>einde kolomweergave</dd>
+</dl>
+</td></tr>
 </form>
 </body>
 </html>
