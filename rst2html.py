@@ -1,4 +1,6 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import cherrypy
 import sys
 sys.path.append('.')
@@ -186,4 +188,5 @@ class Rst2Html(object):
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
 #~ print cherrypy.config
-cherrypy.quickstart(Rst2Html())
+if __name__ == "__main__":
+    cherrypy.quickstart(Rst2Html())
