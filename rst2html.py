@@ -7,20 +7,20 @@ sys.path.append('.')
 import os,shutil
 from docutils.core import publish_string
 from docutils.parsers.rst import directives
-from settings import root, source, css
+from settings import root, source, css, mirror, all_css
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
-template = "rst2html.html"
+HERE = os.path.split(__file__)[0]
+template = os.path.join(HERE, "rst2html.html") # _met_settings
+css = os.path.join(HERE, css)
 settpl = "settings.html"
 setfn = "settings.py"
 
 def striplines(data):
-    data_n = ""
-    for line in data:
-        line = line[:-1] if line[-1] == "\n" else line
-        data_n += line
-    return data_n
+    """list -> string met verwijdering van eventuele line endings"""
+    return "".join([line.rstrip() for line in data])
 
 def rst2html(data, embed=False):
+    """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
         "embed_stylesheet": embed,
         "stylesheet_path": css,
@@ -33,6 +33,9 @@ def rst2html(data, embed=False):
         )
 
 def save_to(fullname, data):
+    """backup file, then write data to file
+
+    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user"""
     try:
         if os.path.exists(fullname):
             if os.path.exists(fullname + ".bak"):
@@ -47,6 +50,7 @@ def save_to(fullname, data):
     return mld
 
 def list_all(inputlist,naam):
+    """build list of options from filenames, with naam selected"""
     out = []
     for f in inputlist:
         s = ' selected="selected"' if naam == f else ''
@@ -54,16 +58,19 @@ def list_all(inputlist,naam):
     return "".join(out)
 
 def all_source(naam):
+    """build list of options from rst files"""
     all_source = [f for f in os.listdir(source) if os.path.splitext(f)[1] == ".rst"]
     return list_all(sorted(all_source),naam)
 
 def all_html(naam):
+    """build list of options from html files"""
     all_html = [f for f in os.listdir(root) if os.path.splitext(f)[1] == ".html"]
     return list_all(sorted(all_html),naam)
 
 class Rst2Html(object):
 
     def __init__(self):
+        """initialize using imported settings; read template; register directives"""
         self.root = root
         self.source = source
         with open(template) as f_in:
@@ -78,6 +85,7 @@ class Rst2Html(object):
 
     @cherrypy.expose
     def index(self):
+        """show page with empty fields (and selectable filenames)"""
         rstfile = ""
         htmlfile = ""
         newfile = ""
@@ -86,31 +94,38 @@ class Rst2Html(object):
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
     @cherrypy.expose
-    def load(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+    def loadrst(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """load indicated .rst file
+
+        pre-builds save-filename by changing extension from rst to html"""
         mld = ""
         if rstfile == "":
             mld = "dit lijkt me onmogelijk"
         elif rstfile == "-- new --":
-            mld = "Filenaam voor source selecteren s.v.p."
+            mld = "Vergeet niet een nieuwe filenaam op te geven om te saven"
+            htmlfile = newfile = rstdata = ""
         if not mld:
             try:
                 with open(os.path.join(source,rstfile)) as f_in:
                     rstdata = f_in.read()
                 htmlfile = os.path.splitext(rstfile)[0] + ".html"
+                newfile = ""
             except IOError as e:
                 mld = str(e)
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
     @cherrypy.expose
-    def save(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+    def saverst(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """(re)save rst file using selected name
+
+        if new  name specified, use that (extension must be .rst)"""
         mld = ""
-        rstdata = striplines(rstdata)
         if newfile == "":
             newfile = rstfile
             if newfile == "":
                 mld = "dit lijkt me onmogelijk"
             elif newfile == "-- new --":
-                mld = "Filenaam voor source selecteren s.v.p."
+                mld = "Naam invulen of filenaam voor source selecteren s.v.p."
         if mld == "" and rstdata == "":
             mld = "Tekstveld invullen s.v.p."
         if mld == "":
@@ -121,10 +136,14 @@ class Rst2Html(object):
             mld = save_to(fullname,rstdata)
             if mld == "":
                 mld = "rst source opgeslagen als " + fullname
+            newfile = ""
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
     @cherrypy.expose
     def convert(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """convert rst to html and show result
+
+        needs browser back button to return to application page - not sure if it works in all browsers"""
         mld = ""
         if rstdata == "":
             mld = "Tekstveld invullen s.v.p."
@@ -133,7 +152,8 @@ class Rst2Html(object):
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
     @cherrypy.expose
-    def store(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+    def saveall(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """(re)save rst file, (re)convert to html and (re)save html file using selected names"""
         mld = ""
         if newfile == "":
             if rstfile == "":
@@ -170,8 +190,6 @@ class Rst2Html(object):
         if mld == "":
             if rstdata == "":
                 mld = "Tekstveld invullen s.v.p."
-            else:
-                rstdata = striplines(rstdata)
         if mld == "":
             rstfile = os.path.join(source,rstfile)
             htmlfile = os.path.join(root,htmlfile)
@@ -181,12 +199,97 @@ class Rst2Html(object):
                 mld = save_to(htmlfile,newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + htmlfile
-            rstfile = os.path.split(rstfile)[1]
-            htmlfile = os.path.split(htmlfile)[1]
+            rstfile = os.path.basename(rstfile)
+            htmlfile = os.path.basename(htmlfile)
             if newfile == rstfile or newfile == htmlfile:
                 newfile = ""
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
+    @cherrypy.expose
+    def loadhtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """load html file and show code"""
+        mld = ""
+        if htmlfile == "" or htmlfile == "-- new --":
+            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+        else:
+            naam,ext = os.path.splitext(htmlfile)
+        if mld == "":
+            htmlfile = os.path.join(root,htmlfile)
+            with open(htmlfile) as f_in:
+                ## rstdata = striplines(f_in.readlines()).replace("&nbsp","&amp;nbsp")
+                rstdata = "".join(f_in.readlines()).replace("&nbsp","&amp;nbsp")
+            htmlfile = os.path.basename(htmlfile)
+        return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
+
+    @cherrypy.expose
+    def showhtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        mld = ""
+        if htmlfile == "" or htmlfile == "-- new --":
+            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+        else:
+            data, rstdata = rstdata.split("<link",1)
+            niks, rstdata = rstdata.split(">",1)
+            with open(css) as f_in:
+                lines = "".join(f_in.readlines())
+            newdata = lines.join(('<style type="text/css">','</style>'))
+            newdata = newdata.join((data,rstdata))
+            ## for line in data:
+                ## newdata.append("X") # line)
+            return newdata
+        return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
+
+    @cherrypy.expose
+    def savehtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """save displayed (edited) html"""
+        mld = ""
+        if htmlfile == "" or htmlfile == "-- new --":
+            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+        else:
+            if rstdata == "":
+                mld = "Tekstveld invullen s.v.p."
+            ## else:
+                ## rstdata = striplines(rstdata)
+        if mld == "":
+            ## rstfile = os.path.join(source,rstfile)
+            htmlfile = os.path.join(root,htmlfile)
+            newdata = rstdata # striplines(rstdata)
+            mld = save_to(htmlfile,newdata)
+            rstdata = newdata.replace("&nbsp","&amp;nbsp")
+            if mld == "":
+                mld = "Gewijzigde html opgeslagen als " + htmlfile
+            ## rstfile = os.path.split(rstfile)[1]
+            htmlfile = os.path.basename(htmlfile)
+            if newfile == rstfile or newfile == htmlfile:
+                newfile = ""
+        return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
+
+    @cherrypy.expose
+    def copytoroot(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """copy html to mirror site
+
+        along the way the right stylesheets are added"""
+        mld = ""
+        if htmlfile == "" or htmlfile == "-- new --":
+            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+        else:
+            target = os.path.join(mirror,htmlfile)
+            htmlfile = os.path.join(root,htmlfile)
+            with open(htmlfile) as f_in:
+                htmldata = "".join(f_in.readlines())
+            data, htmldata = htmldata.split("<link",1)
+            niks, htmldata = htmldata.split(">",1)
+            htmldata = all_css.join((data,htmldata))
+            mld = save_to(htmlfile, htmldata)
+            mld = save_to(target, htmldata)
+            htmlfile = os.path.basename(htmlfile)
+            if not mld:
+                mld = " gekopieerd naar ".join((htmlfile,mirror))
+        return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
+
 #~ print cherrypy.config
 if __name__ == "__main__":
-    cherrypy.quickstart(Rst2Html())
+    cherrypy.quickstart(Rst2Html(), config={
+    "/": {
+        'server.socket_host': 'rst2html.linuxmoby.nl',
+        'server.socket_port': 80,
+        }})
