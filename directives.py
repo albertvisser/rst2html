@@ -96,9 +96,11 @@ class Spacer(Directive):
     def run(self):
         try:
             cls = "grid_{0} ".format(self.arguments[0])
+            clr = '<div class="clear">&nbsp;</div>'
         except IndexError:
-            cls = ''
-        text_node = nodes.raw('','<div class="{0}spacer">&nbsp;</div><div class="clear">&nbsp;</div>'.format(cls), format='html')
+            cls = clr = ''
+        text_node = nodes.raw('','<div class="{0}spacer">&nbsp;</div>{1}'.format(cls,clr),
+            format='html')
         return [text_node]
 
 class Bottom(Directive):
