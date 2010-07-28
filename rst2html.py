@@ -277,9 +277,10 @@ class Rst2Html(object):
             htmlfile = os.path.join(root,htmlfile)
             with open(htmlfile) as f_in:
                 htmldata = "".join(f_in.readlines())
-            data, htmldata = htmldata.split("<link",1)
-            niks, htmldata = htmldata.split(">",1)
-            htmldata = all_css.join((data,htmldata))
+            if css in htmldata:
+                data, htmldata = htmldata.split("<link",1)
+                niks, htmldata = htmldata.split(">",1)
+                htmldata = all_css.join((data,htmldata))
             mld = save_to(htmlfile, htmldata)
             mld = save_to(target, htmldata)
             htmlfile = os.path.basename(htmlfile)
