@@ -136,6 +136,7 @@ class Rst2Html(object):
             mld = save_to(fullname,rstdata)
             if mld == "":
                 mld = "rst source opgeslagen als " + fullname
+            rstfile = newfile
             newfile = ""
         return self.output.format(all_source(rstfile),all_html(htmlfile),newfile,mld,rstdata)
 
