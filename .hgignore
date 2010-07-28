@@ -1,6 +1,11 @@
 # use glob syntax.
 syntax: glob
 
-source/*.rst
+*.bak
+*~
+*pyc
+sources/*.rst
 target/*.html
+target/css/html4css_magiokis_960.css
 target/css/magiokis.css
+target/images/*
