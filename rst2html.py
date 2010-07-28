@@ -11,7 +11,7 @@ from settings import root, source, css, mirror, all_css
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
 HERE = os.path.split(__file__)[0]
 template = os.path.join(HERE, "rst2html.html") # _met_settings
-css = os.path.join(HERE, css)
+CSS = os.path.join(HERE, css)
 settpl = "settings.html"
 setfn = "settings.py"
 
@@ -23,7 +23,7 @@ def rst2html(data, embed=False):
     """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
         "embed_stylesheet": embed,
-        "stylesheet_path": css,
+        "stylesheet_path": CSS,
         "report_level": 3,
         }
     return publish_string(source=data,
@@ -230,7 +230,13 @@ class Rst2Html(object):
         else:
             data, rstdata = rstdata.split("<link",1)
             niks, rstdata = rstdata.split(">",1)
-            with open(css) as f_in:
+            if CSS in niks:
+                linked_css = CSS
+            else:
+                niks,linked_css = niks.split('css/',1)
+                linked_css,niks = linked_css.split('"',1)
+                linked_css = "/target/css/".join((HERE,linked_css))
+            with open(linked_css) as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">','</style>'))
             newdata = newdata.join((data,rstdata))
