@@ -1,0 +1,6 @@
+# use glob syntax.
+syntax: glob
+
+source/*.rst
+target/*.html
+target/css/magiokis.css
