@@ -127,11 +127,15 @@ class Bottom(Directive):
             ltext = self.arguments[2]
         except IndexError:
             ltext = 'volgende episode'
+        if nxt.startswith("../"):
+            about = ""
+        else:
+            about = '<a class="reference external" href="about.html">terug naar de indexpagina</a> '
         if wid:
             start = '' if wid == '-1' else '<div class="grid_{0}">'.format(wid)
             start = ''.join((start,
                 '<p style="text-align: center">',
-                '<a class="reference external" href="about.html">terug naar de indexpagina</a> ',
+                about,
                 '<a class="reference external" href="{0}">{1}</a>'.format(nxt,ltext),
                 ))
             end = '' if wid == '-1' else ''.join(('</div><div class="clear">&nbsp;</div>',

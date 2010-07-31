@@ -4,8 +4,10 @@ syntax: glob
 *.bak
 *~
 *pyc
-sources/*.rst
+*.rst
 target/*.html
+target/*/*.html
 target/css/html4css_magiokis_960.css
 target/css/magiokis.css
 target/images/*
+target/*/images/*
