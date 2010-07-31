@@ -260,6 +260,7 @@ class Rst2Html(object):
             ## mld = " "
         else:
             naam,ext = os.path.splitext(htmlfile)
+            rstfile = naam + ".rst"
         if mld == "":
             where = os.path.join(root,self.current) if self.current else root
             htmlfile = os.path.join(where,htmlfile)
