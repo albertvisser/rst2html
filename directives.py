@@ -19,7 +19,7 @@ class StartCols(Directive):
     has_content = False
 
     def run(self):
-        text = '<div class="container_{0}">'.format(self.arguments[0])
+        text = '<div class="container_{0}">\n'.format(self.arguments[0])
         text_node = nodes.raw('',text, format='html')
         return [text_node]
 
@@ -32,7 +32,7 @@ class EndCols(Directive):
     has_content = False
 
     def run(self):
-        text_node = nodes.raw('','</div>', format='html')
+        text_node = nodes.raw('','</div>\n', format='html')
         return [text_node]
 
 class FirstCol(Directive):
@@ -50,8 +50,8 @@ class FirstCol(Directive):
             classes = self.arguments[1]
         except IndexError:
             classes = ''
-        text_node = nodes.raw('','<div class="grid_{0} {1}">'.format(width, classes),
-            format='html')
+        text_node = nodes.raw('',
+            '<div class="grid_{0} {1}">\n'.format(width, classes), format='html')
         return [text_node]
 
 class NextCol(Directive):
@@ -69,8 +69,8 @@ class NextCol(Directive):
             classes = self.arguments[1]
         except IndexError:
             classes = ''
-        text_node = nodes.raw('','</div><div class="grid_{0} {1}">'.format(width, classes),
-            format='html')
+        text_node = nodes.raw('',
+            '</div>\n<div class="grid_{0} {1}">\n'.format(width, classes), format='html')
         return [text_node]
 
 class ClearCol(Directive):
@@ -81,7 +81,8 @@ class ClearCol(Directive):
     has_content = False
 
     def run(self):
-        text_node = nodes.raw('','</div><div class="clear">&nbsp;</div>', format='html')
+        text_node = nodes.raw('',
+            '</div>\n<div class="clear">&nbsp;</div>\n', format='html')
         return [text_node]
 
 class Spacer(Directive):
@@ -96,11 +97,11 @@ class Spacer(Directive):
     def run(self):
         try:
             cls = "grid_{0} ".format(self.arguments[0])
-            clr = '<div class="clear">&nbsp;</div>'
+            clr = '<div class="clear">&nbsp;</div>\n'
         except IndexError:
             cls = clr = ''
-        text_node = nodes.raw('','<div class="{0}spacer">&nbsp;</div>{1}'.format(cls,clr),
-            format='html')
+        text_node = nodes.raw('',
+            '<div class="{0}spacer">&nbsp;</div>\n{1}'.format(cls,clr), format='html')
         return [text_node]
 
 class Bottom(Directive):
@@ -147,5 +148,3 @@ class Bottom(Directive):
             ' <a href="mailto:info@magiokis.nl">contact me</a></div>',
             end)), format='html')
         return [text_node]
-
-
