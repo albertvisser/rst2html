@@ -136,6 +136,8 @@ class Rst2Html(object):
                 newfile = ""
             except IOError as e:
                 mld = str(e)
+            else:
+                mld = "Source file {0} opgehaald".format(os.path.join(where,rstfile))
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata)
 
@@ -267,6 +269,7 @@ class Rst2Html(object):
             with open(htmlfile) as f_in:
                 ## rstdata = striplines(f_in.readlines()).replace("&nbsp","&amp;nbsp")
                 rstdata = "".join(f_in.readlines()).replace("&nbsp","&amp;nbsp")
+            mld = "target html {0} opgehaald".format(htmlfile)
             htmlfile = os.path.basename(htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata)
