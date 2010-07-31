@@ -5,6 +5,7 @@ syntax: glob
 *~
 *pyc
 *.rst
+afrift*
 target/*.html
 target/*/*.html
 target/css/html4css_magiokis_960.css
