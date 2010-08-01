@@ -159,8 +159,11 @@ class Rst2Html(object):
             elif rstfile == "..":
                 self.current = ""
                 mld = " "
-        if mld == "" and rstdata == "":
-            mld = "Tekstveld invullen s.v.p."
+        if mld == "":
+            if rstdata == "":
+                mld = "Tekstveld invullen s.v.p."
+            elif rstdata[0] == "<":
+                mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
         if mld == "":
             naam,ext = os.path.splitext(newfile)
             if ext != ".rst":
@@ -227,6 +230,8 @@ class Rst2Html(object):
         if mld == "":
             if rstdata == "":
                 mld = "Tekstveld invullen s.v.p."
+            elif rstdata[0] == "<":
+                mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
         if mld == "":
             where = os.path.join(source,self.current) if self.current else source
             rstfile = os.path.join(where,rstfile)
