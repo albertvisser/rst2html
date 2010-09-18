@@ -1,9 +1,9 @@
 # location of html pages
-root = "/home/visser/www/magiokis_vv/rst2html/target"
+root = "/home/visser/www/magiokis_vv/target"
 # location of .rst sources
-source = "/home/visser/www/magiokis_vv/rst2html/sources"
+source = "/home/visser/www/magiokis_vv/sources"
 # pad naar css
-css = "target/css/html4css_magiokis_960.css"
+css = "/home/visser/www/magiokis_vv/target/css/html4css_magiokis_960.css"
 # location of (mirror) ste
 mirror = "/home/visser/www/magiokis_vv/"
 # all css in separate files

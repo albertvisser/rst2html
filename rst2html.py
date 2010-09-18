@@ -11,7 +11,7 @@ from settings import root, source, css, mirror, all_css
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
 HERE = os.path.split(__file__)[0]
 template = os.path.join(HERE, "rst2html.html") # _met_settings
-CSS = os.path.join(HERE, css)
+CSS = os.path.join(root, css)
 settpl = "settings.html"
 setfn = "settings.py"
 
@@ -292,7 +292,7 @@ class Rst2Html(object):
         else:
             niks,linked_css = niks.split('css/',1)
             linked_css,niks = linked_css.split('"',1)
-            linked_css = "/target/css/".join((HERE,linked_css))
+            linked_css = "/css/".join((root,linked_css))
         with open(linked_css) as f_in:
             lines = "".join(f_in.readlines())
         newdata = lines.join(('<style type="text/css">','</style>'))
