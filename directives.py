@@ -134,10 +134,12 @@ class Bottom(Directive):
             about = '<a class="reference external" href="about.html">terug naar de indexpagina</a> '
         if wid:
             start = '' if wid == '-1' else '<div class="grid_{0}">'.format(wid)
+            next = '' if nxt == 'None' else '<a class="reference external" ' \
+                'href="{0}">{1}</a>'.format(nxt,ltext)
             start = ''.join((start,
                 '<p style="text-align: center">',
                 about,
-                '<a class="reference external" href="{0}">{1}</a>'.format(nxt,ltext),
+                next,
                 ))
             end = '' if wid == '-1' else ''.join(('</div><div class="clear">&nbsp;</div>',
                 '<div class="grid_{0} spacer">&nbsp;</div>'.format(wid),
