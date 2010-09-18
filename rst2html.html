@@ -36,7 +36,10 @@ Directives t.b.v. formatting:
 <dt>.. nextc:: <i>x</i> <i>class</i></dt><dd>start volgende kolom met breedte van x cellen met evt. class</dd>
 <dt>.. clearc::</dt><dd>einde regel na laatste kolom</dd>
 <dt>.. spacer:: [<i>x</i>]</dt><dd>maak lege ruimte (met breedte van x cellen)</dd>
-<dt>.. bottom:: <i>x</i> [<i>filename</i>]</dt><dd>maak navigatiefooter van x cellen breed evt. met verwijzing naar volgende document</dd>
+<dt>.. bottom:: <i>x</i> [None | <i>filename</i>] [<i>link text</i>]</dt><dd>
+maak navigatiefooter van x cellen breed met "index" en "volgende" link, "made by" tekst en mailto link. De tekst voor de "volgende" link is standaard tenzij anders aangegeven; <br/>
+bij ontbreken van de filenaam wordt ook geen index link weergegeven;<br/>
+bij "None" wordt de index link wel getoond</dd>
 <dt>.. endc: </dt><dd>einde kolomweergave</dd>
 </dl>
 </td></tr>
