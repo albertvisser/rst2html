@@ -12,18 +12,26 @@ function do_sub(x) {{
 <form action="/" method="post">
 <table >
 <tr><td colspan="2">
-<input type="button" value="Load source" onclick="javascript: do_sub('loadrst'); return true;"/>
-<input type="button" value="Save source" onclick="javascript: do_sub('saverst'); return true;"/>
-<input type="button" value="Convert to html and show" onclick="javascript: do_sub('convert'); return true;"/>
-<input type="button" value="Save converted html" onclick="javascript: do_sub('saveall'); return true;"/>
-<input type="button" value="Load html" onclick="javascript: do_sub('loadhtml'); return true;"/>
-<input type="button" value="Show edited html" onclick="javascript: do_sub('showhtml'); return true;"/>
-<input type="button" value="Save edited html" onclick="javascript: do_sub('savehtml'); return true;"/>
-<input type="button" value="Copy to mirror" onclick="javascript: do_sub('copytoroot'); return true;"/>
+<input type="button" value="Load source" onclick="javascript: do_sub('loadrst'); return true;"
+    title="Load .the chosen rst file into the input area. Can also be used to change directory ('..' or ending in '/')"/>
+<input type="button" value="Save source" onclick="javascript: do_sub('saverst'); return true;"
+    title="Save the input area's contents under the chosen .rst name. Can also be used to create a directory"/>
+<input type="button" value="Convert to html and show" onclick="javascript: do_sub('convert'); return true;"
+    title="Preview the result of the rst to html conversion"/>
+<input type="button" value="Save converted html" onclick="javascript: do_sub('saveall'); return true;"
+    title="Store the input area's contents as rst, convert to html and store the result of the conversion" />
+<input type="button" value="Load html" onclick="javascript: do_sub('loadhtml'); return true;"
+    title="Load the result of the html conversion into the input area"/>
+<input type="button" value="Show edited html" onclick="javascript: do_sub('showhtml'); return true;"
+    title="Render the html in the input area"/>
+<input type="button" value="Save edited html" onclick="javascript: do_sub('savehtml'); return true;"
+    title="Store the html in the input area"/>
+<input type="button" value="Copy to mirror" onclick="javascript: do_sub('copytoroot'); return true;"
+    title="Copy the stored html to the site mentioned in the config after editing the css link(s)"/>
 <br/><br/>
-source: <select name="rstfile"><option>-- new --</option>{0}</select>
-target: <select name="htmlfile"><option>-- new --</option>{1}</select>
-new name: <input type="text" name="newfile" value="{2}"/>
+source: <select name="rstfile" title="select the .rst file to load or save, or a directory name to change to"><option>-- new --</option>{0}</select>
+target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
+new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
 <br/><b>{3}</b><br/>
 </td></tr>
 <tr><td>
