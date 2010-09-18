@@ -13,3 +13,6 @@ all_css = """\
 <link rel="stylesheet" href="css/magiokis.css" type="text/css" />
 <link rel="stylesheet" href="css/html4css1.css" type="text/css" />
 """
+# breedte en hoogte van tekstveld
+wid = 100 # witje: 72
+hig = 32 # witje: 40

@@ -4,10 +4,10 @@
 import cherrypy
 import sys
 sys.path.append('.')
-import os,shutil
+import os, shutil
 from docutils.core import publish_string
 from docutils.parsers.rst import directives
-from settings import root, source, css, mirror, all_css
+from settings import root, source, css, mirror, all_css, wid, hig
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
 HERE = os.path.split(__file__)[0]
 template = os.path.join(HERE, "rst2html.html") # _met_settings
@@ -106,7 +106,7 @@ class Rst2Html(object):
         rstfile = htmlfile = newfile = rstdata  = ""
         mld = ""
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def loadrst(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -139,7 +139,7 @@ class Rst2Html(object):
             else:
                 mld = "Source file {0} opgehaald".format(os.path.join(where,rstfile))
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def saverst(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -176,7 +176,7 @@ class Rst2Html(object):
             rstfile = newfile
             newfile = ""
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def convert(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -189,7 +189,7 @@ class Rst2Html(object):
         if mld == "":
             return rst2html(rstdata,embed=True)
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def saveall(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -248,7 +248,7 @@ class Rst2Html(object):
             if newfile == rstfile or newfile == htmlfile:
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def loadhtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -277,7 +277,7 @@ class Rst2Html(object):
             mld = "target html {0} opgehaald".format(htmlfile)
             htmlfile = os.path.basename(htmlfile)
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def showhtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -301,7 +301,7 @@ class Rst2Html(object):
             ## newdata.append("X") # line)
         return newdata
         ## return self.output.format(self.all_source(rstfile),
-            ## self.all_html(htmlfile),newfile,mld,rstdata)
+            ## self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def savehtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -335,7 +335,7 @@ class Rst2Html(object):
             if newfile == rstfile or newfile == htmlfile:
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
     @cherrypy.expose
     def copytoroot(self,rstfile="",htmlfile="",newfile="",rstdata=""):
@@ -367,7 +367,7 @@ class Rst2Html(object):
                 x = "/" if self.current else ""
                 mld = " gekopieerd naar {0}{1}{2}{3}".format(mirror,self.current,x,htmlfile)
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile),newfile,mld,rstdata)
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
 #~ print cherrypy.config
 if __name__ == "__main__":
