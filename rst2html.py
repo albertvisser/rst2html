@@ -160,21 +160,34 @@ class Rst2Html(object):
                 self.current = ""
                 mld = " "
         if mld == "":
-            if rstdata == "":
+            if newfile.endswith("/"):
+                if self.current:
+                    mld = "nieuwe subdirectory (voorlopig) alleen in root mogelijk"
+            elif rstdata == "":
                 mld = "Tekstveld invullen s.v.p."
             elif rstdata[0] == "<":
                 mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
         if mld == "":
-            naam,ext = os.path.splitext(newfile)
-            if ext != ".rst":
-                newfile += ".rst"
-            where = os.path.join(source,self.current) if self.current else source
-            fullname = os.path.join(where,newfile)
-            mld = save_to(fullname,rstdata)
-            if mld == "":
-                mld = "rst source opgeslagen als " + fullname
-            rstfile = newfile
-            newfile = ""
+            if newfile.endswith("/"):
+                nieuw = newfile[:-1]
+                os.mkdir(os.path.join(source,nieuw))
+                os.mkdir(os.path.join(root,nieuw))
+                self.subdirs = sorted([f + "/" for f in os.listdir(source) \
+                    if os.path.isdir(os.path.join(source,f))])
+                mld = "nieuwe subdirectory {0} aangemaakt in {1} en {2}".format(nieuw,
+                    source, root)
+
+            else:
+                naam,ext = os.path.splitext(newfile)
+                if ext != ".rst":
+                    newfile += ".rst"
+                where = os.path.join(source,self.current) if self.current else source
+                fullname = os.path.join(where,newfile)
+                mld = save_to(fullname,rstdata)
+                if mld == "":
+                    mld = "rst source opgeslagen als " + fullname
+                rstfile = newfile
+                newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
 
