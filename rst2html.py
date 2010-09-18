@@ -253,6 +253,10 @@ class Rst2Html(object):
             newdata = rst2html(rstdata)
             mld = save_to(rstfile,rstdata)
             if mld == "":
+                begin, rest = newdata.split('<link rel="stylesheet"',1)
+                rest, end = rest.split(">",1)
+                newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(css)
+                newdata = newcss.join((begin,end))
                 mld = save_to(htmlfile,newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + htmlfile
