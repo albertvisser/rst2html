@@ -14,3 +14,6 @@ all_css = """\
 <link rel="stylesheet" type="text/css" media="all" href="css/960.css" />
 <link rel="stylesheet" href="css/html4css1.css" type="text/css" />
 """
+# breedte en hoogte van tekstveld
+wid = 100 # witje: 72
+hig = 32 # witje: 40

@@ -9,7 +9,7 @@ from docutils.core import publish_string
 from docutils.parsers.rst import directives
 from settings import root, source, css, mirror, all_css, wid, hig
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
-HERE = os.path.split(__file__)[0]
+HERE = os.path.dirname(__file__)
 template = os.path.join(HERE, "rst2html.html") # _met_settings
 CSS = os.path.join(root, css)
 settpl = "settings.html"
@@ -176,7 +176,6 @@ class Rst2Html(object):
                     if os.path.isdir(os.path.join(source,f))])
                 mld = "nieuwe subdirectory {0} aangemaakt in {1} en {2}".format(nieuw,
                     source, root)
-
             else:
                 naam,ext = os.path.splitext(newfile)
                 if ext != ".rst":
@@ -307,18 +306,46 @@ class Rst2Html(object):
         if CSS in niks:
             linked_css = CSS
         else:
-            niks,linked_css = niks.split('css/',1)
-            linked_css,niks = linked_css.split('"',1)
-            linked_css = "/css/".join((root,linked_css))
-        with open(linked_css) as f_in:
-            lines = "".join(f_in.readlines())
-        newdata = lines.join(('<style type="text/css">','</style>'))
-        newdata = newdata.join((data,rstdata))
+            ## niks,linked_css = niks.split('css/',1)
+            # probeer de css regel te splitsen op een van de standaard subdirectories
+            # css/ of style/ - zo niet dan afbreken
+            for cssdir in ('css/', 'style/', 'styles/'):
+                ok = True
+                try:
+                    niks,linked_css = niks.split(cssdir,1)
+                except ValueError:
+                    ok = False
+                if ok:
+                    break
+            ## linked_css,niks = linked_css.split('"',1)
+            ## linked_css = "/css/".join((root,linked_css))
+            if ok:
+                linked_css,niks = linked_css.split('"',1)
+                if css[0] == "/" or css [1] == ":":
+                    linked_css = css
+                else:
+                    linked_css = "/target/css/".join((root,linked_css))
+            else:
+                mld = "niet mogelijk: geen standaard css subdir gebruikt"
+        ## with open(linked_css) as f_in:
+            ## lines = "".join(f_in.readlines())
+        ## newdata = lines.join(('<style type="text/css">','</style>'))
+        ## newdata = newdata.join((data,rstdata))
         ## for line in data:
             ## newdata.append("X") # line)
-        return newdata
+        ## return newdata
         ## return self.output.format(self.all_source(rstfile),
             ## self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
+        if not mld:
+            with open(linked_css) as f_in:
+                lines = "".join(f_in.readlines())
+            newdata = lines.join(('<style type="text/css">','</style>'))
+            newdata = newdata.join((data,rstdata))
+            ## for line in data:
+                ## newdata.append("X") # line)
+            return newdata
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile),newfile,mld,rstdata)
 
     @cherrypy.expose
     def savehtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
