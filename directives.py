@@ -137,14 +137,14 @@ class Bottom(Directive):
             next = '' if nxt == 'None' else '<a class="reference external" ' \
                 'href="{0}">{1}</a>'.format(nxt,ltext)
             start = ''.join((start,
-                '<p style="text-align: center">',
+                '<div style="text-align: center">',
                 about,
                 next,
                 ))
             end = '' if wid == '-1' else ''.join(('</div><div class="clear">&nbsp;</div>',
                 '<div class="grid_{0} spacer">&nbsp;</div>'.format(wid),
                 '<div class="clear">&nbsp;</div>'))
-            end = '</p>' + end
+            end = '</div>' + end
         text_node = nodes.raw('',''.join((start,
             '<div class="madeby">content and layout created 2010 by Albert Visser',
             ' <a href="mailto:info@magiokis.nl">contact me</a></div>',
