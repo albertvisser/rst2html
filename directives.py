@@ -10,6 +10,9 @@ def align(argument):
     return directives.choice(argument, ('left', 'center', 'right'))
 
 class StartCols(Directive):
+    """Initialisatie van het grid
+
+    required: aantal eenheden (12 0f 16)"""
 
     required_arguments = 1
     optional_arguments = 0
@@ -19,12 +22,14 @@ class StartCols(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         text = '<div class="container_{0}">\n'.format(self.arguments[0])
         text_node = nodes.raw('',text, format='html')
         return [text_node]
 
 
 class EndCols(Directive):
+    "afsluiten van het grid"
 
     required_arguments = 0
     optional_arguments = 0
@@ -32,10 +37,15 @@ class EndCols(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         text_node = nodes.raw('','</div>\n', format='html')
         return [text_node]
 
 class FirstCol(Directive):
+    """definieren van de eerste kolom
+
+    required: aantal eenheden
+    optional: class"""
 
     required_arguments = 1
     optional_arguments = 1
@@ -45,6 +55,7 @@ class FirstCol(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         width = self.arguments[0]
         try:
             classes = self.arguments[1]
@@ -55,6 +66,10 @@ class FirstCol(Directive):
         return [text_node]
 
 class NextCol(Directive):
+    """definieren van de volgende kolom
+
+    required: aantal eenheden
+    optional: class"""
 
     required_arguments = 1
     optional_arguments = 1
@@ -64,6 +79,7 @@ class NextCol(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         width = self.arguments[0]
         try:
             classes = self.arguments[1]
@@ -74,18 +90,23 @@ class NextCol(Directive):
         return [text_node]
 
 class ClearCol(Directive):
-
+    """afsluiten van een rij kolommen"""
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = True
     has_content = False
 
     def run(self):
+        "genereer de html"
         text_node = nodes.raw('',
             '</div>\n<div class="clear">&nbsp;</div>\n', format='html')
         return [text_node]
 
 class Spacer(Directive):
+    """genereert een lege regel of kolom
+
+    optionol: aantal kolomeenheden. Bij niet opgeven hiervan wrdt de spacer genereneerd
+    binnen de huidige kolom; anders vergelijkbaar met firstcol/nextcol"""
 
     required_arguments = 0
     optional_arguments = 1
@@ -95,6 +116,7 @@ class Spacer(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         try:
             cls = "grid_{0} ".format(self.arguments[0])
             clr = '<div class="clear">&nbsp;</div>\n'
@@ -105,6 +127,11 @@ class Spacer(Directive):
         return [text_node]
 
 class Bottom(Directive):
+    """genereert de page footer eventueel inclusief gridlayout
+
+    optioneel: aantal eenheden (gridlayout) of -1 (geen gridlayout, wel volgende argumenten)
+               target voor lnk naar volgende document of None om ...
+               tekst voor link naar volgende document"""
 
     required_arguments = 0
     optional_arguments = 3
@@ -116,6 +143,7 @@ class Bottom(Directive):
     has_content = False
 
     def run(self):
+        "genereer de html"
         try:
             wid = self.arguments[0]
         except IndexError:
@@ -150,3 +178,18 @@ class Bottom(Directive):
             ' <a href="mailto:info@magiokis.nl">contact me</a></div>',
             end)), format='html')
         return [text_node]
+
+class RefKey(Directive):
+    """Trefwoorden voor document met verwijzingen"""
+
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {'trefwoord(en)': directives.unchanged,
+                   }
+    has_content = False
+
+    def run(self):
+        """dit directive is bedoeld om door een apart proces gebruikt te worden
+        en doet daarom niets"""
+        return []

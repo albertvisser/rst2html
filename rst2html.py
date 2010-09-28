@@ -8,7 +8,8 @@ import os, shutil
 from docutils.core import publish_string
 from docutils.parsers.rst import directives
 from settings import root, source, css, mirror, all_css, wid, hig
-from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom
+from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom, \
+    RefKey
 HERE = os.path.dirname(__file__)
 template = os.path.join(HERE, "rst2html.html") # _met_settings
 CSS = os.path.join(root, css)
@@ -57,6 +58,29 @@ def list_all(inputlist,naam):
         out.append("<option{1}>{0}</option>".format(f,s))
     return "".join(out)
 
+def getrefs(path, file, reflinks):
+    fullpath = os.path.join(path, file)
+    if os.path.isdir(fullpath):
+        src = fullpath
+        for file in os.listdir(src):
+            getrefs(src, file, reflinks)
+    elif file.endswith(".rst"):
+        doc = fullpath
+        with open(fullpath) as f_in:
+            for line in f_in:
+                if line.startswith("..") and "refkey::" in line:
+                    x, refs = line.split("refkey::",1)
+                    for ref in (x.split(":") for x in refs.split(";")):
+                        word = ref[0].strip()
+                        link = doc
+                        try:
+                            link += "#" + ref[1].strip()
+                        except IndexError:
+                            pass
+                        if word not in reflinks:
+                            reflinks[word] = []
+                        reflinks[word].append(link)
+
 class Rst2Html(object):
 
     def __init__(self):
@@ -75,6 +99,7 @@ class Rst2Html(object):
         directives.register_directive("clearc", ClearCol)
         directives.register_directive("spacer", Spacer)
         directives.register_directive("bottom", Bottom)
+        directives.register_directive("refkey", RefKey)
 
     def all_source(self, naam):
         """build list of options from rst files"""
@@ -99,6 +124,74 @@ class Rst2Html(object):
         else:
             items = self.subdirs + items
         return list_all(items,naam)
+
+    def scandocs(self):
+        mld = ""
+        reflinks = {}
+        for file in os.listdir(source):
+            getrefs(source, file, reflinks)
+        current_letter = ""
+        # produceer het begin van de pagina
+        data = [
+            "Trefwoordenlijst",
+            "================",
+            "",
+            ""
+            ]
+        titel, teksten, links, anchors = [], [], [], []
+        for key in sorted(reflinks.keys()):
+            if key[0] != current_letter:
+                if titel:
+                    data.extend(titel)
+                    data.append("")
+                    data.extend(teksten)
+                    data.append("")
+                    data.extend(links)
+                    data.append("")
+                    data.extend(anchors)
+                    data.append("")
+                    titel, teksten, links, anchors = [], [], [], []
+                # produceer het begin voor een letter
+                current_letter = key[0]
+                data[3] += "`{0}`_ ".format(current_letter)
+                data.append("")
+                titel = ["{0}".format(current_letter), "-"]
+                linkno = 0
+            # produceer het begin voor een nieuw trefwoord
+            current_trefw = "+   {0}".format(key)
+            for link in reflinks[key]:
+                # produceer de tekst voor een link
+                current_trefw += " `#`__ "
+                linkno += 1
+                linknm = current_letter + str(linkno)
+                links.append("..  _{0}: {1}".format(linknm, link))
+                anchors.append("__ {0}_".format(linknm))
+            teksten.append(current_trefw)
+        # produceer het eind van de pagina
+        if teksten:
+            data.extend(titel)
+            data.append("")
+            data.extend(teksten)
+            data.append(" ")
+            data.extend(links)
+            data.append(" ")
+            data.extend(anchors)
+            data.append(" ")
+        rstdata = "\n".join(data)
+        mld = save_to(os.path.join(source, 'trefwoorden.rst'), rstdata)
+        if mld == "":
+            newdata = rst2html(rstdata)
+            begin, rest = newdata.split('<link rel="stylesheet"',1)
+            rest, end = rest.split(">",1)
+            newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(css)
+            newdata = newcss.join((begin, end))
+            mld = save_to(os.path.join(root, "trefwoorden.html"), newdata)
+            if mld == "":
+                mld = save_to(os.path.join(mirror, "trefwoorden.html"),
+                    all_css.join((begin, end)))
+        if not mld:
+            mld = "Trefwoordenlijst aangemaakt"
+        return mld
 
     @cherrypy.expose
     def index(self):
@@ -412,6 +505,16 @@ class Rst2Html(object):
                 mld = " gekopieerd naar {0}{1}{2}{3}".format(mirror,self.current,x,htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
+
+    @cherrypy.expose
+    def makerefdoc(self,rstfile="",htmlfile="",newfile="",rstdata=""):
+        """scan alle brondocumenten op RefKey directives en bouw hiermee een
+        trefwoordenregister op"""
+
+        mld = self.scandocs()
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
+
 
 #~ print cherrypy.config
 if __name__ == "__main__":

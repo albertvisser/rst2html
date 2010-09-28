@@ -32,9 +32,11 @@ function do_sub(x) {{
 source: <select name="rstfile" title="select the .rst file to load or save, or a directory name to change to"><option>-- new --</option>{0}</select>
 target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
 new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
+<input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
+    title="Generate a general index page using the 'refkey' directives in various documents"/>
 <br/><b>{3}</b><br/>
 </td></tr>
-<tr><td>
+<tr><td valign="top">
 <textarea name="rstdata" cols="{5}" rows="{6}">{4}</textarea>
 </td><td valign="top">
 Directives t.b.v. formatting:
@@ -48,7 +50,8 @@ Directives t.b.v. formatting:
 maak navigatiefooter van x cellen breed met "index" en "volgende" link, "made by" tekst en mailto link. De tekst voor de "volgende" link is standaard tenzij anders aangegeven; <br/>
 bij ontbreken van de filenaam wordt ook geen index link weergegeven;<br/>
 bij "None" wordt de index link wel getoond</dd>
-<dt>.. endc: </dt><dd>einde kolomweergave</dd>
+<dt>.. endc:: </dt><dd>einde kolomweergave</dd>
+<dt>.. refkey:: trefwoord [ : <i>anchor</i>]</dt><dd>definieer een verwijzing naar (een plek op) deze pagina</dd>
 </dl>
 </td></tr>
 </form>
