@@ -71,7 +71,7 @@ def getrefs(path, file, reflinks):
                 if line.startswith("..") and "refkey::" in line:
                     x, refs = line.split("refkey::",1)
                     for ref in (x.split(":") for x in refs.split(";")):
-                        word = ref[0].strip()
+                        word = ref[0].strip().capitalize()
                         link = doc
                         try:
                             link += "#" + ref[1].strip()
@@ -79,7 +79,7 @@ def getrefs(path, file, reflinks):
                             pass
                         if word not in reflinks:
                             reflinks[word] = []
-                        reflinks[word].append(link)
+                        reflinks[word].append(link.split(source)[1][1:])
 
 class Rst2Html(object):
 
@@ -136,7 +136,7 @@ class Rst2Html(object):
             "Trefwoordenlijst",
             "================",
             "",
-            ""
+                ""
             ]
         titel, teksten, links, anchors = [], [], [], []
         for key in sorted(reflinks.keys()):
