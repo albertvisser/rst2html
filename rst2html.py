@@ -1,20 +1,18 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""webapp om teksten in ReST formaat om te zetten naar HTML documenten
+
+"""
 import cherrypy
 import sys
 sys.path.append('.')
 import os, shutil
 from docutils.core import publish_string
 from docutils.parsers.rst import directives
-from settings import root, source, css, mirror, all_css, wid, hig
+from settings import HERE, TEMPLATE, root, source, css, mirror, all_css, wid, hig
 from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, Bottom, \
     RefKey
-HERE = os.path.dirname(__file__)
-template = os.path.join(HERE, "rst2html.html") # _met_settings
-CSS = os.path.join(root, css)
-settpl = "settings.html"
-setfn = "settings.py"
 
 def striplines(data):
     """list -> string met verwijdering van eventuele line endings"""
@@ -24,7 +22,7 @@ def rst2html(data, embed=False):
     """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
         "embed_stylesheet": embed,
-        "stylesheet_path": CSS,
+        "stylesheet_path": css,
         "report_level": 3,
         }
     return publish_string(source=data,
@@ -36,7 +34,7 @@ def rst2html(data, embed=False):
 def save_to(fullname, data):
     """backup file, then write data to file
 
-    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user"""
+    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
     try:
         if os.path.exists(fullname):
             if os.path.exists(fullname + ".bak"):
@@ -59,6 +57,7 @@ def list_all(inputlist,naam):
     return "".join(out)
 
 def getrefs(path, file, reflinks):
+    "search for keywords in source file and remember their locations"
     fullpath = os.path.join(path, file)
     if os.path.isdir(fullpath):
         src = fullpath
@@ -82,6 +81,7 @@ def getrefs(path, file, reflinks):
                         reflinks[word].append(link.split(source)[1][1:])
 
 class Rst2Html(object):
+    "the actual webapp"
 
     def __init__(self):
         """initialize using imported settings; read template; register directives"""
@@ -90,7 +90,7 @@ class Rst2Html(object):
         self.subdirs = sorted([f + "/" for f in os.listdir(source) \
             if os.path.isdir(os.path.join(source,f))])
         self.current = ""
-        with open(template) as f_in:
+        with open(TEMPLATE) as f_in:
             self.output = f_in.read()
         directives.register_directive("startc", StartCols)
         directives.register_directive("endc", EndCols)
@@ -126,6 +126,8 @@ class Rst2Html(object):
         return list_all(items,naam)
 
     def scandocs(self):
+        """scan alle brondocumenten op RefKey directives en bouw hiermee een
+        trefwoordenregister op"""
         mld = ""
         reflinks = {}
         for file in os.listdir(source):
@@ -347,8 +349,7 @@ class Rst2Html(object):
             if mld == "":
                 begin, rest = newdata.split('<link rel="stylesheet"',1)
                 rest, end = rest.split(">",1)
-                newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(css)
-                newdata = newcss.join((begin,end))
+                newdata = all_css.join((begin,end))
                 mld = save_to(htmlfile,newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + htmlfile
@@ -364,16 +365,7 @@ class Rst2Html(object):
         """load html file and show code"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-        ## if htmlfile == "" or htmlfile == "-- new --":
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
-        ## elif htmlfile.endswith("/"):
-            ## self.current = htmlfile[:-1]
-            ## rstdata = ""
-            ## mld = " "
-        ## elif htmlfile == "..":
-            ## self.current = ""
-            ## rstdata = ""
-            ## mld = " "
         else:
             naam,ext = os.path.splitext(htmlfile)
             rstfile = naam + ".rst"
@@ -381,7 +373,6 @@ class Rst2Html(object):
             where = os.path.join(root,self.current) if self.current else root
             htmlfile = os.path.join(where,htmlfile)
             with open(htmlfile) as f_in:
-                ## rstdata = striplines(f_in.readlines()).replace("&nbsp","&amp;nbsp")
                 rstdata = "".join(f_in.readlines()).replace("&nbsp","&amp;nbsp")
             mld = "target html {0} opgehaald".format(htmlfile)
             htmlfile = os.path.basename(htmlfile)
@@ -391,51 +382,22 @@ class Rst2Html(object):
     @cherrypy.expose
     def showhtml(self,rstfile="",htmlfile="",newfile="",rstdata=""):
         mld = ""
-        ## if htmlfile == "" or htmlfile == "-- new --":
-            ## mld = "Filenaam voor html opgeven of selecteren s.v.p."
-        ## else:
-        data, rstdata = rstdata.split("<link",1)
-        niks, rstdata = rstdata.split(">",1)
-        if CSS in niks:
-            linked_css = CSS
-        else:
-            ## niks,linked_css = niks.split('css/',1)
-            # probeer de css regel te splitsen op een van de standaard subdirectories
-            # css/ of style/ - zo niet dan afbreken
-            for cssdir in ('css/', 'style/', 'styles/'):
-                ok = True
-                try:
-                    niks,linked_css = niks.split(cssdir,1)
-                except ValueError:
-                    ok = False
-                if ok:
-                    break
-            ## linked_css,niks = linked_css.split('"',1)
-            ## linked_css = "/css/".join((root,linked_css))
-            if ok:
-                linked_css,niks = linked_css.split('"',1)
-                if css[0] == "/" or css [1] == ":":
-                    linked_css = css
-                else:
-                    linked_css = "/target/css/".join((root,linked_css))
-            else:
-                mld = "niet mogelijk: geen standaard css subdir gebruikt"
-        ## with open(linked_css) as f_in:
-            ## lines = "".join(f_in.readlines())
-        ## newdata = lines.join(('<style type="text/css">','</style>'))
-        ## newdata = newdata.join((data,rstdata))
-        ## for line in data:
-            ## newdata.append("X") # line)
-        ## return newdata
-        ## return self.output.format(self.all_source(rstfile),
-            ## self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
+        embed = True
+        try:
+            data, rstdata = rstdata.split("<link",1)
+        except ValueError:
+            embed = False
+        while embed:
+            niks, rstdata = rstdata.split(">",1)
+            try:
+                niks, rstdata = rstdata.split("<link",1)
+            except ValueError:
+                embed = False
         if not mld:
-            with open(linked_css) as f_in:
+            with open(css) as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">','</style>'))
             newdata = newdata.join((data,rstdata))
-            ## for line in data:
-                ## newdata.append("X") # line)
             return newdata
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata)
@@ -445,21 +407,10 @@ class Rst2Html(object):
         """save displayed (edited) html"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-        ## if htmlfile == "" or htmlfile == "-- new --":
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
-        ## elif htmlfile.endswith("/"):
-            ## self.current = htmlfile[:-1]
-            ## mld = " "
-        ## elif htmlfile == "..":
-            ## self.current = ""
-            ## mld = " "
-        else:
-            if rstdata == "":
-                mld = "Tekstveld invullen s.v.p."
-            ## else:
-                ## rstdata = striplines(rstdata)
+        elif rstdata == "":
+            mld = "Tekstveld invullen s.v.p."
         if mld == "":
-            ## rstfile = os.path.join(source,rstfile)
             where = os.path.join(root,self.current) if self.current else root
             htmlfile = os.path.join(where,htmlfile)
             newdata = rstdata # striplines(rstdata)
@@ -481,24 +432,11 @@ class Rst2Html(object):
         along the way the right stylesheets are added"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-        ## if htmlfile == "" or htmlfile == "-- new --":
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
         else:
             where = os.path.join(mirror,self.current) if self.current else mirror
             target = os.path.join(where,htmlfile)
-            where = os.path.join(root,self.current) if self.current else root
-            htmlfile = os.path.join(where,htmlfile)
-            with open(htmlfile) as f_in:
-                htmldata = "".join(f_in.readlines())
-            if css in htmldata:
-                data, htmldata = htmldata.split("<link",1)
-                niks, htmldata = htmldata.split(">",1)
-                allcss = all_css
-                if self.current:
-                    allcss = all_css.replace('href="css','href="../css')
-                htmldata = allcss.join((data,htmldata))
-            mld = save_to(htmlfile, htmldata)
-            mld = save_to(target, htmldata)
+            mld = save_to(target, rstdata)
             htmlfile = os.path.basename(htmlfile)
             if not mld:
                 x = "/" if self.current else ""
@@ -508,9 +446,7 @@ class Rst2Html(object):
 
     @cherrypy.expose
     def makerefdoc(self,rstfile="",htmlfile="",newfile="",rstdata=""):
-        """scan alle brondocumenten op RefKey directives en bouw hiermee een
-        trefwoordenregister op"""
-
+        "build references document"
         mld = self.scandocs()
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile),newfile,mld,rstdata, wid, hig)
@@ -518,8 +454,9 @@ class Rst2Html(object):
 
 #~ print cherrypy.config
 if __name__ == "__main__":
+    domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
     cherrypy.quickstart(Rst2Html(), config={
     "/": {
-        'server.socket_host': 'rst2html.linuxmoby.nl',
+        'server.socket_host': 'rst2html.{0}.nl'.format(domain),
         'server.socket_port': 80,
         }})

@@ -1,10 +1,12 @@
 import sys
 sys.stdout = sys.stderr
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
 import atexit
 import threading
 import cherrypy
-from rsthtml import Rst2Html
+from rst2html import Rst2Html
 
 cherrypy.config.update({'environment': 'embedded'})
 
