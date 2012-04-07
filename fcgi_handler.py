@@ -27,9 +27,9 @@ cherrypy.config.update({'engine.autoreload_on': False,
         ## "log.screen": False,
         ## "log.access_file": "/tmp/cherry_access.log",
         ## "log.error_file": "/tmp/cherry_error.log",
-        'server.socket_file': "/var/www/rst2html/rst2html.sock",
-        'server.socket_host': 'rst2html.linuxmoby.nl',
-        'server.socket_port': 80,
+        'server.socket_file': "/var/run/rst2html.sock",
+        ## 'server.socket_host': 'rst2html.lemoncurry.nl',
+        ## 'server.socket_port': 80,
         })
 #try:
 WSGIServer(application).run()

@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""webapp om teksten in ReST formaat om te zetten naar HTML documenten
-
+"""
+webapp om teksten in ReST formaat om te zetten naar HTML documenten
 """
 import cherrypy
 import sys
