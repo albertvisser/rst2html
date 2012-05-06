@@ -1,0 +1,23 @@
+# rename this file to settings.yml to make it work
+# note that alternative setting files can be defined as settings_<sitename>.yml
+
+# this file defines the following items:
+
+# root        - location of html pages
+# source   - location of .rst sources
+# css           - location of css (needs to be in one file, apparently)
+# mirror   - location of (mirror) site on local machine
+# all_css    - all css in separate files (relative links)
+# wid, hig - width and height of text area in rst2html.html
+
+root: /home/albert/www/magiokis_vv/target
+source: root + ../sources
+css: root + css/html4css_960.css
+mirror: /home/albert/www/magiokis_vv
+all_css:
+  - css/reset.css
+  - css/960.css
+  - css/html4css1.css
+  - css/magiokis.css
+wid: 100
+hig: 32
