@@ -43,21 +43,23 @@ new name: <input type="text" name="newfile" value="{2}" title="enter a new name 
 <tr><td valign="top">
 <textarea name="rstdata" cols="{5}" rows="{6}">{4}</textarea>
 </td><td valign="top">
-Directives t.b.v. formatting:
-<dl>
-<dt>.. startc:: <i>x</i></dt><dd>start kolomweergave van x cellen breed (x = 12 of 16)</dd>
-<dt>.. firstc:: <i>x</i> [<i>class</i>]</dt><dd>start eerste kolom met breedte van x cellen met evt. class</dd>
-<dt>.. nextc:: <i>x</i> [<i>class</i>]</dt><dd>start volgende kolom met breedte van x cellen met evt. class</dd>
-<dt>.. clearc::</dt><dd>einde regel na laatste kolom</dd>
-<dt>.. spacer:: [<i>x</i>]</dt><dd>maak lege ruimte (met breedte van x cellen)</dd>
-<dt>.. bottom:: <i>x</i> [None | <i>filename</i>] [<i>link text</i>]</dt><dd>
-maak navigatiefooter van x cellen breed met "index" en "volgende" link, "made by" tekst en mailto link. De tekst voor de "volgende" link is standaard tenzij anders aangegeven; <br/>
-bij ontbreken van de filenaam wordt ook geen index link weergegeven;<br/>
-bij "None" wordt de index link wel getoond</dd>
-<dt>.. endc:: </dt><dd>einde kolomweergave</dd>
-<dt>.. refkey:: trefwoord [ : <i>anchor</i>]</dt><dd>definieer een verwijzing naar (een plek op) deze pagina</dd>
-</dl>
-</td></tr>
+Apart from the built in ones, the following directives are available (hover to view description):
+<table>
+<tr><td>grid:</td><td><span title="start kolomweergave van x cellen breed (x = 12 of 16)">.. startc:: <i>x</i></span></td></tr>
+<tr><td>&nbsp;</td><td><span title="start eerste kolom met breedte van x cellen met evt. class">.. firstc:: <i>x</i> [<i>class</i>]</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="start volgende kolom met breedte van x cellen met evt. class">.. nextc:: <i>x</i> [<i>class</i>]</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="einde regel na laatste kolom">.. clearc::</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="maak lege ruimte (met breedte van x cellen)">.. spacer:: [<i>x</i>]</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="einde kolomweergave">.. endc:: </span></td></tr>
+<tr><td>Magiokis:</td><td><span title="maak navigatiefooter van x cellen breed met 'index' en 'volgende' link, 'made by' tekst en mailto link. De tekst voor de 'volgende' link is standaard tenzij anders aangegeven;
+bij ontbreken van de filenaam wordt ook geen index link weergegeven;
+bij 'None' wordt de index link wel getoond">.. bottom:: <i>x</i> [None | <i>filename</i>] [<i>link text</i>]</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="definieer een verwijzing naar (een plek op) deze pagina t.b.v. de 'create index' functie">.. refkey:: trefwoord [ : <i>anchor</i>]</span></td></tr>
+<tr><td>BitBucket:</td><td><span title="genereer standaard begin van de body section">startbody</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="genereer navigatielinks">navlinks</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="genereer begin van de tekst met titel">textheader [<i>text</i>]</span></td></tr>
+<tr><td>&nbsp;</td><td><span title="genereer standaard einde van de body section">endbody</span></td></tr>
+</table>
 </form>
 </body>
 </html>
