@@ -12,6 +12,13 @@ function do_sub(x) {{
 <form action="/" method="post">
 <table >
 <tr><td colspan="2">
+settings: <select name="settings" title="select a different settings file, indicating the site to work on">{7}</select>
+source: <select name="rstfile" title="select the .rst file to load or save, or a directory name to change to"><option>-- new --</option>{0}</select>
+target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
+new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
+<input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
+    title="Generate a general index page using the 'refkey' directives in various documents"/>
+<br/>
 <input type="button" value="Load settings" onclick="javascript:do_sub('loadconf'); return true;"
     title="Load the selected settings, changing the locations of source, target and web mirror" />
 <input type="button" value="Load source" onclick="javascript: do_sub('loadrst'); return true;"
@@ -31,13 +38,7 @@ function do_sub(x) {{
 <input type="button" value="Copy to mirror" onclick="javascript: do_sub('copytoroot'); return true;"
     title="Copy the stored html to the site mentioned in the config after editing the css link(s)"/>
 <br/><br/>
-settings: <select name="settings" title="select a different settings file, indicating the site to work on">{7}</select>
-source: <select name="rstfile" title="select the .rst file to load or save, or a directory name to change to"><option>-- new --</option>{0}</select>
-target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
-new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
-<input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
-    title="Generate a general index page using the 'refkey' directives in various documents"/>
-<br/><b>{3}</b><br/>
+<b>{3}</b><br/>
 </td></tr>
 <tr><td valign="top">
 <textarea name="rstdata" cols="{5}" rows="{6}">{4}</textarea>
