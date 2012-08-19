@@ -12,8 +12,10 @@ import glob
 import yaml
 from docutils.core import publish_string
 from docutils.parsers.rst import directives
-from directives import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer, \
-    Bottom, RefKey
+from directives_grid import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer
+from directives_magiokis import Bottom, RefKey
+from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
+
 HERE = os.path.dirname(__file__)
 TEMPLATE = os.path.join(HERE, "rst2html.html")
 
@@ -155,6 +157,10 @@ class Rst2Html(object):
         directives.register_directive("spacer", Spacer)
         directives.register_directive("bottom", Bottom)
         directives.register_directive("refkey", RefKey)
+        directives.register_directive("startbody", StartBody)
+        directives.register_directive("navlinks", NavLinks)
+        directives.register_directive("textheader", TextHeader)
+        directives.register_directive("endbody", EndBody)
 
     def all_source(self, naam):
         """build list of options from rst files"""
@@ -262,8 +268,8 @@ class Rst2Html(object):
     def index(self):
         """show page with empty fields (and selectable filenames)"""
         rstfile = htmlfile = newfile = rstdata  = ""
-        mld = ""
-        rstdata = "conffile is " + self.conffile
+        mld = "conffile is " + self.conffile
+        rstdata = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
@@ -280,8 +286,7 @@ class Rst2Html(object):
             if os.path.isdir(os.path.join(self.conf['source'],f))])
         self.current = ""
         rstdata = ""
-        mld = 'settings loaded'
-        rstdata = "conffile is " + self.conffile
+        mld = 'settings loaded from ' + self.conffile
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
@@ -485,6 +490,7 @@ class Rst2Html(object):
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         mld = ""
         embed = True
+        data = ''
         try:
             data, rstdata = rstdata.split("<link", 1)
         except ValueError:
