@@ -551,6 +551,16 @@ class Rst2Html(object):
                 where = os.path.join(self.conf['mirror'], self.current)
             else:
                 where = self.conf['mirror']
+            if self.conf.get('starthead', ''):
+                split_on = '<head>' # + os.linesep
+                start, end = rstdata.split(split_on)
+                middle = os.linesep.join(self.conf['starthead'])
+                rstdata = start + split_on + middle + end
+            if self.conf.get('endhead', ''):
+                split_on = '</head>' # + os.linesep
+                start, end = rstdata.split(split_on)
+                middle = os.linesep.join(self.conf['endhead'])
+                rstdata = start + middle + split_on + end
             target = os.path.join(where, htmlfile)
             mld = save_to(target, rstdata)
             htmlfile = os.path.basename(htmlfile)

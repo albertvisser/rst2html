@@ -9,15 +9,20 @@
 # mirror   - location of (mirror) site on local machine
 # all_css    - all css in separate files (relative links)
 # wid, hig - width and height of text area in rst2html.html
+# starthead - lines to copy directly after the <head> element (to be executed first)
+# endhead  - lines to copy directly before the </head> element (to be executed last)
 
 root: /home/albert/www/magiokis_vv/target
 source: root + ../sources
-css: root + css/html4css_960.css
+css: root + /css/html4css_960.css
 mirror: /home/albert/www/magiokis_vv
 all_css:
-  - css/reset.css
-  - css/960.css
-  - css/html4css1.css
-  - css/magiokis.css
+  - /css/reset.css
+  - /css/960.css
+  - /css/html4css1.css
+  - /css/magiokis.css
 wid: 100
 hig: 32
+starthead:
+
+endhead:
