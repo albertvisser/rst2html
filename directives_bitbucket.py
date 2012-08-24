@@ -15,10 +15,12 @@ wat moet ik maken
 - body start: div class title met inhoud = variabele tekstregel
 -             p class date met inhoud = 'written on ...'
 """
-header_text = "Albert Visser's programmer's blog"
+header_text = "" # "Albert Visser's programmer's blog"
 navlinks = [('/', "home"),
-            ('/about/', 'about'),
-            ('/projects/', 'projects')]
+            ('/about/', 'about me'),
+            ('/site/', 'about this site'),
+            ## ('/projects/', 'projects')
+            ]
 
 def align(argument):
     """Conversion function for the "align" option."""
@@ -57,7 +59,8 @@ class NavLinks(Directive):
 class TextHeader(Directive):
     """genereert het begin van de echte tekst
     """
-    required_arguments = 1
+    required_arguments = 0
+    optional_arguments = 1
     final_argument_whitespace = True
     option_spec = {'text': directives.unchanged,
                    }
@@ -66,9 +69,13 @@ class TextHeader(Directive):
     def run(self):
         "genereer de html"
         text = ['<div id="body">',]
-        text.append('<h1 class="title">{}</h1>'.format(self.arguments[0]))
+        try:
+            title_text =  self.arguments[0]
+        except IndexError:
+            title_text = "&nbsp;"
+        text.append('<h1 class="title">{}</h1>'.format(title_text))
         datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
-        text.append('<p class="date">written on {}</p>'.format(datum))
+        text.append('<p class="date">last modified on {}</p>'.format(datum))
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
 
