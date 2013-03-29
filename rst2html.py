@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -40,17 +40,20 @@ def save_to(fullname, data):
     """backup file, then write data to file
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
-    try:
-        if os.path.exists(fullname):
-            if os.path.exists(fullname + ".bak"):
-                os.remove(fullname + ".bak")
-            shutil.copyfile(fullname,fullname + ".bak")
-        with open(fullname,"w") as f_out:
-            f_out.write(data)
-    except Exception as e:
-        mld = str(e)
-    else:
-        mld = ""
+    mld = ''
+    ## try:
+    if os.path.exists(fullname):
+        if os.path.exists(fullname + ".bak"):
+            os.remove(fullname + ".bak")
+        shutil.copyfile(fullname,fullname + ".bak")
+    with open(fullname, "w") as f_out:
+        if isinstance(data, bytes):
+            data = str(data, 'utf-8')
+        f_out.write(data)
+    ## except Exception as e:
+        ## mld = str(e)
+    ## else:
+        ## mld = ""
     return mld
 
 def list_all(inputlist, naam):
@@ -269,7 +272,7 @@ class Rst2Html(object):
         """show page with empty fields (and selectable filenames)"""
         rstfile = htmlfile = newfile = rstdata  = ""
         mld = "conffile is " + self.conffile
-        rstdata = ""
+        rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
@@ -285,7 +288,7 @@ class Rst2Html(object):
         self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source']) \
             if os.path.isdir(os.path.join(self.conf['source'],f))])
         self.current = ""
-        rstdata = ""
+        rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         mld = 'settings loaded from ' + self.conffile
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -317,14 +320,16 @@ class Rst2Html(object):
                 else:
                     where = self.conf['source']
                 with open(os.path.join(where, rstfile)) as f_in:
-                    rstdata = f_in.read()
+                    rstdata = ''.join(f_in.readlines())
                 htmlfile = os.path.splitext(rstfile)[0] + ".html"
                 newfile = ""
             except IOError as e:
                 mld = str(e)
-            else:
+            if not mld:
                 mld = "Source file {0} opgehaald".format(os.path.join(where,
                     rstfile))
+        ## with open('/tmp/rst2html_source', 'w') as _out:
+            ## _out.write(rstdata)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
@@ -449,9 +454,10 @@ class Rst2Html(object):
             newdata = rst2html(rstdata, self.conf['css'])
             mld = save_to(rstfile, rstdata)
             if mld == "":
-                begin, rest = newdata.split('<link rel="stylesheet"',1)
+                begin, rest = str(newdata).split('<link rel="stylesheet"',1)
                 rest, end = rest.split(">",1)
                 newdata = self.conf['all_css'].join((begin, end))
+                ## newdata = str(newdata, encoding="utf-8")
                 mld = save_to(htmlfile, newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + htmlfile
@@ -479,11 +485,12 @@ class Rst2Html(object):
                 where = self.conf['root']
             htmlfile = os.path.join(where, htmlfile)
             with open(htmlfile) as f_in:
-                rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
+                ## rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
+                rstdata = f_in.read().replace("&nbsp", "&amp;nbsp")
             mld = "target html {0} opgehaald".format(htmlfile)
             htmlfile = os.path.basename(htmlfile)
         return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
 
     @cherrypy.expose

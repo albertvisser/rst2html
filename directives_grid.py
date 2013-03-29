@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Import Docutils document tree nodes module.
 from docutils import nodes
 # Import ``directives`` module (contains conversion functions).

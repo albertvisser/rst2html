@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import datetime
 # Import Docutils document tree nodes module.
 from docutils import nodes
