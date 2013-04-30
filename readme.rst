@@ -10,6 +10,8 @@ There's a primitive way built in to work with pages in different directories; in
 
 To be able to work on different sites at the same time I built a way to change the configuration from one set of source-target directories to another.
 
+I also separated out the directives modules according to what they are used for.
+
 Requirements
 ------------
 
