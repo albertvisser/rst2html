@@ -41,19 +41,12 @@ def save_to(fullname, data):
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
     mld = ''
-    ## try:
     if os.path.exists(fullname):
         if os.path.exists(fullname + ".bak"):
             os.remove(fullname + ".bak")
         shutil.copyfile(fullname,fullname + ".bak")
     with open(fullname, "w") as f_out:
-        if isinstance(data, bytes):
-            data = str(data, 'utf-8')
         f_out.write(data)
-    ## except Exception as e:
-        ## mld = str(e)
-    ## else:
-        ## mld = ""
     return mld
 
 def list_all(inputlist, naam):
@@ -454,10 +447,9 @@ class Rst2Html(object):
             newdata = rst2html(rstdata, self.conf['css'])
             mld = save_to(rstfile, rstdata)
             if mld == "":
-                begin, rest = str(newdata).split('<link rel="stylesheet"',1)
+                begin, rest = str(newdata, encoding='utf-8').split('<link rel="stylesheet"',1)
                 rest, end = rest.split(">",1)
                 newdata = self.conf['all_css'].join((begin, end))
-                ## newdata = str(newdata, encoding="utf-8")
                 mld = save_to(htmlfile, newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + htmlfile
