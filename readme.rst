@@ -12,10 +12,14 @@ To be able to work on different sites at the same time I built a way to change t
 
 I also separated out the directives modules according to what they are used for.
 
+
+As a small bonus for myself I built a simple gui app to show the contents of a .rst file, mainly so I could use this from within SciTE. It's a Python script that takes a filename for its argument.
+
 Requirements
 ------------
 
 - Python
 - Docutils for the restsructured text stuff
-- CherryPy
+- CherryPy for the web application
 - yaml for the config parsing stuff
+- PyQt for the gui app
