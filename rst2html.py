@@ -585,6 +585,7 @@ if __name__ == "__main__":
     domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
     cherrypy.quickstart(Rst2Html(), config={
     "/": {
-        'server.socket_host': 'rst2html.{0}.nl'.format(domain),
-        'server.socket_port': 80,
+        ## 'server.socket_host': 'rst2html.{0}.nl'.format(domain),
+        'server.socket_host': '127.0.0.1',
+        'server.socket_port': 8080,
         }})
