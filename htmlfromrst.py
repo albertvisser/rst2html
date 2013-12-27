@@ -35,6 +35,8 @@ class MainFrame(gui.QMainWindow):
         self.resize(1000,600)
         self.html = webkit.QWebView(self) # , -1,
         self.setCentralWidget(self.html)
+        self.setWindowTitle('{} via htmlfromrst.py'.format(input if input else
+            "unnamed file"))
         data = str(zetom(input)) if sys.version < '3' else str(zetom(input),
             encoding='utf-8')
         self.html.setHtml(data)
