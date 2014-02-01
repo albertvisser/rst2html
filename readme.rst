@@ -14,6 +14,19 @@ I also separated out the directives modules according to what they are used for.
 
 
 As a small bonus for myself I built a simple gui app to show the contents of a .rst file, mainly so I could use this from within SciTE. It's a Python script that takes a filename for its argument.
+There's also a version that can handle markdown (.md files).
+
+How to use
+----------
+
+Use ``cherryd`` to run ``start_rst2html.py`` with the .conf file in this
+directory.
+In this configuration define the output to go to a specific port on localhost.
+Configure your local webserver to pick up the output from the port and assign it
+to a virtual domain. Have your hosts file translate the virtual domain to localhost.
+Of course you can also pick up the output directly in the web browser by specifying
+localhost:port.
+
 
 Requirements
 ------------
