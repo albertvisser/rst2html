@@ -18,6 +18,8 @@ from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
 
 HERE = os.path.dirname(__file__)
 TEMPLATE = os.path.join(HERE, "rst2html.html")
+CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
+SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:')
 
 def striplines(data):
     """list -> string met verwijdering van eventuele line endings"""
@@ -87,6 +89,7 @@ def read_conf(naam):
     conf['css'] = make_path(conf['root'], conf['css'])
     if not os.path.exists(conf['css']):
         raise ValueError('Config: invalid value for "css": {}'.format(conf['css']))
+    conf['mirror'] = make_path(conf['root'], conf['mirror'])
     if not os.path.exists(conf['mirror']):
         raise ValueError('Config: invalid value for "mirror"')
     csslinks = ''
@@ -94,8 +97,7 @@ def read_conf(naam):
         for x in conf['all_css']:
             if csslinks:
                 csslinks += '\n'
-            csslinks += ('<link rel="stylesheet" type="text/css" media="all" '
-                'href="{}" />'.format(x))
+            csslinks += CSS_LINK.format(x)
     except ValueError:
         raise ValueError('Config: invalid value for "all_css"')
     conf['all_css'] = csslinks
@@ -108,6 +110,49 @@ def read_conf(naam):
     except ValueError:
         raise ValueError('Config: invalid value for "hig"')
     return conf
+
+def css_link2file(text):
+    x, y = CSS_LINK.split('{}')
+    text = text.replace(x, '  - ')
+    text = text.replace(y, '')
+    return text
+
+def zetom_conf(text):
+    data = []
+    for line in text.split('\n'):
+        probeer = line.strip().split(': ')
+        if len(probeer) > 1:
+            sleutel = probeer[0] + ":"
+            data.append([SETT_KEYS.index(sleutel), sleutel, [css_link2file(probeer[1])]])
+        else:
+            data[-1][2].append(css_link2file(probeer[0]))
+    data.sort()
+    for ix, item in enumerate(data):
+        seq, key, value = item
+        if key == SETT_KEYS[0]:
+            rootparts = value[0].split('/')
+        elif key in SETT_KEYS[1:4]:
+            textparts = value[0].split('/')
+            if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
+                continue
+            if len(rootparts) < len(textparts): # get smallest number of subdirs
+                max = len(rootparts)
+            else:
+                max = len(textparts)
+            i = 0
+            while (i < max and textparts[i] == rootparts[i]):
+                i += 1
+            textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
+            data[ix] = seq, key, ['root + ' + '/'.join(textparts)]
+    lines = []
+    for _, key, value in data:
+        if len(value) > 1:
+            lines.append(key)
+            for y in value:
+                lines.append(y)
+        else:
+            lines.append(key + ' ' + value[0])
+    return '\n'.join(lines) + '\n'
 
 def getrefs(path, file, reflinks):
     "search for keywords in source file and remember their locations"
@@ -283,6 +328,42 @@ class Rst2Html(object):
         self.current = ""
         rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         mld = 'settings loaded from ' + self.conffile
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.conf['hig'], list_confs(self.conffile))
+
+    @cherrypy.expose
+    def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        """(re)save settings file using selected name
+
+        if new name specified, use that (extension must be .yml)"""
+        mld = ""
+        if newfile == "":
+            newfile = settings
+        if newfile.endswith(os.pathsep):
+            mld = "Not a valid filename"
+        if mld == "":
+            if rstdata == "":
+                mld = "Tekstveld invullen s.v.p."
+            else:
+                sett_ok = False
+                for txt in SETT_KEYS:
+                    if rstdata.startswith(txt):
+                        sett_ok = True
+                        break
+                if not sett_ok:
+                    mld = "Niet uitgevoerd: tekstveld bevat waarschijnlijk geen settings"
+        if mld == "":
+            naam, ext = os.path.splitext(newfile)
+            if ext != ".yml":
+                newfile += ".yml"
+            data = zetom_conf(rstdata)
+            fullname = os.path.join(HERE, newfile)
+            mld = save_to(fullname, data)
+            if mld == "":
+                mld = "settings opgeslagen als " + fullname
+            settings = newfile
+            newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(self.conffile))
