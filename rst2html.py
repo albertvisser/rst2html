@@ -46,9 +46,12 @@ def save_to(fullname, data):
     if os.path.exists(fullname):
         if os.path.exists(fullname + ".bak"):
             os.remove(fullname + ".bak")
-        shutil.copyfile(fullname,fullname + ".bak")
+        shutil.copyfile(fullname, fullname + ".bak")
     with open(fullname, "w") as f_out:
-        f_out.write(data)
+        try:
+            f_out.write(data)
+        except OSError as err:
+            mld = str(err)
     return mld
 
 def list_all(inputlist, naam):
@@ -69,7 +72,9 @@ def list_confs(naam):
     return "".join(out)
 
 def make_path(root, path):
-    if path.startswith('root + '):
+    if path == 'root':
+        path = root
+    elif path.startswith('root + '):
         path = path.split(' + ', 1)[1]
         while path.startswith('../'):
             root = os.path.dirname(root)
@@ -81,7 +86,7 @@ def read_conf(naam):
     with open(os.path.join(HERE, naam)) as _in:
         conf = yaml.load(_in)
     if not os.path.exists(conf['root']):
-        raise ValueError('Config: invalid value for "root"')
+        raise ValueError('Config: invalid value for "root" {}'.format(conf['root']))
     conf['root'] = conf['root'].rstrip('/')
     conf['source'] = make_path(conf['root'], conf['source'])
     if not os.path.exists(conf['source']):
@@ -143,10 +148,13 @@ def zetom_conf(text):
             while (i < max and textparts[i] == rootparts[i]):
                 i += 1
             textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
-            data[ix] = seq, key, ['root + ' + '/'.join(textparts)]
+            value = 'root'
+            if textparts:
+                value += ' + ' + '/'.join(textparts)
+            data[ix] = seq, key, [value]
     lines = []
     for _, key, value in data:
-        if len(value) > 1:
+        if key == SETT_KEYS[4]:
             lines.append(key)
             for y in value:
                 lines.append(y)
@@ -309,11 +317,12 @@ class Rst2Html(object):
     def index(self):
         """show page with empty fields (and selectable filenames)"""
         rstfile = htmlfile = newfile = rstdata  = ""
-        mld = "conffile is " + self.conffile
+        settings = self.conffile
+        mld = "conffile is " + settings
         rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -321,16 +330,15 @@ class Rst2Html(object):
 
         changes the locations of source, target and web mirror files"""
         mld = ''
-        self.conffile = settings
-        self.conf = read_conf(self.conffile)
+        self.conf = read_conf(settings)
         self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source']) \
             if os.path.isdir(os.path.join(self.conf['source'],f))])
         self.current = ""
         rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
-        mld = 'settings loaded from ' + self.conffile
+        mld = 'settings loaded from ' + settings
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -366,7 +374,7 @@ class Rst2Html(object):
             newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -406,7 +414,7 @@ class Rst2Html(object):
             ## _out.write(rstdata)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -436,13 +444,30 @@ class Rst2Html(object):
                 mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
         if mld == "":
             if newfile.endswith("/"):
+                source = self.conf['source']
+                root = self.conf['root']
                 nieuw = newfile[:-1]
-                os.mkdir(os.path.join(self.conf['source'],nieuw))
-                os.mkdir(os.path.join(self.conf['root'],nieuw))
-                self.subdirs = sorted([f + "/" for f in os.listdir(source) \
-                    if os.path.isdir(os.path.join(source,f))])
-                mld = "nieuwe subdirectory {0} aangemaakt in {1} en {2}".format(
-                    nieuw, source, root)
+                try:
+                    os.mkdir(os.path.join(source, nieuw))
+                except OSError as err:
+                    mld = str(err)
+                if mld == "" and root != source:
+                    try:
+                        os.mkdir(os.path.join(root, nieuw))
+                    except OSError as err:
+                        mld = str(err)
+                if mld == "":
+                    self.subdirs = sorted([f + "/" for f in os.listdir(source) \
+                        if os.path.isdir(os.path.join(source,f))])
+                    ## self.subdirs = []
+                    ## for f in os.listdir(self.conf['source']):
+                        ## if os.path.isdir(os.path.join(self.conf['source'],f)):
+                            ## self.subdirs.append(f + "/")
+                    ## self.subdirs.sort()
+                    mld = "nieuwe subdirectory {} aangemaakt in {}".format(nieuw,
+                        source)
+                    if root != source:
+                        mld += " en {}".format(root)
             else:
                 naam,ext = os.path.splitext(newfile)
                 if ext != ".rst":
@@ -459,7 +484,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -473,7 +498,7 @@ class Rst2Html(object):
             return rst2html(rstdata, self.conf['css'], embed=True)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -540,7 +565,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -564,7 +589,7 @@ class Rst2Html(object):
             htmlfile = os.path.basename(htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -589,7 +614,7 @@ class Rst2Html(object):
             return newdata
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -616,7 +641,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -626,6 +651,8 @@ class Rst2Html(object):
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
+        elif not rstdata.startswith('<'):
+            mld = "Please load html first"
         else:
             if self.current:
                 where = os.path.join(self.conf['mirror'], self.current)
@@ -633,12 +660,12 @@ class Rst2Html(object):
                 where = self.conf['mirror']
             if self.conf.get('starthead', ''):
                 split_on = '<head>' # + os.linesep
-                start, end = rstdata.split(split_on)
+                start, end = rstdata.split(split_on, 1)
                 middle = os.linesep.join(self.conf['starthead'])
                 rstdata = start + split_on + middle + end
             if self.conf.get('endhead', ''):
                 split_on = '</head>' # + os.linesep
-                start, end = rstdata.split(split_on)
+                start, end = rstdata.split(split_on, 1)
                 middle = os.linesep.join(self.conf['endhead'])
                 rstdata = start + middle + split_on + end
             target = os.path.join(where, htmlfile)
@@ -646,11 +673,11 @@ class Rst2Html(object):
             htmlfile = os.path.basename(htmlfile)
             if not mld:
                 x = "/" if self.current else ""
-                mld = " gekopieerd naar {0}{1}{2}{3}".format(self.conf['mirror'],
+                mld = " gekopieerd naar {0}/{1}{2}{3}".format(self.conf['mirror'],
                     self.current, x, htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
     @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -658,7 +685,7 @@ class Rst2Html(object):
         mld = self.scandocs()
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(self.conffile))
+            self.conf['hig'], list_confs(settings))
 
 
 #~ print cherrypy.config
