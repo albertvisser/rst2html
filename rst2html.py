@@ -427,13 +427,15 @@ class Rst2Html(object):
             if newfile == "":
                 mld = "dit lijkt me onmogelijk"
             elif newfile == "-- new --":
-                mld = "Naam invulen of filenaam voor source selecteren s.v.p."
+                mld = "Naam invullen of filenaam voor source selecteren s.v.p."
             elif rstfile.endswith("/"):
                 self.current = rstfile[:-1]
                 mld = " "
             elif rstfile == "..":
                 self.current = ""
                 mld = " "
+        elif newfile == "-- new --":
+            mld = "Naam invullen of filenaam voor source selecteren s.v.p."
         if mld == "":
             if newfile.endswith("/"):
                 if self.current:
@@ -509,6 +511,8 @@ class Rst2Html(object):
                 mld = "dit lijkt me onmogelijk"
             elif rstfile == "-- new --":
                 mld = "Filenaam voor source opgeven of selecteren s.v.p."
+        elif newfile.startswith("-- new --"):
+            mld = "Filenaam voor source opgeven of selecteren s.v.p."
         else:
             naam,ext = os.path.splitext(newfile)
             if ext == ".rst":
