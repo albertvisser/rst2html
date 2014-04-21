@@ -13,8 +13,8 @@ sys.path.insert(0, ROOT)
 from rst2html import Rst2Html
 
 
-cherrypy.config.update({'environment': 'embedded'})
 
 application = cherrypy.tree.mount(Rst2Html())
+cherrypy.config.update({'environment': 'embedded'})
 cherrypy.config.update({'engine.autoreload_on': False,
         })
