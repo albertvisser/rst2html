@@ -14,3 +14,5 @@ target/images/*
 target/*/images/*
 settings*
 rst2html.conf
+static/codemirror/*
+custom_directives.py

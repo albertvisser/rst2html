@@ -8,19 +8,41 @@ import cherrypy
 import sys
 sys.path.append('.')
 import os, shutil
+import importlib
+import inspect
 import glob
 import yaml
 from docutils.core import publish_string
-from docutils.parsers.rst import directives
+import docutils.parsers.rst as rd
+standard_directives = {}
 from directives_grid import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer
+standard_directives.update({
+    "startc": StartCols,
+    "endc": EndCols,
+    "firstc": FirstCol,
+    "nextc": NextCol,
+    "clearc": ClearCol,
+    "spacer": Spacer,
+    })
 from directives_magiokis import Bottom, RefKey
+standard_directives.update({
+    "bottom": Bottom,
+    "refkey": RefKey,
+    })
 from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
+standard_directives.update({
+    "startbody": StartBody,
+    "navlinks": NavLinks,
+    "textheader": TextHeader,
+    "endbody": EndBody,
+    })
 
 HERE = os.path.dirname(__file__)
+custom_directives = os.path.join(HERE, 'custom_directives.py')
 TEMPLATE = os.path.join(HERE, "rst2html.html")
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
-    'starthead:', 'endhead:', 'directives:')
+    'starthead:', 'endhead:')
 
 def striplines(data):
     """list -> string met verwijdering van eventuele line endings"""
@@ -122,12 +144,30 @@ def read_conf(naam, debug=False):
         conf['hig'] = int(conf['hig'])
     except ValueError:
         return invalid.format("hig")
-    if 'directives' in conf:
-        conf['directives'] = make_path(conf['root'], conf['directives'])
-        if os.path.basename(conf['directives']) in ('directives_grid.py',
-                'directives_magiokis.py', 'directives_bitbucket.py'):
-            return 'Config: name for "directives" file is already taken'
     return conf
+
+def load_custom_directives():
+    """
+    importeer de directives uit het genoemde directives file
+    dat zijn alle Directive subclasses die daarin gedefinieerd zijn
+
+    voor elk directive moet in de docstring op aparte regels het volgende staan:
+        usage: .. directive_name:: <arguments>
+        description: directive_name is for doing stuff
+    """
+    modname = inspect.getmodulename(custom_directives)
+    data = importlib.import_module(modname)
+    for name, value in inspect.getmembers(data, inspect.isclass):
+        if rd.Directive in inspect.getmro(value) and value is not rd.Directive:
+            directive_name, oms = name, ''
+            docs = value.__doc__.split(os.linesep)
+            usage = [x for x in docs if 'usage' in x]
+            if usage:
+                directive_name = usage[0].split('..', 1)[1].split('::', 1)[0].strip()
+            desc = [x for x in docs if 'description' in x]
+            if desc:
+                oms = desc[0].split(':', 1)[1].strip()
+            rd.directives.register_directive(directive_name, value)
 
 def css_link2file(text):
     x, y = CSS_LINK.split('{}')
@@ -204,25 +244,17 @@ class Rst2Html(object):
 
     def __init__(self):
         """initialize using imported settings; read template; register directives"""
+        for name, func in standard_directives.items():
+            rd.directives.register_directive(name, func)
         self.conffile = 'settings.yml'
         self.conf = read_conf(self.conffile)
         self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source']) \
             if os.path.isdir(os.path.join(self.conf['source'],f))])
+        if os.path.exists(custom_directives):
+            load_custom_directives()
         self.current = ""
         with open(TEMPLATE) as f_in:
             self.output = f_in.read()
-        directives.register_directive("startc", StartCols)
-        directives.register_directive("endc", EndCols)
-        directives.register_directive("firstc", FirstCol)
-        directives.register_directive("nextc", NextCol)
-        directives.register_directive("clearc", ClearCol)
-        directives.register_directive("spacer", Spacer)
-        directives.register_directive("bottom", Bottom)
-        directives.register_directive("refkey", RefKey)
-        directives.register_directive("startbody", StartBody)
-        directives.register_directive("navlinks", NavLinks)
-        directives.register_directive("textheader", TextHeader)
-        directives.register_directive("endbody", EndBody)
 
     def all_source(self, naam):
         """build list of options from rst files"""
@@ -413,23 +445,19 @@ class Rst2Html(object):
         if non-existent, create from template
         """
         mld = ''
-        try:
-            fname = self.conf['directives']
-        except KeyError:
-            mld = 'Specify name for directives file in settings first'
-        if not mld:
+        if os.path.exists(custom_directives):
+            fname = custom_directives
             verb = 'opgehaald'
-            try:
-                if not os.path.exists(fname):
-                    shutil.copyfile(os.path.join(HERE, 'directives_template.rst'),
-                        fname)
-                    verb = 'aangemaakt'
-                with open(fname, 'r') as _in:
-                    rstdata = _in.read()
-            except IOError as e:
-                mld = str(e)
+        else:
+            fname = '_template'.join(os.path.splitext(custom_directives))
+            verb = 'initieel aangemaakt, nog niet opgeslagen'
+        try:
+            with open(fname, 'r') as _in:
+                rstdata = _in.read()
+        except OSError as e:
+            mld = str(e)
         if not mld:
-            mld = "Directives file {} {}".format(fname, verb)
+            mld = "Directives file {}".format(verb)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
@@ -439,17 +467,13 @@ class Rst2Html(object):
         """(re)save directives file
         """
         mld = ''
-        try:
-            fname = self.conf['directives']
-        except KeyError:
-            mld = 'Specify name for directives file in settings first'
-        if mld == "" and rstdata == "":
+        if rstdata == "":
             mld = "Niet opgeslagen: geen tekst opgegeven"
         if mld == "":
-            fullname = self.conf['directives']
-            mld = save_to(fullname, rstdata)
+            mld = save_to(custom_directives, rstdata)
         if mld == "":
-            mld = "Directives file opgeslagen als " + fullname
+            mld = ("Directives file opgeslagen, "
+                'herstart de server om wijzigingen te activeren')
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
