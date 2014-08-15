@@ -19,7 +19,8 @@ from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
 HERE = os.path.dirname(__file__)
 TEMPLATE = os.path.join(HERE, "rst2html.html")
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
-SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:')
+SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
+    'starthead:', 'endhead:', 'directives:')
 
 def striplines(data):
     """list -> string met verwijdering van eventuele line endings"""
@@ -82,21 +83,28 @@ def make_path(root, path):
         path = os.path.join(root, path)
     return path
 
-def read_conf(naam):
-    with open(os.path.join(HERE, naam)) as _in:
+def read_conf(naam, debug=False):
+    invalid = 'Config: invalid value for {}'
+    does_not_exist = invalid + ' {} does not exist'
+    if HERE.endswith('/'):
+        return 'HERE fout: {}, {}'.format(HERE, naam)
+    test = os.path.join(HERE, naam)
+    if test.endswith('/'):
+        return 'HERE fout: {}, {}'.format(HERE, naam)
+    with open(test) as _in:
         conf = yaml.load(_in)
     if not os.path.exists(conf['root']):
-        raise ValueError('Config: invalid value for "root" {}'.format(conf['root']))
+        return does_not_exist.format('"root":', conf['root'])
     conf['root'] = conf['root'].rstrip('/')
     conf['source'] = make_path(conf['root'], conf['source'])
     if not os.path.exists(conf['source']):
-        raise ValueError('Config: invalid value for "source": {}'.format(conf['source']))
+        return does_not_exist.format('"source":', conf['source'])
     conf['css'] = make_path(conf['root'], conf['css'])
     if not os.path.exists(conf['css']):
-        raise ValueError('Config: invalid value for "css": {}'.format(conf['css']))
+        return does_not_exist.format('"css":', conf['css'])
     conf['mirror'] = make_path(conf['root'], conf['mirror'])
     if not os.path.exists(conf['mirror']):
-        raise ValueError('Config: invalid value for "mirror"')
+        return invalid.format("mirror")
     csslinks = ''
     try:
         for x in conf['all_css']:
@@ -104,16 +112,21 @@ def read_conf(naam):
                 csslinks += '\n'
             csslinks += CSS_LINK.format(x)
     except ValueError:
-        raise ValueError('Config: invalid value for "all_css"')
+        return invalid.format("all_css")
     conf['all_css'] = csslinks
     try:
         conf['wid'] = int(conf['wid'])
     except ValueError:
-        raise ValueError('Config: invalid value for "wid"')
+        return invalid.format("wid")
     try:
         conf['hig'] = int(conf['hig'])
     except ValueError:
-        raise ValueError('Config: invalid value for "hig"')
+        return invalid.format("hig")
+    if 'directives' in conf:
+        conf['directives'] = make_path(conf['root'], conf['directives'])
+        if os.path.basename(conf['directives']) in ('directives_grid.py',
+                'directives_magiokis.py', 'directives_bitbucket.py'):
+            return 'Config: name for "directives" file is already taken'
     return conf
 
 def css_link2file(text):
@@ -313,6 +326,17 @@ class Rst2Html(object):
             mld = "Trefwoordenlijst aangemaakt"
         return mld
 
+    def lang(self, value):
+        scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
+        scriptdict = {
+            'yaml': ('yaml/yaml',),
+            'html': ('xml/xml', 'javascript/javascript', 'css/css',
+                'htmlmixed/htmlmixed'),
+            'python': ('python/python', '../addon/edit/matchbrackets'),
+            'rst': ('rst/rst', '../addon/mode/overlay')
+                }
+        return '\n'.join(scriptspec.format(x) for x in scriptdict[value])
+
     @cherrypy.expose
     def index(self):
         """show page with empty fields (and selectable filenames)"""
@@ -322,7 +346,7 @@ class Rst2Html(object):
         rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'yml', self.lang('yaml'))
 
     @cherrypy.expose
     def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -330,15 +354,21 @@ class Rst2Html(object):
 
         changes the locations of source, target and web mirror files"""
         mld = ''
-        self.conf = read_conf(settings)
-        self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source']) \
-            if os.path.isdir(os.path.join(self.conf['source'],f))])
-        self.current = ""
-        rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
-        mld = 'settings loaded from ' + settings
+        test = read_conf(settings)
+        try:
+            test['root']
+        except TypeError:
+            mld = test
+        if not mld:
+            self.conf = test
+            self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source'])
+                if os.path.isdir(os.path.join(self.conf['source'],f))])
+            self.current = ""
+            rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
+            mld = 'settings loaded from ' + settings
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'yml', self.lang('yaml'))
 
     @cherrypy.expose
     def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -374,7 +404,55 @@ class Rst2Html(object):
             newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'yml', self.lang('yaml'))
+
+    @cherrypy.expose
+    def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        """load directives file for editing
+
+        if non-existent, create from template
+        """
+        mld = ''
+        try:
+            fname = self.conf['directives']
+        except KeyError:
+            mld = 'Specify name for directives file in settings first'
+        if not mld:
+            verb = 'opgehaald'
+            try:
+                if not os.path.exists(fname):
+                    shutil.copyfile(os.path.join(HERE, 'directives_template.rst'),
+                        fname)
+                    verb = 'aangemaakt'
+                with open(fname, 'r') as _in:
+                    rstdata = _in.read()
+            except IOError as e:
+                mld = str(e)
+        if not mld:
+            mld = "Directives file {} {}".format(fname, verb)
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
+
+    @cherrypy.expose
+    def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        """(re)save directives file
+        """
+        mld = ''
+        try:
+            fname = self.conf['directives']
+        except KeyError:
+            mld = 'Specify name for directives file in settings first'
+        if mld == "" and rstdata == "":
+            mld = "Niet opgeslagen: geen tekst opgegeven"
+        if mld == "":
+            fullname = self.conf['directives']
+            mld = save_to(fullname, rstdata)
+        if mld == "":
+            mld = "Directives file opgeslagen als " + fullname
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
 
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -414,7 +492,7 @@ class Rst2Html(object):
             ## _out.write(rstdata)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
     @cherrypy.expose
     def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -486,7 +564,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -500,7 +578,7 @@ class Rst2Html(object):
             return rst2html(rstdata, self.conf['css'], embed=True)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -569,7 +647,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -593,7 +671,7 @@ class Rst2Html(object):
             htmlfile = os.path.basename(htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -618,7 +696,7 @@ class Rst2Html(object):
             return newdata
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
 
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -645,7 +723,7 @@ class Rst2Html(object):
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
 
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -681,7 +759,7 @@ class Rst2Html(object):
                     self.current, x, htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
 
     @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -689,7 +767,7 @@ class Rst2Html(object):
         mld = self.scandocs()
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings))
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
 
 #~ print cherrypy.config

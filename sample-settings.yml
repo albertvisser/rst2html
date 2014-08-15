@@ -11,6 +11,7 @@
 # wid, hig - width and height of text area in rst2html.html
 # starthead - lines to copy directly after the <head> element (to be executed first)
 # endhead  - lines to copy directly before the </head> element (to be executed last)
+# directives - location of site-specific .rst directives, e.g. root + ../site_directives.py
 
 root: /home/albert/www/magiokis_vv/target
 source: root + ../sources
@@ -26,3 +27,5 @@ hig: 32
 starthead:
 
 endhead:
+
+directives:

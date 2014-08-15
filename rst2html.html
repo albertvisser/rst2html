@@ -3,13 +3,17 @@
 <head>
 <title>ReStructured Text translator</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<script src="/static/codemirror/lib/codemirror.js"></script>
+<link rel="stylesheet" href="/static/codemirror/lib/codemirror.css">
+{9}
 <script type="text/javascript">
 function do_sub(x) {{
     document.forms[0].action = x;
     document.forms[0].submit();
     return true
     }}
-</script></head>
+</script>
+</head>
 <body>
 <form action="/" method="post">
 <table >
@@ -19,33 +23,37 @@ source: <select name="rstfile" title="select the .rst file to load or save, or a
 target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
 new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
 <input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
-    title="Generate a general index page using the 'refkey' directives in various documents"/>
+    title="Generate a general index page using the 'refkey' directives in various documents" />
 <br/>
-<input type="button" value="Load settings" onclick="javascript:do_sub('loadconf'); return true;"
+Settings: <input type="button" value="Load" onclick="javascript:do_sub('loadconf'); return true;"
     title="Load the selected settings, changing the locations of source, target and web mirror" />
-<input type="button" value="Save settings" onclick="javascript:do_sub('saveconf'); return true;"
+<input type="button" value="Save" onclick="javascript:do_sub('saveconf'); return true;"
     title="Save/update the input area's contents to a settings file" />
-<input type="button" value="Load source" onclick="javascript: do_sub('loadrst'); return true;"
+Source: <input type="button" value="Load" onclick="javascript: do_sub('loadrst'); return true;"
     title="Load the chosen rst file into the input area. Can also be used to change directory ('..' or ending in '/')"/>
-<input type="button" value="Save source" onclick="javascript: do_sub('saverst'); return true;"
+<input type="button" value="Save" onclick="javascript: do_sub('saverst'); return true;"
     title="Save the input area's contents under the chosen .rst name. Can also be used to create a directory"/>
 <input type="button" value="Convert and show" onclick="javascript: do_sub('convert'); return true;"
     title="Preview the result of the rst to html conversion"/>
 <input type="button" value="Save converted" onclick="javascript: do_sub('saveall'); return true;"
     title="Store the input area's contents as rst, convert to html and store the result of the conversion" />
-<input type="button" value="Load html" onclick="javascript: do_sub('loadhtml'); return true;"
+Html: <input type="button" value="Load" onclick="javascript: do_sub('loadhtml'); return true;"
     title="Load the result of the html conversion into the input area"/>
 <input type="button" value="Render" onclick="javascript: do_sub('showhtml'); return true;"
     title="Render the html in the input area"/>
-<input type="button" value="Save html" onclick="javascript: do_sub('savehtml'); return true;"
+<input type="button" value="Save" onclick="javascript: do_sub('savehtml'); return true;"
     title="Store the html in the input area"/>
 <input type="button" value="Copy to mirror" onclick="javascript: do_sub('copytoroot'); return true;"
     title="Copy the stored html to the site mentioned in the config after editing the css link(s)"/>
 <br/>
-<b>{3}</b><br/>
+Site-directives: <input type="button" value="Load" onclick="javascript:do_sub('loadxtra'); return true;"
+    title="Create or Load the file with site-specific directives for editing" />
+<input type="button" value="Save" onclick="javascript:do_sub('savextra'); return true;"
+    title="Save/update the input area's contents to a directives file" />
+<span>&nbsp;&nbsp;&nbsp;</span><b>{3}</b><br/>
 </td></tr>
 <tr><td valign="top">
-<textarea name="rstdata" cols="{5}" rows="{6}">{4}</textarea>
+<textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}">{4}</textarea>
 </td><td valign="top">
 Apart from the built in ones, the following directives are available (hover to view description):
 <table>
@@ -65,5 +73,6 @@ bij 'None' wordt de index link wel getoond">.. bottom:: <i>x</i> [None | <i>file
 <tr><td>&nbsp;</td><td><span title="genereer standaard einde van de body section">.. endbody::</span></td></tr>
 </table>
 </form>
+<script src="/static/{8}editor.js"></script>
 </body>
 </html>
