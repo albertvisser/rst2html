@@ -8,6 +8,7 @@ import cherrypy
 import sys
 sys.path.append('.')
 import os, shutil
+import pathlib
 import importlib
 import inspect
 import glob
@@ -37,9 +38,10 @@ standard_directives.update({
     "endbody": EndBody,
     })
 
-HERE = os.path.dirname(__file__)
-custom_directives = os.path.join(HERE, 'custom_directives.py')
-TEMPLATE = os.path.join(HERE, "rst2html.html")
+HERE = pathlib.Path(__file__).parents[0]
+custom_directives = HERE / 'custom_directives.py'
+custom_directives_template = HERE / 'custom_directives_template.py'
+TEMPLATE = HERE / "rst2html.html"
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
     'starthead:', 'endhead:')
@@ -66,11 +68,10 @@ def save_to(fullname, data):
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
     mld = ''
-    if os.path.exists(fullname):
-        if os.path.exists(fullname + ".bak"):
-            os.remove(fullname + ".bak")
-        shutil.copyfile(fullname, fullname + ".bak")
-    with open(fullname, "w") as f_out:
+    if fullname.exists():
+        shutil.copyfile(str(fullname),
+            str(fullname.with_suffix(fullname.suffix + '.bak')))
+    with fullname.open("w", encoding='utf-8') as f_out:
         try:
             f_out.write(data)
         except OSError as err:
@@ -88,44 +89,56 @@ def list_all(inputlist, naam):
 def list_confs(naam):
     """build list of options containing all settings files in current directory"""
     out = []
-    for f in glob.glob(os.path.join(HERE, 'settings*.yml')):
-        f = os.path.basename(f)
+    for path in HERE.glob('settings*.yml'):
+        f = path.name
         s = ' selected="selected"' if naam == f else ''
         out.append("<option{1}>{0}</option>".format(f, s))
     return "".join(out)
 
+def determine_files(where='', suffix=''):    # nieuw voor generate_all; nog niet uitvoerbaar
+    def descend(root):
+        locals = []
+        for name in root.iterdir():
+            skip = False
+            if name.is_dir() and not name.is_symlink():
+                locals.extend(descend(name))
+            elif name.is_file() and (suffix == '' or name.suffix == suffix):
+                locals.append(name)
+        return locals
+    if not where:
+        where = pathlib.Path('.')
+    rstfiles = descend(where)
+    return rstfiles
+
 def make_path(root, path):
     if path == 'root':
-        path = root
+        path = pathlib.Path(root)
     elif path.startswith('root + '):
         path = path.split(' + ', 1)[1]
-        while path.startswith('../'):
-            root = os.path.dirname(root)
-            path = path.split('/', 1)[1]
-        path = os.path.join(root, path)
+        path = pathlib.Path(root) / path
+        path = path.resolve()
+    else:
+        path = pathlib.Path(path)
     return path
 
 def read_conf(naam, debug=False):
+    """read a config file; returns //conf//, a dictionary of options"""
     invalid = 'Config: invalid value for {}'
     does_not_exist = invalid + ' {} does not exist'
-    if HERE.endswith('/'):
-        return 'HERE fout: {}, {}'.format(HERE, naam)
-    test = os.path.join(HERE, naam)
-    if test.endswith('/'):
-        return 'HERE fout: {}, {}'.format(HERE, naam)
-    with open(test) as _in:
+    test = HERE / naam
+    with test.open() as _in:
         conf = yaml.load(_in)
-    if not os.path.exists(conf['root']):
+    conf['root'] = pathlib.Path(conf['root'])
+    if not conf['root'].exists():
         return does_not_exist.format('"root":', conf['root'])
-    conf['root'] = conf['root'].rstrip('/')
     conf['source'] = make_path(conf['root'], conf['source'])
-    if not os.path.exists(conf['source']):
+    if not conf['source'].exists():
         return does_not_exist.format('"source":', conf['source'])
     conf['css'] = make_path(conf['root'], conf['css'])
-    if not os.path.exists(conf['css']):
+    if not conf['css'].exists():
         return does_not_exist.format('"css":', conf['css'])
     conf['mirror'] = make_path(conf['root'], conf['mirror'])
-    if not os.path.exists(conf['mirror']):
+    if not conf['mirror'].exists():
         return invalid.format("mirror")
     csslinks = ''
     try:
@@ -155,7 +168,7 @@ def load_custom_directives():
         usage: .. directive_name:: <arguments>
         description: directive_name is for doing stuff
     """
-    modname = inspect.getmodulename(custom_directives)
+    modname = inspect.getmodulename(str(custom_directives))
     data = importlib.import_module(modname)
     for name, value in inspect.getmembers(data, inspect.isclass):
         if rd.Directive in inspect.getmro(value) and value is not rd.Directive:
@@ -177,20 +190,23 @@ def css_link2file(text):
 
 def zetom_conf(text):
     data = []
-    for line in text.split('\n'):
+    for line in text.split(os.linesep):
         probeer = line.strip().split(': ')
         if len(probeer) > 1:
             sleutel = probeer[0] + ":"
-            data.append([SETT_KEYS.index(sleutel), sleutel, [css_link2file(probeer[1])]])
+            data.append([SETT_KEYS.index(sleutel), sleutel,
+                [css_link2file(probeer[1])]])
         else:
             data[-1][2].append(css_link2file(probeer[0]))
     data.sort()
     for ix, item in enumerate(data):
         seq, key, value = item
-        if key == SETT_KEYS[0]:
-            rootparts = value[0].split('/')
-        elif key in SETT_KEYS[1:4]:
-            textparts = value[0].split('/')
+        if key == SETT_KEYS[0]:     # root
+            ## rootparts = value[0].split('/')
+            rootparts = pathlib.Path(value[0]).parts
+        elif key in SETT_KEYS[1:4]: # ander path
+            ## textparts = value[0].split('/')
+            textparts = pathlib.Path(value[0]).parts
             if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
                 continue
             if len(rootparts) < len(textparts): # get smallest number of subdirs
@@ -213,18 +229,16 @@ def zetom_conf(text):
                 lines.append(y)
         else:
             lines.append(key + ' ' + value[0])
-    return '\n'.join(lines) + '\n'
+    return os.linesep.join(lines) + os.linesep
 
-def getrefs(path, file, reflinks):
+def getrefs(path, source, reflinks):  # gewijzigd maar nog niet getest
     "search for keywords in source file and remember their locations"
-    fullpath = os.path.join(path, file)
-    if os.path.isdir(fullpath):
-        src = fullpath
-        for file in os.listdir(src):
-            getrefs(src, file, reflinks)
-    elif file.endswith(".rst"):
-        doc = fullpath
-        with open(fullpath) as f_in:
+    if path.is_dir():
+        for path in path.iterdir():
+            getrefs(path, source, reflinks)
+    elif path.suffix == ".rst":
+        doc = str(path.relative_to(source).with_suffix('.html'))
+        with path.open(encoding='latin-1') as f_in:
             for line in f_in:
                 if line.startswith("..") and "refkey::" in line:
                     x, refs = line.split("refkey::",1)
@@ -235,9 +249,9 @@ def getrefs(path, file, reflinks):
                             link += "#" + ref[1].strip()
                         except IndexError:
                             pass
-                        if word not in reflinks:
-                            reflinks[word] = []
-                        reflinks[word].append(link.split(source)[1][1:])
+                        reflinks.setdefault(word, [])
+                        reflinks[word].append(link)
+
 
 class Rst2Html(object):
     "the actual webapp"
@@ -248,22 +262,29 @@ class Rst2Html(object):
             rd.directives.register_directive(name, func)
         self.conffile = 'settings.yml'
         self.conf = read_conf(self.conffile)
-        self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source']) \
-            if os.path.isdir(os.path.join(self.conf['source'],f))])
-        if os.path.exists(custom_directives):
+        ## self.output = self.conf
+        ## return
+        self.get_subdirs()
+        if custom_directives.exists():
             load_custom_directives()
         self.current = ""
-        with open(TEMPLATE) as f_in:
+        with TEMPLATE.open() as f_in:
             self.output = f_in.read()
+
+    def get_subdirs(self):
+        self.subdirs = [str(f.relative_to(self.conf['source'])) + "/"
+            for f in self.conf['source'].iterdir() if f.is_dir()]
+
+    def currentify(self, where):
+        if self.current:
+            where = where / self.current
+        return where
 
     def all_source(self, naam):
         """build list of options from rst files"""
-        if self.current:
-            path = os.path.join(self.conf['source'], self.current)
-        else:
-            path = self.conf['source']
-        dirlist = os.listdir(path)
-        all_source = [f for f in dirlist if os.path.splitext(f)[1] == ".rst"]
+        path = self.currentify(self.conf['source'])
+        all_source = [str(f.relative_to(self.conf['source']))
+            for f in path.glob("*.rst")]
         items = sorted(all_source)
         if self.current:
             items.insert(0,"..")
@@ -273,12 +294,9 @@ class Rst2Html(object):
 
     def all_html(self, naam):
         """build list of options from html files"""
-        if self.current:
-            path = os.path.join(self.conf['root'], self.current)
-        else:
-            path = self.conf['root']
-        dirlist = os.listdir(path)
-        all_html = [f for f in dirlist if os.path.splitext(f)[1] == ".html"]
+        path = self.currentify(self.conf['root'])
+        all_html = [str(f.relative_to(self.conf['root']))
+            for f in path.glob("*.html")]
         items = sorted(all_html)
         if self.current:
             items.insert(0,"..")
@@ -286,13 +304,13 @@ class Rst2Html(object):
             items = self.subdirs + items
         return list_all(items,naam)
 
-    def scandocs(self):
+    def scandocs(self):         # gewijzigd maar nog niet getest (kan via makerefdoc view)
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
         trefwoordenregister op"""
         mld = ""
         reflinks = {}
-        for file in os.listdir(self.conf['source']):
-            getrefs(self.conf['source'], file, reflinks)
+        for file in self.conf['source'].iterdir():
+            getrefs(file, self.conf['source'], reflinks)
         current_letter = ""
         # produceer het begin van de pagina
         data = [
@@ -341,19 +359,19 @@ class Rst2Html(object):
             data.extend(anchors)
             data.append(" ")
         rstdata = "\n".join(data)
-        mld = save_to(os.path.join(source, 'trefwoorden.rst'), rstdata)
+        mld = save_to(self.conf['source'] / 'trefwoorden.rst', rstdata)
         if mld == "":
-            newdata = rst2html(rstdata, self.conf['css'])
-            begin, rest = newdata.split('<link rel="stylesheet"',1)
+            cssfile = str(self.conf['css'])
+            newdata = rst2html(rstdata, cssfile)
+            begin, rest = str(newdata, encoding='utf-8').split('<link rel="stylesheet"',1)
             rest, end = rest.split(">",1)
             newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(
-                self.conf['css'])
+                cssfile)
             newdata = newcss.join((begin, end))
-            mld = save_to(os.path.join(self.conf['root'], "trefwoorden.html"),
-                newdata)
+            mld = save_to(self.conf['root'] / "trefwoorden.html", newdata)
             if mld == "":
-                mld = save_to(os.path.join(self.conf['mirror'], "trefwoorden.html"),
-                    self.conf['all_css'].join((begin, end)))
+                mld = save_to(self.conf['mirror'] / "trefwoorden.html",
+                    cssfile.join((begin, end)))
         if not mld:
             mld = "Trefwoordenlijst aangemaakt"
         return mld
@@ -369,9 +387,23 @@ class Rst2Html(object):
                 }
         return '\n'.join(scriptspec.format(x) for x in scriptdict[value])
 
+    def complete_header(self, rstdata):
+        if self.conf.get('starthead', ''):
+            split_on = '<head>' # + os.linesep
+            start, end = rstdata.split(split_on, 1)
+            middle = os.linesep.join(self.conf['starthead'])
+            rstdata = start + split_on + middle + end
+        if self.conf.get('endhead', ''):
+            split_on = '</head>' # + os.linesep
+            start, end = rstdata.split(split_on, 1)
+            middle = os.linesep.join(self.conf['endhead'])
+            rstdata = start + middle + split_on + end
+        return rstdata
+
     @cherrypy.expose
     def index(self):
         """show page with empty fields (and selectable filenames)"""
+        ## return self.output
         rstfile = htmlfile = newfile = rstdata  = ""
         settings = self.conffile
         mld = "conffile is " + settings
@@ -393,8 +425,7 @@ class Rst2Html(object):
             mld = test
         if not mld:
             self.conf = test
-            self.subdirs = sorted([f + "/" for f in os.listdir(self.conf['source'])
-                if os.path.isdir(os.path.join(self.conf['source'],f))])
+            self.get_subdirs()
             self.current = ""
             rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
             mld = 'settings loaded from ' + settings
@@ -424,35 +455,35 @@ class Rst2Html(object):
                 if not sett_ok:
                     mld = "Niet uitgevoerd: tekstveld bevat waarschijnlijk geen settings"
         if mld == "":
-            naam, ext = os.path.splitext(newfile)
-            if ext != ".yml":
+            newpath = pathlib.Path(newfile)
+            if newpath.suffix != ".yml":
                 newfile += ".yml"
             data = zetom_conf(rstdata)
-            fullname = os.path.join(HERE, newfile)
+            fullname = HERE / newfile
             mld = save_to(fullname, data)
             if mld == "":
-                mld = "settings opgeslagen als " + fullname
+                mld = "settings opgeslagen als " + str(fullname)
             settings = newfile
             newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'yml', self.lang('yaml'))
 
-    @cherrypy.expose
+    @cherrypy.expose    # nog testen
     def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """load directives file for editing
 
         if non-existent, create from template
         """
         mld = ''
-        if os.path.exists(custom_directives):
+        if custom_directives.exists():
             fname = custom_directives
             verb = 'opgehaald'
         else:
-            fname = '_template'.join(os.path.splitext(custom_directives))
+            fname = custom_directives_template
             verb = 'initieel aangemaakt, nog niet opgeslagen'
         try:
-            with open(fname, 'r') as _in:
+            with fname.open() as _in:
                 rstdata = _in.read()
         except OSError as e:
             mld = str(e)
@@ -462,7 +493,7 @@ class Rst2Html(object):
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
 
-    @cherrypy.expose
+    @cherrypy.expose    # nog testen
     def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """(re)save directives file
         """
@@ -485,7 +516,7 @@ class Rst2Html(object):
         pre-builds save-filename by changing extension from rst to html"""
         mld = ""
         if rstfile == "":
-            mld = "dit lijkt me onmogelijk"
+            mld = "dit lijkt me onmogelijk" # stond open bij afsluiten browser
         elif rstfile == "-- new --":
             mld = "Vergeet niet een nieuwe filenaam op te geven om te saven"
             htmlfile = newfile = rstdata = ""
@@ -498,22 +529,19 @@ class Rst2Html(object):
             rstdata = ""
             mld = " "
         if not mld:
+            source = self.currentify(self.conf['source']) / rstfile
             try:
-                if self.current:
-                    where = os.path.join(self.conf['source'], self.current)
-                else:
-                    where = self.conf['source']
-                with open(os.path.join(where, rstfile)) as f_in:
+                with source.open() as f_in:
                     rstdata = ''.join(f_in.readlines())
-                htmlfile = os.path.splitext(rstfile)[0] + ".html"
-                newfile = ""
             except IOError as e:
                 mld = str(e)
-            if not mld:
-                mld = "Source file {0} opgehaald".format(os.path.join(where,
-                    rstfile))
-        ## with open('/tmp/rst2html_source', 'w') as _out:
-            ## _out.write(rstdata)
+            else:
+                htmlfile = str(source.with_suffix(".html").relative_to(
+                    self.conf['source']))
+                newfile = ""
+                mld = "Source file {0} opgehaald".format(str(source))
+                ## with open('/tmp/rst2html_source', 'w') as _out:
+                    ## _out.write(rstdata)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
@@ -527,7 +555,7 @@ class Rst2Html(object):
         if newfile == "":
             newfile = rstfile
             if newfile == "":
-                mld = "dit lijkt me onmogelijk"
+                mld = "dit lijkt me onmogelijk" # browser gesloten met pagina open?
             elif newfile == "-- new --":
                 mld = "Naam invullen of filenaam voor source selecteren s.v.p."
             elif rstfile.endswith("/"):
@@ -551,40 +579,35 @@ class Rst2Html(object):
                 source = self.conf['source']
                 root = self.conf['root']
                 nieuw = newfile[:-1]
+                newpath = source / nieuw
                 try:
-                    os.mkdir(os.path.join(source, nieuw))
+                    newpath.mkdir()
                 except OSError as err:
                     mld = str(err)
                 if mld == "" and root != source:
+                    newpath = root / nieuw
                     try:
-                        os.mkdir(os.path.join(root, nieuw))
+                        newpath.mkdir()
                     except OSError as err:
                         mld = str(err)
                 if mld == "":
-                    self.subdirs = sorted([f + "/" for f in os.listdir(source) \
-                        if os.path.isdir(os.path.join(source,f))])
-                    ## self.subdirs = []
-                    ## for f in os.listdir(self.conf['source']):
-                        ## if os.path.isdir(os.path.join(self.conf['source'],f)):
-                            ## self.subdirs.append(f + "/")
-                    ## self.subdirs.sort()
+                    self.get_subdirs()
                     mld = "nieuwe subdirectory {} aangemaakt in {}".format(nieuw,
                         source)
                     if root != source:
                         mld += " en {}".format(root)
             else:
-                naam,ext = os.path.splitext(newfile)
-                if ext != ".rst":
+                where = self.currentify(self.conf['source'])
+                newpath = where / newfile
+                if newpath.suffix != ".rst":
                     newfile += ".rst"
-                if self.current:
-                    where = os.path.join(self.conf['source'], self.current)
-                else:
-                    where = self.conf['source']
-                fullname = os.path.join(where, newfile)
-                mld = save_to(fullname, rstdata)
+                    newpath = where / newfile
+                mld = save_to(newpath, rstdata)
                 if mld == "":
-                    mld = "rst source opgeslagen als " + fullname
-                rstfile = newfile
+                    mld = "rst source opgeslagen als " + str(newpath.resolve())
+                rstfile = str(newpath.relative_to(self.conf['source']))
+                htmlfile = str(newpath.with_suffix(".html").relative_to(
+                    self.conf['source']))
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -599,7 +622,7 @@ class Rst2Html(object):
         if rstdata == "":
             mld = "Tekstveld invullen s.v.p."
         if mld == "":
-            return rst2html(rstdata, self.conf['css'], embed=True)
+            return rst2html(rstdata, str(self.conf['css']), embed=True)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
@@ -609,66 +632,66 @@ class Rst2Html(object):
         """(re)save rst file, (re)convert to html and (re)save html file using selected names"""
         mld = ""
         if newfile == "":
-            if rstfile == "":
+            if rstfile == "":   # browser afgesloten met pagina open?
                 mld = "dit lijkt me onmogelijk"
             elif rstfile == "-- new --":
                 mld = "Filenaam voor source opgeven of selecteren s.v.p."
+            else:
+                rstpath = pathlib.Path(rstfile)
+                htmlpath = pathlib.Path(htmlfile)
         elif newfile.startswith("-- new --"):
             mld = "Filenaam voor source opgeven of selecteren s.v.p."
         else:
-            naam,ext = os.path.splitext(newfile)
+            newpath = pathlib.Path(newfile)
+            ext = newpath.suffix
             if ext == ".rst":
-                rstfile = newfile
-                htmlfile = naam + ".html"
+                rstpath = newpath
+                htmlpath = newpath.with_suffix('.html')
             elif ext == ".html":
-                rstfile = naam + ".rst"
-                htmlfile = newfile
+                rstpath = newpath.with_suffix(".rst")
+                htmlpath = newpath
             else:
-                rstfile = newfile + ".rst"
-                htmlfile = newfile + ".html"
+                rstpath = newpath.with_suffix(".rst")
+                htmlpath = newpath.with_suffix(".html")
         if mld == "":
-            if htmlfile == "":
-                mld = "dit lijkt me onmogelijk"
-            elif htmlfile in ("-- new --", ".."):
-                if rstfile == "-- new --":
-                    naam, ext = os.path.splitext(newfile)
-                    if ext == ".html":
-                        htmlfile = newfile
-                    else:
-                        htmlfile = newfile + ".html"
-                else:
-                    naam,ext = os.path.splitext(rstfile)
+            ## if htmlfile == "":
+                ## mld = "dit lijkt me onmogelijk"
+            if htmlfile in ("-- new --", ".."):
+                ## if rstfile == "-- new --":
+                    ## newpath = pathlib.Path(newfile)
+                    ## ext = newpath.suffix
+                    ## if ext == ".html":
+                        ## htmlpath = newpath
+                    ## else:
+                        ## htmlpath = newpath.with_suffix(".html")
+                ## else:
+                    rstpath = pathlib.Path(rstfile)
+                    ext = rstpath.suffix
                     if ext == ".rst":
-                        htmlfile = naam + ".html"
+                        htmlpath = rstpath.with_suffix(".html")
                     else:
-                        htmlfile = rstfile + ".html"
+                        htmlpath = pathlib.Path(rstfile + ".html")
         if mld == "":
             if rstdata == "":
                 mld = "Tekstveld invullen s.v.p."
             elif rstdata[0] == "<":
                 mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
         if mld == "":
-            if self.current:
-                where_rst = os.path.join(self.conf['source'], self.current)
-                where_html = os.path.join(self.conf['root'], self.current)
-            else:
-                where_rst = self.conf['source']
-                where_html = self.conf['root']
-            rstfile = os.path.join(where_rst, rstfile)
-            htmlfile = os.path.join(where_html, htmlfile)
-            newdata = rst2html(rstdata, self.conf['css'])
+            rstfile = self.currentify(self.conf['source']) / rstpath
+            htmlfile = self.currentify(self.conf['root']) / htmlpath
+            newdata = rst2html(rstdata, str(self.conf['css']))
             mld = save_to(rstfile, rstdata)
             if mld == "":
-                begin, rest = str(newdata, encoding='utf-8').split('<link rel="stylesheet"',1)
+                begin, rest = str(newdata, encoding='utf-8').split(
+                    '<link rel="stylesheet"',1)
                 rest, end = rest.split(">",1)
                 newdata = self.conf['all_css'].join((begin, end))
                 mld = save_to(htmlfile, newdata)
                 if mld == "":
-                    mld = "rst omgezet naar html en opgeslagen als " + htmlfile
-            rstfile = os.path.basename(rstfile)
-            htmlfile = os.path.basename(htmlfile)
-            if newfile == rstfile or newfile == htmlfile:
-                newfile = ""
+                    mld = "rst omgezet naar html en opgeslagen als " + str(htmlfile)
+            rstfile = rstpath.name
+            htmlfile = htmlpath.name
+            newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
@@ -680,19 +703,15 @@ class Rst2Html(object):
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
         else:
-            naam, ext = os.path.splitext(htmlfile)
-            rstfile = naam + ".rst"
+            htmlpath = pathlib.Path(htmlfile)
+            rstfile = htmlpath.with_suffix(".rst")
         if mld == "":
-            if self.current:
-                where = os.path.join(self.conf['root'], self.current)
-            else:
-                where = self.conf['root']
-            htmlfile = os.path.join(where, htmlfile)
-            with open(htmlfile) as f_in:
+            htmlfile = self.currentify(self.conf['root']) / htmlpath
+            with htmlfile.open() as f_in:
                 ## rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
                 rstdata = f_in.read().replace("&nbsp", "&amp;nbsp")
             mld = "target html {0} opgehaald".format(htmlfile)
-            htmlfile = os.path.basename(htmlfile)
+            htmlfile = htmlfile.name
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
@@ -713,7 +732,7 @@ class Rst2Html(object):
             except ValueError:
                 embed = False
         if not mld:
-            with open(self.conf['css']) as f_in:
+            with self.conf['css'].open() as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">', '</style>'))
             newdata = newdata.join((data, rstdata))
@@ -726,25 +745,21 @@ class Rst2Html(object):
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """save displayed (edited) html"""
         mld = ""
+        # moet hier niet iets bij als if newfile: htmlfile = newfile ? Of mag "new" niet?
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --",  ".."):
             mld = "Filenaam voor html opgeven of selecteren s.v.p."
         elif rstdata == "":
             mld = "Tekstveld invullen s.v.p."
         if mld == "":
-            if self.current:
-                where = os.path.join(self.conf['root'], self.current)
-            else:
-                where = self.conf['root']
-            htmlfile = os.path.join(where, htmlfile)
+            htmlfile = self.currentify(self.conf['root']) / htmlfile
             newdata = rstdata # striplines(rstdata)
             mld = save_to(htmlfile, newdata)
             rstdata = newdata.replace("&nbsp", "&amp;nbsp")
             if mld == "":
-                mld = "Gewijzigde html opgeslagen als " + htmlfile
+                mld = "Gewijzigde html opgeslagen als " + str(htmlfile)
             ## rstfile = os.path.split(rstfile)[1]
-            htmlfile = os.path.basename(htmlfile)
-            if newfile == rstfile or newfile == htmlfile:
-                newfile = ""
+            htmlfile = htmlfile.name
+            newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'html', self.lang('html'))
@@ -760,23 +775,10 @@ class Rst2Html(object):
         elif not rstdata.startswith('<'):
             mld = "Please load html first"
         else:
-            if self.current:
-                where = os.path.join(self.conf['mirror'], self.current)
-            else:
-                where = self.conf['mirror']
-            if self.conf.get('starthead', ''):
-                split_on = '<head>' # + os.linesep
-                start, end = rstdata.split(split_on, 1)
-                middle = os.linesep.join(self.conf['starthead'])
-                rstdata = start + split_on + middle + end
-            if self.conf.get('endhead', ''):
-                split_on = '</head>' # + os.linesep
-                start, end = rstdata.split(split_on, 1)
-                middle = os.linesep.join(self.conf['endhead'])
-                rstdata = start + middle + split_on + end
-            target = os.path.join(where, htmlfile)
+            rstdata = self.complete_header(rstdata)
+            target = self.currentify(self.conf['mirror']) / htmlfile
             mld = save_to(target, rstdata)
-            htmlfile = os.path.basename(htmlfile)
+            ## htmlfile = target.name
             if not mld:
                 x = "/" if self.current else ""
                 mld = " gekopieerd naar {0}/{1}{2}{3}".format(self.conf['mirror'],
@@ -793,13 +795,63 @@ class Rst2Html(object):
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
+    @cherrypy.expose
+    def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        """regenerate all html files
+        """
+        # step 1: read source tree to determine files to be converted
+        results = []
+        pathlist = determine_files(self.conf['source'], suffix='.rst')
+        mld = ''
+        for rstfile in pathlist:
+            # bepaal de juiste pad namen
+            htmlfile = rstfile.relative_to(self.conf['source']).with_suffix('.html')
+            destfile = self.conf['mirror'] / htmlfile
+            htmlfile = self.conf['root'] / htmlfile
+            if not destfile.exists(): #only process files with target counterpart
+                results.append(str(rstfile) + ' skipped: not in target directory')
+                continue
+            # lees de rst source en zet ze om
+            with rstfile.open() as f_in:
+                rstdata = ''.join(f_in.readlines())
+            newdata = rst2html(rstdata, str(self.conf['css']))
+            # nog wat aanpassingen en dan opslaan in target
+            begin, rest = str(newdata, encoding='utf-8').split(
+                '<link rel="stylesheet"', 1)
+            rest, end = rest.split(">",1)
+            newdata = self.conf['all_css'].join((begin, end))
+            mld = save_to(htmlfile, newdata)
+            if mld:
+                results.append(mld)
+                continue
+            if not destfile.exists(): #do not process files not on mirror site
+                results.append(str(htmlfile) + ' not present at mirror')
+                continue
+            # nog wat aanpassingen en kopieren naar mirror
+            data = self.complete_header(newdata)
+            mld = save_to(destfile, data)
+            if mld:
+                results.append(mld)
+        rstdata = '\n'.join(results)
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
 
 #~ print cherrypy.config
 if __name__ == "__main__":
-    domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
+    ## domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
+    ## cherrypy.quickstart(Rst2Html())
     cherrypy.quickstart(Rst2Html(), config={
-    "/": {
-        ## 'server.socket_host': 'rst2html.{0}.nl'.format(domain),
-        'server.socket_host': '127.0.0.1',
-        'server.socket_port': 8080,
-        }})
+        "global": {
+            # 'server.socket_host': 'rst2html.{0}.nl'.format(domain),
+            'server.socket_host': '127.0.0.1',
+            'server.socket_port': 8099,
+            },
+        "/": {
+            'tools.staticdir.root': os.path.abspath(os.getcwd()),
+            },
+        "/static": {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': "./static",
+            },
+        })

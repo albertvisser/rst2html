@@ -18,11 +18,24 @@ wat moet ik maken
 -             p class date met inhoud = 'written on ...'
 """
 header_text = "" # "Albert Visser's programmer's blog"
-navlinks = [('/', "home"),
-            ('/about/', 'about me'),
-            ('/site/', 'about this site'),
-            ## ('/projects/', 'projects')
-            ]
+navlinks = (('/', "Home"),
+            ('/about/', 'About me'),
+            ('/site/', 'About this site'),
+            ('', 'My projects')
+            )
+projlinks = (("/actiereg/", 'ActieReg'),
+            ("/albums/", 'Albums'),
+            ("https://bitbucket.org/avisser/a-propos/", 'A Propos (off-site)'),
+            ("/htmledit/", 'HTML Editor'),
+            ("/xmledit/", 'XML Editor'),
+            ("https://bitbucket.org/avisser/doctree/wiki/", 'DocTree (off-site)'),
+            ("/filefindr/", 'FileFindR'),
+            ("/hotkeys/", 'Hotkeys'),
+            ("/logviewer/", 'LogViewer'),
+            ("/myprojects/", 'MyProjects'),
+            ("/probreg/", 'ProbReg'),
+            ("/rst2html/", 'Rst2HTML'),
+            )
 
 def align(argument):
     """Conversion function for the "align" option."""
@@ -53,7 +66,14 @@ class NavLinks(Directive):
         "genereer de html"
         text = ['<div id="navigation"><ul>',]
         for link, linktext in navlinks:
-            text.append('<li><a href="{}">{}</a></li>'.format(link, linktext))
+            if linktext != 'My projects':
+                text.append('<li class="menu"><a href="{}">{}</a></li>'.format(link,
+                    linktext))
+                continue
+            text.append('<li class="menu">{}<ul>'.format(linktext))
+            for link, linktext in projlinks:
+                text.append('<li><a href="{}">{}</a></li>'.format(link, linktext))
+            text.append('</ul></li>')
         text.append('</ul></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]

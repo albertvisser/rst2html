@@ -24,6 +24,8 @@ target: <select name="htmlfile" title="select the html file to save or load"><op
 new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
 <input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
     title="Generate a general index page using the 'refkey' directives in various documents" />
+<input type="button" value="Regenerate all" onclick="javascript: do_sub('convert_all'); return true;"
+    title="Regenerate all pages to reflect changes in directives used" />
 <br/>
 Settings: <input type="button" value="Load" onclick="javascript:do_sub('loadconf'); return true;"
     title="Load the selected settings, changing the locations of source, target and web mirror" />
