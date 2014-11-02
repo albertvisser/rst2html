@@ -283,7 +283,7 @@ class Rst2Html(object):
     def all_source(self, naam):
         """build list of options from rst files"""
         path = self.currentify(self.conf['source'])
-        all_source = [str(f.relative_to(self.conf['source']))
+        all_source = [str(f.relative_to(path)) # self.conf['source']))
             for f in path.glob("*.rst")]
         items = sorted(all_source)
         if self.current:
@@ -295,14 +295,14 @@ class Rst2Html(object):
     def all_html(self, naam):
         """build list of options from html files"""
         path = self.currentify(self.conf['root'])
-        all_html = [str(f.relative_to(self.conf['root']))
+        all_html = [str(f.relative_to(path)) # self.conf['root']))
             for f in path.glob("*.html")]
         items = sorted(all_html)
         if self.current:
             items.insert(0,"..")
         else:
             items = self.subdirs + items
-        return list_all(items,naam)
+        return list_all(items, naam)
 
     def scandocs(self):         # gewijzigd maar nog niet getest (kan via makerefdoc view)
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
@@ -605,9 +605,10 @@ class Rst2Html(object):
                 mld = save_to(newpath, rstdata)
                 if mld == "":
                     mld = "rst source opgeslagen als " + str(newpath.resolve())
-                rstfile = str(newpath.relative_to(self.conf['source']))
-                htmlfile = str(newpath.with_suffix(".html").relative_to(
-                    self.conf['source']))
+                ## rstfile = str(newpath.relative_to(where) # self.conf['source']))
+                rstfile = newpath.name
+                ## htmlfile = str(newpath.with_suffix(".html").relative_to(where) #  self.conf['source']))
+                htmlfile = newpath.with_suffix(".html").name
                 newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -711,6 +712,7 @@ class Rst2Html(object):
                 ## rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
                 rstdata = f_in.read().replace("&nbsp", "&amp;nbsp")
             mld = "target html {0} opgehaald".format(htmlfile)
+            rstfile = rstfile.name
             htmlfile = htmlfile.name
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
