@@ -7,266 +7,22 @@ webapp om teksten in ReST formaat om te zetten naar HTML documenten
 import cherrypy
 import sys
 sys.path.append('.')
-import os, shutil
+import os
 import pathlib
-import importlib
-import inspect
-import glob
-import yaml
-from docutils.core import publish_string
-import docutils.parsers.rst as rd
-standard_directives = {}
-from directives_grid import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer
-standard_directives.update({
-    "startc": StartCols,
-    "endc": EndCols,
-    "firstc": FirstCol,
-    "nextc": NextCol,
-    "clearc": ClearCol,
-    "spacer": Spacer,
-    })
-from directives_magiokis import Bottom, RefKey
-standard_directives.update({
-    "bottom": Bottom,
-    "refkey": RefKey,
-    })
-from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
-standard_directives.update({
-    "startbody": StartBody,
-    "navlinks": NavLinks,
-    "textheader": TextHeader,
-    "endbody": EndBody,
-    })
-
+import rst2html_functions as rhfn
+list_confs = rhfn.list_confs        # only because it's in all the views's return statement
 HERE = pathlib.Path(__file__).parents[0]
-custom_directives = HERE / 'custom_directives.py'
-custom_directives_template = HERE / 'custom_directives_template.py'
 TEMPLATE = HERE / "rst2html.html"
-CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
-SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
-    'starthead:', 'endhead:')
-
-def striplines(data):
-    """list -> string met verwijdering van eventuele line endings"""
-    return "".join([line.rstrip() for line in data])
-
-def rst2html(data, css, embed=False):
-    """rst naar html omzetten en resultaat teruggeven"""
-    overrides = {
-        "embed_stylesheet": embed,
-        "stylesheet_path": css,
-        "report_level": 3,
-        }
-    return publish_string(source=data,
-        destination_path="temp/omgezet.html",
-        writer_name='html',
-        settings_overrides=overrides,
-        )
-
-def save_to(fullname, data):
-    """backup file, then write data to file
-
-    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
-    mld = ''
-    if fullname.exists():
-        shutil.copyfile(str(fullname),
-            str(fullname.with_suffix(fullname.suffix + '.bak')))
-    with fullname.open("w", encoding='utf-8') as f_out:
-        try:
-            f_out.write(data)
-        except OSError as err:
-            mld = str(err)
-    return mld
-
-def list_all(inputlist, naam):
-    """build list of options from filenames, with naam selected"""
-    out = []
-    for f in inputlist:
-        s = ' selected="selected"' if naam == f else ''
-        out.append("<option{1}>{0}</option>".format(f, s))
-    return "".join(out)
-
-def list_confs(naam):
-    """build list of options containing all settings files in current directory"""
-    out = []
-    for path in HERE.glob('settings*.yml'):
-        f = path.name
-        s = ' selected="selected"' if naam == f else ''
-        out.append("<option{1}>{0}</option>".format(f, s))
-    return "".join(out)
-
-def determine_files(where='', suffix=''):    # nieuw voor generate_all; nog niet uitvoerbaar
-    def descend(root):
-        locals = []
-        for name in root.iterdir():
-            skip = False
-            if name.is_dir() and not name.is_symlink():
-                locals.extend(descend(name))
-            elif name.is_file() and (suffix == '' or name.suffix == suffix):
-                locals.append(name)
-        return locals
-    if not where:
-        where = pathlib.Path('.')
-    rstfiles = descend(where)
-    return rstfiles
-
-def make_path(root, path):
-    if path == 'root':
-        path = pathlib.Path(root)
-    elif path.startswith('root + '):
-        path = path.split(' + ', 1)[1]
-        path = pathlib.Path(root) / path
-        path = path.resolve()
-    else:
-        path = pathlib.Path(path)
-    return path
-
-def read_conf(naam, debug=False):
-    """read a config file; returns //conf//, a dictionary of options"""
-    invalid = 'Config: invalid value for {}'
-    does_not_exist = invalid + ' {} does not exist'
-    test = HERE / naam
-    with test.open() as _in:
-        conf = yaml.load(_in)
-    conf['root'] = pathlib.Path(conf['root'])
-    if not conf['root'].exists():
-        return does_not_exist.format('"root":', conf['root'])
-    conf['source'] = make_path(conf['root'], conf['source'])
-    if not conf['source'].exists():
-        return does_not_exist.format('"source":', conf['source'])
-    conf['css'] = make_path(conf['root'], conf['css'])
-    if not conf['css'].exists():
-        return does_not_exist.format('"css":', conf['css'])
-    conf['mirror'] = make_path(conf['root'], conf['mirror'])
-    if not conf['mirror'].exists():
-        return invalid.format("mirror")
-    csslinks = ''
-    try:
-        for x in conf['all_css']:
-            if csslinks:
-                csslinks += '\n'
-            csslinks += CSS_LINK.format(x)
-    except ValueError:
-        return invalid.format("all_css")
-    conf['all_css'] = csslinks
-    try:
-        conf['wid'] = int(conf['wid'])
-    except ValueError:
-        return invalid.format("wid")
-    try:
-        conf['hig'] = int(conf['hig'])
-    except ValueError:
-        return invalid.format("hig")
-    return conf
-
-def load_custom_directives():
-    """
-    importeer de directives uit het genoemde directives file
-    dat zijn alle Directive subclasses die daarin gedefinieerd zijn
-
-    voor elk directive moet in de docstring op aparte regels het volgende staan:
-        usage: .. directive_name:: <arguments>
-        description: directive_name is for doing stuff
-    """
-    modname = inspect.getmodulename(str(custom_directives))
-    data = importlib.import_module(modname)
-    for name, value in inspect.getmembers(data, inspect.isclass):
-        if rd.Directive in inspect.getmro(value) and value is not rd.Directive:
-            directive_name, oms = name, ''
-            docs = value.__doc__.split(os.linesep)
-            usage = [x for x in docs if 'usage' in x]
-            if usage:
-                directive_name = usage[0].split('..', 1)[1].split('::', 1)[0].strip()
-            desc = [x for x in docs if 'description' in x]
-            if desc:
-                oms = desc[0].split(':', 1)[1].strip()
-            rd.directives.register_directive(directive_name, value)
-
-def css_link2file(text):
-    x, y = CSS_LINK.split('{}')
-    text = text.replace(x, '  - ')
-    text = text.replace(y, '')
-    return text
-
-def zetom_conf(text):
-    data = []
-    for line in text.split(os.linesep):
-        probeer = line.strip().split(': ')
-        if len(probeer) > 1:
-            sleutel = probeer[0] + ":"
-            data.append([SETT_KEYS.index(sleutel), sleutel,
-                [css_link2file(probeer[1])]])
-        else:
-            data[-1][2].append(css_link2file(probeer[0]))
-    data.sort()
-    for ix, item in enumerate(data):
-        seq, key, value = item
-        if key == SETT_KEYS[0]:     # root
-            ## rootparts = value[0].split('/')
-            rootparts = pathlib.Path(value[0]).parts
-        elif key in SETT_KEYS[1:4]: # ander path
-            ## textparts = value[0].split('/')
-            textparts = pathlib.Path(value[0]).parts
-            if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
-                continue
-            if len(rootparts) < len(textparts): # get smallest number of subdirs
-                max = len(rootparts)
-            else:
-                max = len(textparts)
-            i = 0
-            while (i < max and textparts[i] == rootparts[i]):
-                i += 1
-            textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
-            value = 'root'
-            if textparts:
-                value += ' + ' + '/'.join(textparts)
-            data[ix] = seq, key, [value]
-    lines = []
-    for _, key, value in data:
-        if key == SETT_KEYS[4]:
-            lines.append(key)
-            for y in value:
-                lines.append(y)
-        else:
-            lines.append(key + ' ' + value[0])
-    return os.linesep.join(lines) + os.linesep
-
-def getrefs(path, source, reflinks):  # gewijzigd maar nog niet getest
-    "search for keywords in source file and remember their locations"
-    if path.is_dir():
-        for path in path.iterdir():
-            getrefs(path, source, reflinks)
-    elif path.suffix == ".rst":
-        doc = str(path.relative_to(source).with_suffix('.html'))
-        with path.open(encoding='latin-1') as f_in:
-            for line in f_in:
-                if line.startswith("..") and "refkey::" in line:
-                    x, refs = line.split("refkey::",1)
-                    for ref in (x.split(":") for x in refs.split(";")):
-                        word = ref[0].strip().capitalize()
-                        link = doc
-                        try:
-                            link += "#" + ref[1].strip()
-                        except IndexError:
-                            pass
-                        reflinks.setdefault(word, [])
-                        reflinks[word].append(link)
-
 
 class Rst2Html(object):
     "the actual webapp"
 
     def __init__(self):
         """initialize using imported settings; read template; register directives"""
-        for name, func in standard_directives.items():
-            rd.directives.register_directive(name, func)
+        rhfn.register_directives()
         self.conffile = 'settings.yml'
-        self.conf = read_conf(self.conffile)
-        ## self.output = self.conf
-        ## return
+        self.conf = rhfn.read_conf(self.conffile)
         self.get_subdirs()
-        if custom_directives.exists():
-            load_custom_directives()
         self.current = ""
         with TEMPLATE.open() as f_in:
             self.output = f_in.read()
@@ -290,7 +46,7 @@ class Rst2Html(object):
             items.insert(0,"..")
         else:
             items = self.subdirs + items
-        return list_all(items, naam)
+        return rhfn.list_all(items, naam)
 
     def all_html(self, naam):
         """build list of options from html files"""
@@ -302,75 +58,26 @@ class Rst2Html(object):
             items.insert(0,"..")
         else:
             items = self.subdirs + items
-        return list_all(items, naam)
+        return rhfn.list_all(items, naam)
 
     def scandocs(self):         # gewijzigd maar nog niet getest (kan via makerefdoc view)
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
         trefwoordenregister op"""
         mld = ""
-        reflinks = {}
-        for file in self.conf['source'].iterdir():
-            getrefs(file, self.conf['source'], reflinks)
-        current_letter = ""
-        # produceer het begin van de pagina
-        data = [
-            "Trefwoordenlijst",
-            "================",
-            "",
-                ""
-            ]
-        titel, teksten, links, anchors = [], [], [], []
-        for key in sorted(reflinks.keys()):
-            if key[0] != current_letter:
-                if titel:
-                    data.extend(titel)
-                    data.append("")
-                    data.extend(teksten)
-                    data.append("")
-                    data.extend(links)
-                    data.append("")
-                    data.extend(anchors)
-                    data.append("")
-                    titel, teksten, links, anchors = [], [], [], []
-                # produceer het begin voor een letter
-                current_letter = key[0]
-                data[3] += "`{0}`_ ".format(current_letter)
-                data.append("")
-                titel = ["{0}".format(current_letter), "-"]
-                linkno = 0
-            # produceer het begin voor een nieuw trefwoord
-            current_trefw = "+   {0}".format(key)
-            for link in reflinks[key]:
-                # produceer de tekst voor een link
-                current_trefw += " `#`__ "
-                linkno += 1
-                linknm = current_letter + str(linkno)
-                links.append("..  _{0}: {1}".format(linknm, link))
-                anchors.append("__ {0}_".format(linknm))
-            teksten.append(current_trefw)
-        # produceer het eind van de pagina
-        if teksten:
-            data.extend(titel)
-            data.append("")
-            data.extend(teksten)
-            data.append(" ")
-            data.extend(links)
-            data.append(" ")
-            data.extend(anchors)
-            data.append(" ")
-        rstdata = "\n".join(data)
-        mld = save_to(self.conf['source'] / 'trefwoorden.rst', rstdata)
+        rstdata = rhfn.build_trefwoordenlijst(self.conf['source'])
+        mld = rhfn.save_to(self.conf['source'] / 'trefwoorden.rst', rstdata)
         if mld == "":
             cssfile = str(self.conf['css'])
-            newdata = rst2html(rstdata, cssfile)
-            begin, rest = str(newdata, encoding='utf-8').split('<link rel="stylesheet"',1)
-            rest, end = rest.split(">",1)
+            newdata = rhfn.rst2html(rstdata, cssfile)
+            begin, rest = str(newdata, encoding='utf-8').split(
+                '<link rel="stylesheet"', 1)
+            rest, end = rest.split(">", 1)
             newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(
                 cssfile)
             newdata = newcss.join((begin, end))
-            mld = save_to(self.conf['root'] / "trefwoorden.html", newdata)
+            mld = rhfn.save_to(self.conf['root'] / "trefwoorden.html", newdata)
             if mld == "":
-                mld = save_to(self.conf['mirror'] / "trefwoorden.html",
+                mld = rhfn.save_to(self.conf['mirror'] / "trefwoorden.html",
                     cssfile.join((begin, end)))
         if not mld:
             mld = "Trefwoordenlijst aangemaakt"
@@ -418,7 +125,7 @@ class Rst2Html(object):
 
         changes the locations of source, target and web mirror files"""
         mld = ''
-        test = read_conf(settings)
+        test = rhfn.read_conf(settings)
         try:
             test['root']
         except TypeError:
@@ -458,9 +165,9 @@ class Rst2Html(object):
             newpath = pathlib.Path(newfile)
             if newpath.suffix != ".yml":
                 newfile += ".yml"
-            data = zetom_conf(rstdata)
+            data = rhfn.zetom_conf(rstdata)
             fullname = HERE / newfile
-            mld = save_to(fullname, data)
+            mld = rhfn.save_to(fullname, data)
             if mld == "":
                 mld = "settings opgeslagen als " + str(fullname)
             settings = newfile
@@ -476,12 +183,7 @@ class Rst2Html(object):
         if non-existent, create from template
         """
         mld = ''
-        if custom_directives.exists():
-            fname = custom_directives
-            verb = 'opgehaald'
-        else:
-            fname = custom_directives_template
-            verb = 'initieel aangemaakt, nog niet opgeslagen'
+        fname, verb = rhfn.get_custom_directives_filename()
         try:
             with fname.open() as _in:
                 rstdata = _in.read()
@@ -501,7 +203,7 @@ class Rst2Html(object):
         if rstdata == "":
             mld = "Niet opgeslagen: geen tekst opgegeven"
         if mld == "":
-            mld = save_to(custom_directives, rstdata)
+            mld = rhfn.save_to(rhfn.custom_directives, rstdata)
         if mld == "":
             mld = ("Directives file opgeslagen, "
                 'herstart de server om wijzigingen te activeren')
@@ -602,7 +304,7 @@ class Rst2Html(object):
                 if newpath.suffix != ".rst":
                     newfile += ".rst"
                     newpath = where / newfile
-                mld = save_to(newpath, rstdata)
+                mld = rhfn.save_to(newpath, rstdata)
                 if mld == "":
                     mld = "rst source opgeslagen als " + str(newpath.resolve())
                 ## rstfile = str(newpath.relative_to(where) # self.conf['source']))
@@ -623,7 +325,7 @@ class Rst2Html(object):
         if rstdata == "":
             mld = "Tekstveld invullen s.v.p."
         if mld == "":
-            return rst2html(rstdata, str(self.conf['css']), embed=True)
+            return rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
@@ -680,14 +382,14 @@ class Rst2Html(object):
         if mld == "":
             rstfile = self.currentify(self.conf['source']) / rstpath
             htmlfile = self.currentify(self.conf['root']) / htmlpath
-            newdata = rst2html(rstdata, str(self.conf['css']))
-            mld = save_to(rstfile, rstdata)
+            newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
+            mld = rhfn.save_to(rstfile, rstdata)
             if mld == "":
                 begin, rest = str(newdata, encoding='utf-8').split(
                     '<link rel="stylesheet"',1)
                 rest, end = rest.split(">",1)
                 newdata = self.conf['all_css'].join((begin, end))
-                mld = save_to(htmlfile, newdata)
+                mld = rhfn.save_to(htmlfile, newdata)
                 if mld == "":
                     mld = "rst omgezet naar html en opgeslagen als " + str(htmlfile)
             rstfile = rstpath.name
@@ -755,7 +457,7 @@ class Rst2Html(object):
         if mld == "":
             htmlfile = self.currentify(self.conf['root']) / htmlfile
             newdata = rstdata # striplines(rstdata)
-            mld = save_to(htmlfile, newdata)
+            mld = rhfn.save_to(htmlfile, newdata)
             rstdata = newdata.replace("&nbsp", "&amp;nbsp")
             if mld == "":
                 mld = "Gewijzigde html opgeslagen als " + str(htmlfile)
@@ -779,7 +481,7 @@ class Rst2Html(object):
         else:
             rstdata = self.complete_header(rstdata)
             target = self.currentify(self.conf['mirror']) / htmlfile
-            mld = save_to(target, rstdata)
+            mld = rhfn.save_to(target, rstdata)
             ## htmlfile = target.name
             if not mld:
                 x = "/" if self.current else ""
@@ -803,7 +505,7 @@ class Rst2Html(object):
         """
         # step 1: read source tree to determine files to be converted
         results = []
-        pathlist = determine_files(self.conf['source'], suffix='.rst')
+        pathlist = rhfn.determine_files(self.conf['source'], suffix='.rst')
         mld = ''
         for rstfile in pathlist:
             # bepaal de juiste pad namen
@@ -816,13 +518,13 @@ class Rst2Html(object):
             # lees de rst source en zet ze om
             with rstfile.open() as f_in:
                 rstdata = ''.join(f_in.readlines())
-            newdata = rst2html(rstdata, str(self.conf['css']))
+            newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
             # nog wat aanpassingen en dan opslaan in target
             begin, rest = str(newdata, encoding='utf-8').split(
                 '<link rel="stylesheet"', 1)
             rest, end = rest.split(">",1)
             newdata = self.conf['all_css'].join((begin, end))
-            mld = save_to(htmlfile, newdata)
+            mld = rhfn.save_to(htmlfile, newdata)
             if mld:
                 results.append(mld)
                 continue
@@ -831,7 +533,7 @@ class Rst2Html(object):
                 continue
             # nog wat aanpassingen en kopieren naar mirror
             data = self.complete_header(newdata)
-            mld = save_to(destfile, data)
+            mld = rhfn.save_to(destfile, data)
             if mld:
                 results.append(mld)
         rstdata = '\n'.join(results)
