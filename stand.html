@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rst2Html stand van zaken overzicht</title>
+    </head>
+    <body>
+        <table><!-- Table layout!? Bad, bad Zoot! -->
+            <tr>
+                <td>Site mirror at: {0}<br/>
+                    Source files at: {1}<br/>
+                    Target files at: {2}
+                </td>
+                <td>
+                     &nbsp;&nbsp;&nbsp;
+                    <form style="display:inline" action="/loadconf" method="post">
+                        <input type="hidden" name="settings" value="{3}"/>
+                        <input type="submit" value="back to editor"/>
+                    </form>
+                </td>
+            </tr>
+        </table>
+        <table summary="overzicht">
+            <tr>
+                <th>pagina</th>
+                <th>source</th>
+                <th>target</th>
+                <th>mirror</th>
+            </tr>
+            {% for row in data %}
+            <tr>
+                <td>{row.0}</td>
+                <td>{row.1}</td>
+                <td>{row.2}</td>
+                <td>{row.3}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </body>
+</html>

@@ -6,6 +6,7 @@ import importlib
 import inspect
 import glob
 import yaml
+import datetime
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
 standard_directives = {}
@@ -311,3 +312,150 @@ def build_trefwoordenlijst(path):
         data.extend(anchors)
         data.append(" ")
     return "\n".join(data)
+
+def build_file_list(path, ext):
+    """returns a list of files with a given extension under a given path
+    (1 subdirectory deep)
+    """
+    items = []
+    for p in path.iterdir():
+        if p.is_file() and str(p).endswith(ext):
+            ptime = p.stat().st_mtime # atime / ctime
+            items.append((str(p.relative_to(path)), ptime))
+        elif p.is_dir():
+            for pp in p.iterdir():
+                if pp.is_file() and str(pp).endswith(ext):
+                    ptime = pp.stat().st_mtime # atime / ctime
+                    items.append((str(pp.relative_to(path)), ptime))
+    return items
+
+class Compare:
+    """Compare three lists of files with their last changetimes
+    """
+
+    def __init__(self, list1, list2, list3):
+        self.list = [None, sorted(list1), sorted(list2), sorted(list3)]
+        self.idx = [None, -1, -1, -1]
+        self.item = [None, None, None, None]
+        self.sentinel = 'ZZZZZZZZZZ'
+        for ix in range(1,4):
+            self.item[ix] = self.get_next_item_from_list(ix)
+        # strictly speaking, this is not the highest possible value, but close enough
+
+    def get_next_item_from_list(self, num):
+        """return filename without extension with index in list
+        """
+        seq = self.idx[num]
+        seq += 1
+        if seq >= len(self.list[num]):
+            name = self.sentinel
+        else:
+            name = self.list[num][seq][0].split('.', 1)[0]
+            self.idx[num] = seq
+        return name, seq
+
+    def get_next_smallest_items(self):
+        """returns a list and gets the names for the next comparison"""
+        result = []
+        if self.item[1][0] < self.item[2][0]:
+            if self.item[1][0] < self.item[3][0]:
+                result = [(1, self.item[1])]
+                self.item[1] = self.get_next_item_from_list(1)
+            elif self.item[1][0] == self.item[3][0]:
+                result = [(1, self.item[1]), (3, self.item[3])]
+                self.item[1] = self.get_next_item_from_list(1)
+                self.item[3] = self.get_next_item_from_list(3)
+            elif self.item[1][0] > self.item[3][0]:
+                result = [(3, self.item[3])]
+                self.item[3] = self.get_next_item_from_list(3)
+        elif self.item[1][0] == self.item[2][0]:
+            if self.item[1][0] < self.item[3][0]:
+                result = [(1, self.item[1]), (2, self.item[2])]
+                self.item[1] = self.get_next_item_from_list(1)
+                self.item[2] = self.get_next_item_from_list(2)
+            elif self.item[1][0] == self.item[3][0]:
+                result = [(1, self.item[1]), (2, self.item[2]), (3, self.item[3])]
+                self.item[1] = self.get_next_item_from_list(1)
+                self.item[2] = self.get_next_item_from_list(2)
+                self.item[3] = self.get_next_item_from_list(3)
+            elif self.item[1][0] > self.item[3][0]:
+                result = [(3, self.item[3])]
+                self.item[3] = self.get_next_item_from_list(3)
+        elif self.item[1][0] > self.item[2][0]:
+            if self.item[2][0] < self.item[3][0]:
+                result = [(2, self.item[2])]
+                self.item[2] = self.get_next_item_from_list(2)
+            elif self.item[2][0] == self.item[3][0]:
+                result = [(2, self.item[2]), (3, self.item[3])]
+                self.item[2] = self.get_next_item_from_list(2)
+                self.item[3] = self.get_next_item_from_list(3)
+            elif self.item[2][0] > self.item[3][0]:
+                result = [(3, self.item[3])]
+                self.item[3] = self.get_next_item_from_list(3)
+        return result
+
+# vergelijk de lijsten (datum/tijd)
+def compare_lists(list1, list2, list3):
+    """Compare three lists of files with datetimes into one ordered list
+    of filenames with dates and a number indicating the most recent date
+    """
+    workitem = Compare(list1, list2, list3)
+    timeslist = []
+    count = 0
+    while True:
+        test = workitem.get_next_smallest_items()
+        ## print("next smallest items:", test)
+        if all([x[1][0] == workitem.sentinel for x in test]):
+            break
+        times = ['', '', '']
+        name = test[0][1][0]
+        maxtime = 0
+        for listno, item in test:
+            _, indx = item
+            if listno == 1:
+                mtime = list1[indx][1]
+            elif listno == 2:
+                mtime = list2[indx][1]
+            elif listno == 3:
+                mtime = list3[indx][1]
+            if mtime > maxtime:
+                maxtime = mtime
+                maxindex = listno
+            times[listno - 1] = datetime.datetime.fromtimestamp(mtime).strftime(
+                '%d-%m-%Y %H:%M:%S')
+        line = [name]
+        for mtime in times:
+            line.append(mtime or 'n/a')
+        line.append(maxindex)
+        timeslist.append(line)
+        ## count += 1
+        ## if count > 10:
+            ## break
+    return timeslist
+
+def determine_most_recently_updated(settingsfile):
+    """output the site inventory to html, accentuating the most recently updated
+    items
+    parts of this logic belong in the template, but since I'm not using a template
+    engine I'm implementing it here"""
+    opts = read_conf(settingsfile)
+    source = build_file_list(opts['source'], '.rst')
+    target = build_file_list(opts['root'], '.html')
+    mirror = build_file_list(opts['mirror'], '.html')
+    timelist = compare_lists(source, target, mirror)
+    template = HERE / 'stand.html'
+    with template.open() as _in:
+        output = _in.read()
+    first_part, rest = output.split('{% for row in data %}')
+    repeat_line, last_part = rest.split('{% endfor %}')
+    output = [first_part]
+    for row in timelist:
+        line = repeat_line
+        for idx, word in enumerate(row[:-1]):
+            if idx == row[-1]:
+                word = word.join(('<strong>', '</strong>'))
+            line = line.replace('{row.%s}' % idx, word)
+        output.append(line)
+    output.append(last_part)
+    return ''.join(output)
+

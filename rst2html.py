@@ -540,6 +540,12 @@ class Rst2Html(object):
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
+    @cherrypy.expose
+    def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        rstdata = rhfn.determine_most_recently_updated(settings)
+        return rstdata.format(self.conf['mirror'], self.conf['source'],
+            self.conf['root'], settings)
+        #TODO: add button to return to loadconf page for these settings and send page
 
 #~ print cherrypy.config
 if __name__ == "__main__":
