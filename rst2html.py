@@ -155,7 +155,7 @@ class Rst2Html(object):
                 mld = "Tekstveld invullen s.v.p."
             else:
                 sett_ok = False
-                for txt in SETT_KEYS:
+                for txt in rhfn.SETT_KEYS:
                     if rstdata.startswith(txt):
                         sett_ok = True
                         break
@@ -235,9 +235,15 @@ class Rst2Html(object):
             try:
                 with source.open() as f_in:
                     rstdata = ''.join(f_in.readlines())
+            except UnicodeDecodeError:
+                try:
+                    with source.open(encoding='iso-8859-1') as f_in:
+                        rstdata = ''.join(f_in.readlines())
+                except IOError as e:
+                    mld = str(e)
             except IOError as e:
                 mld = str(e)
-            else:
+            if not mld:
                 htmlfile = str(source.with_suffix(".html").relative_to(
                     self.conf['source']))
                 newfile = ""
