@@ -401,11 +401,10 @@ def compare_lists(list1, list2, list3):
     of filenames with dates and a number indicating the most recent date
     """
     workitem = Compare(list1, list2, list3)
+    lists = (sorted(list1), sorted(list2), sorted(list3))
     timeslist = []
-    count = 0
     while True:
         test = workitem.get_next_smallest_items()
-        ## print("next smallest items:", test)
         if all([x[1][0] == workitem.sentinel for x in test]):
             break
         times = ['', '', '']
@@ -413,14 +412,9 @@ def compare_lists(list1, list2, list3):
         maxtime = 0
         for listno, item in test:
             _, indx = item
-            if listno == 1:
-                mtime = list1[indx][1]
-            elif listno == 2:
-                mtime = list2[indx][1]
-            elif listno == 3:
-                mtime = list3[indx][1]
-            if mtime > maxtime:
-                maxtime = mtime
+            mtime = lists[listno - 1][indx][1]
+            if int(mtime) >= maxtime:
+                maxtime = int(mtime)
                 maxindex = listno
             times[listno - 1] = datetime.datetime.fromtimestamp(mtime).strftime(
                 '%d-%m-%Y %H:%M:%S')
@@ -429,9 +423,6 @@ def compare_lists(list1, list2, list3):
             line.append(mtime or 'n/a')
         line.append(maxindex)
         timeslist.append(line)
-        ## count += 1
-        ## if count > 10:
-            ## break
     return timeslist
 
 def determine_most_recently_updated(settingsfile):
