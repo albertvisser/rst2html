@@ -42,14 +42,15 @@ SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
 
 # eigengebakken spul, tzt te vervangen door gnu_gettext zaken
 languages = {}
-with open('languages.py') as _in:
-    infodict = {}
-    for line in _in:
-        line = line.strip()
-        if line == "" or line.startswith('#'): continue
-        key, value = line.split(' = ', 1)
-        infodict[key] = value
-    languages['en'] = infodict
+for name, code in (('english', 'en'), ('dutch', 'nl')):
+    with open('{}.lng'.format(name)) as _in:
+        infodict = {}
+        for line in _in:
+            line = line.strip()
+            if line == "" or line.startswith('#'): continue
+            key, value = line.split(' = ', 1)
+            infodict[key] = value
+        languages[code] = infodict
 
 def get_text(keyword, lang='en'):
     data = languages[lang]

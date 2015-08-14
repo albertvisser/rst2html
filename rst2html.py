@@ -529,7 +529,7 @@ class Rst2Html(object):
             destfile = self.conf['mirror'] / htmlfile
             htmlfile = self.conf['root'] / htmlfile
             if not destfile.exists(): #only process files with target counterpart
-                results.append(rhfn.get_text('target_missing').format(str(rstfile))
+                results.append(rhfn.get_text('target_missing').format(str(rstfile)))
                 continue
             # lees de rst source en zet ze om
             with rstfile.open() as f_in:
@@ -545,7 +545,7 @@ class Rst2Html(object):
                 results.append(mld)
                 continue
             if not destfile.exists(): #do not process files not on mirror site
-                results.append(rhfn.get_text('mirror_missing').format(str(htmlfile))
+                results.append(rhfn.get_text('mirror_missing').format(str(htmlfile)))
                 continue
             # nog wat aanpassingen en kopieren naar mirror
             data = self.complete_header(newdata)
