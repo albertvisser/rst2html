@@ -1,83 +1,140 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>ReStructured Text translator</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-<script src="/static/codemirror/lib/codemirror.js"></script>
-<link rel="stylesheet" href="/static/codemirror/lib/codemirror.css">
-{9}
-<script type="text/javascript">
-function do_sub(x) {{
-    document.forms[0].action = x;
-    document.forms[0].submit();
-    return true
-    }}
-</script>
+    <title>ReStructured Text translator</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <script src="/static/codemirror/lib/codemirror.js"></script>
+    <link rel="stylesheet" href="/static/codemirror/lib/codemirror.css"/>
+    {9}
+    <script type="text/javascript">
+        function do_sub(x) {{
+            document.forms[0].action = x;
+            document.forms[0].submit();
+            return true
+            }}
+    </script>
 </head>
-<body>
-<form action="/" method="post">
-<table >
-<tr><td colspan="2">
-settings: <select name="settings" title="select a settings file, indicating the site to work on and other parameters">{7}</select>
-source: <select name="rstfile" title="select the .rst file to load or save, or a directory name to change to"><option>-- new --</option>{0}</select>
-target: <select name="htmlfile" title="select the html file to save or load"><option>-- new --</option>{1}</select>
-new name: <input type="text" name="newfile" value="{2}" title="enter a new name to load or save. End with / to create a directory "/>
-<input type="button" value="Create index" onclick="javascript: do_sub('makerefdoc'); return true;"
-    title="Generate a general index page using the 'refkey' directives in various documents" />
-<input type="button" value="Regenerate all" onclick="javascript: do_sub('convert_all'); return true;"
-    title="Regenerate all pages to reflect changes in directives used" />
-<br/>
-Settings: <input type="button" value="Load" onclick="javascript:do_sub('loadconf'); return true;"
-    title="Load the selected settings, changing the locations of source, target and web mirror" />
-<input type="button" value="Save" onclick="javascript:do_sub('saveconf'); return true;"
-    title="Save/update the input area's contents to a settings file" />
-Source: <input type="button" value="Load" onclick="javascript: do_sub('loadrst'); return true;"
-    title="Load the chosen rst file into the input area. Can also be used to change directory ('..' or ending in '/')"/>
-<input type="button" value="Save" onclick="javascript: do_sub('saverst'); return true;"
-    title="Save the input area's contents under the chosen .rst name. Can also be used to create a directory"/>
-<input type="button" value="Convert and show" onclick="javascript: do_sub('convert'); return true;"
-    title="Preview the result of the rst to html conversion"/>
-<input type="button" value="Save converted" onclick="javascript: do_sub('saveall'); return true;"
-    title="Store the input area's contents as rst, convert to html and store the result of the conversion" />
-Html: <input type="button" value="Load" onclick="javascript: do_sub('loadhtml'); return true;"
-    title="Load the result of the html conversion into the input area"/>
-<input type="button" value="Render" onclick="javascript: do_sub('showhtml'); return true;"
-    title="Render the html in the input area"/>
-<input type="button" value="Save" onclick="javascript: do_sub('savehtml'); return true;"
-    title="Store the html in the input area"/>
-<input type="button" value="Copy to mirror" onclick="javascript: do_sub('copytoroot'); return true;"
-    title="Copy the stored html to the site mentioned in the config after editing the css link(s)"/>
-<input type="button" value="Progress overview" onclick="javascript: do_sub('overview'); return true;"
-    title="Present an overview of the stages of the various site documents"/>
-<br/>
-Custom directives: <input type="button" value="Load" onclick="javascript:do_sub('loadxtra'); return true;"
-    title="Create or Load a file with user-defined directives for editing" />
-<input type="button" value="Save" onclick="javascript:do_sub('savextra'); return true;"
-    title="Save/update the input area's contents to the directives file" />
-<span>&nbsp;&nbsp;&nbsp;</span><b>{3}</b><br/>
-</td></tr>
-<tr><td valign="top">
-<textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}">{4}</textarea>
-</td><td valign="top">
-<a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html" target="_blank">Quick reStructuredText</a> (opens in new tab)<br/>
-Apart from the built in ones, the following directives are available (hover to view description):
-<table>
-<tr><td>grid:</td><td><span title="start kolomweergave van x cellen breed (x = 12 of 16)">.. startc:: <i>x</i></span></td></tr>
-<tr><td>&nbsp;</td><td><span title="start eerste kolom met breedte van x cellen met evt. class">.. firstc:: <i>x</i> [<i>class</i>]</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="start volgende kolom met breedte van x cellen met evt. class">.. nextc:: <i>x</i> [<i>class</i>]</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="einde regel na laatste kolom">.. clearc::</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="maak lege ruimte (met breedte van x cellen)">.. spacer:: [<i>x</i>]</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="einde kolomweergave">.. endc:: </span></td></tr>
-<tr><td>Magiokis:</td><td><span title="maak navigatiefooter van x cellen breed met 'index' en 'volgende' link, 'made by' tekst en mailto link. De tekst voor de 'volgende' link is standaard tenzij anders aangegeven;
-bij ontbreken van de filenaam wordt ook geen index link weergegeven;
-bij 'None' wordt de index link wel getoond">.. bottom:: <i>x</i> [None | <i>filename</i>] [<i>link text</i>]</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="definieer een verwijzing naar (een plek op) deze pagina t.b.v. de 'create index' functie">.. refkey:: trefwoord [ : <i>anchor</i>]</span></td></tr>
-<tr><td>BitBucket:</td><td><span title="genereer standaard begin van de body section">.. startbody::</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="genereer navigatielinks">.. navlinks::</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="genereer begin van de tekst met titel">.. textheader:: [<i>text</i>]</span></td></tr>
-<tr><td>&nbsp;</td><td><span title="genereer standaard einde van de body section">.. endbody::</span></td></tr>
-</table>
-</form>
-<script src="/static/{8}editor.js"></script>
+<body style="background-color: orange; color: brown">
+    <form action="/" method="post">
+        <div class="container-full table-full">
+
+                <div class="row-full" style="display: inline; float:left">
+                    <div class="table-full" style="display: inline">
+
+                        <div class="table-column" style="float:left">
+                            <select name="settings" title="_(t_settings)">{7}</select>
+                            <br/>
+                            _(c_settings):
+                            <input type="button" value="_(c_loadconf)" title="_(t_loadconf)"
+                                onclick="javascript:do_sub('loadconf'); return true;" />
+                            <input type="button" value="_(c_saveconf)" title="_(t_saveconf)"
+                                onclick="javascript:do_sub('saveconf'); return true;" />
+                        </div>
+                        <div class="table-column" style="float:left">
+                            _(c_rstfile):
+                            <select name="rstfile" title="_(t_rstfile)">
+                                <option>_(c_newitem)</option>
+                                {0}
+                            </select>
+                            _(c_htmlfile):
+                            <select name="htmlfile" title="_(t_htmlfile)">
+                                <option>_(c_newitem)</option>
+                                {1}
+                            </select>
+                            _(c_newfile):
+                            <input type="text" name="newfile" value="{2}" title="_(t_newfile)"/>
+                            <br/>
+                            <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc)"
+                                onclick="javascript: do_sub('loadrst'); return true;" />
+                            <input type="button" value="_(c_savesrc)" title="_(t_savesrc)"
+                                onclick="javascript: do_sub('saverst'); return true;" />
+                            <input type="button" value="_(c_convert)" title="_(t_convert)"
+                                onclick="javascript: do_sub('convert'); return true;" />
+                            <input type="button" value="_(c_saveall)" title="_(t_saveall)"
+                                onclick="javascript: do_sub('saveall'); return true;" />
+                            <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml)"
+                                onclick="javascript: do_sub('loadhtml'); return true;" />
+                            <input type="button" value="_(c_showhtml)" title="_(t_showhtml)"
+                                onclick="javascript: do_sub('showhtml'); return true;" />
+                            <input type="button" value="_(c_savehtml)" title="_(t_savehtml)"
+                                onclick="javascript: do_sub('savehtml'); return true;" />
+                        </div>
+                        <div class="table-column" style="float:left">
+                            <input type="button" value="_(c_index)" title="_(t_index)"
+                                onclick="javascript: do_sub('makerefdoc'); return true;" />
+                            <input type="button" value="_(c_regen)" title="_(t_regen)"
+                                onclick="javascript: do_sub('convert_all'); return true;" />
+                            <br/>
+                            <input type="button" value="_(c_copytoroot)" title="_(t_copytoroot)"
+                                onclick="javascript: do_sub('copytoroot'); return true;" />
+                            <input type="button" value="_(c_overview)" title="_(t_overview)"
+                                onclick="javascript: do_sub('overview'); return true;" />
+                        </div>
+                        <div class="clear" style="clear: both"></div>
+
+                        <div class="row-full" style="float:left">
+                            _(c_custom):
+                            <input type="button" value="_(c_loadxtra)" title="_(t_loadxtra)"
+                                onclick="javascript:do_sub('loadxtra'); return true;" />
+                            <input type="button" value="_(c_savextra)" title="_(t_savextra)"
+                                onclick="javascript:do_sub('savextra'); return true;" />
+                            <span>&nbsp;&nbsp;&nbsp;</span>
+                            <strong>{3}</strong>
+                        </div>
+                        <div class="clear" style="clear: both"></div>
+
+                    </div>
+                </div>
+                <div class="clear" style="display: inline; clear: both"></div>
+
+                <div class="row-half" style="display: inline; float:left">
+                    <textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}"
+                        style="display: inline">{4}</textarea>
+                </div>
+
+                <div class="row-half" style="display: inline; float:left; padding: 5px; ">
+                    <div class="table-full" style="display: inline">
+
+                            <div class="row-full" style="float: left">
+                                <a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html" target="_blank">
+                                _(c_qref)</a>_(t_qref)<br/>
+                                _(t_dir)
+                            </div>
+                            <div class="clear" style="clear: both"></div>
+
+                            <div class="table-column" style="float:left">grid:</div>
+                            <div class="table-column" style="float:left">
+                                <span title="_(t_startc)">.. startc:: <em>x</em></span><br/>
+                                <span title="_(t_firstc)">.. firstc:: <em>x</em> [<em>class</em>]</span><br/>
+                                <span title="_(t_nextc)">.. nextc:: <em>x</em> [<em>class</em>]</span><br/>
+                                <span title="_(t_clearc)">.. clearc::</span><br/>
+                                <span title="_(t_spacer)">.. spacer:: [<em>x</em>]</span><br/>
+                                <span title="_(t_endc)">.. endc:: </span>
+                            </div>
+                            <div class="clear" style="clear: both"></div>
+
+                            <div class="table-column" style="float:left">Magiokis:</div>
+                            <div class="table-column" style="float:left">
+                                <span title="_(t_bottom)">.. bottom:: <em>x</em> [None | <em>filename</em>] [<em>link text</em>]</span><br/>
+                                <span title="_(t_refkey)">.. refkey:: keyword [ : <em>anchor</em>]</span>
+                            </div>
+                            <div class="clear" style="clear: both"></div>
+
+                            <div class="table-column" style="float:left">BitBucket:</div>
+                            <div class="table-column" style="float:left">
+                                <span title="_(t_startbody)">.. startbody::</span><br/>
+                                <span title="_(t_navlinks)">.. navlinks::</span><br/>
+                                <span title="_(t_textheader)">.. textheader:: [<em>text</em>]</span><br/>
+                                <span title="_(t_endbody)">.. endbody::</span>
+                            </div>
+                            <div class="clear" style="clear: both"></div>
+
+                    </div>
+                </div>
+                <div class="clear" style="display: inline; clear: both"></div>
+
+        </div>
+    </form>
+    <script src="/static/{8}editor.js"></script>
 </body>
 </html>

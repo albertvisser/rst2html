@@ -25,7 +25,17 @@ class Rst2Html(object):
         self.get_subdirs()
         self.current = ""
         with TEMPLATE.open() as f_in:
-            self.output = f_in.read()
+            ## self.output = f_in.read()
+            # eigengebakken language support
+            output = []
+            for line in f_in:
+                while '_(' in line:
+                    start, rest = line.split('_(', 1)
+                    keyword, end = rest.split(')', 1)
+                    line = rhfn.get_text(keyword).join((start, end))
+                output.append(line)
+            self.output = ''.join(output)
+
 
     def get_subdirs(self):
         self.subdirs = [str(f.relative_to(self.conf['source'])) + "/"

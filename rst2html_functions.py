@@ -40,6 +40,21 @@ CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
     'starthead:', 'endhead:')
 
+# eigengebakken spul, tzt te vervangen door gnu_gettext zaken
+languages = {}
+with open('languages.py') as _in:
+    infodict = {}
+    for line in _in:
+        line = line.strip()
+        if line == "" or line.startswith('#'): continue
+        key, value = line.split(' = ', 1)
+        infodict[key] = value
+    languages['en'] = infodict
+
+def get_text(keyword, lang='en'):
+    data = languages[lang]
+    return data[keyword]
+#---
 def register_directives():
     for name, func in standard_directives.items():
         rd.directives.register_directive(name, func)
@@ -450,4 +465,3 @@ def determine_most_recently_updated(settingsfile):
         output.append(line)
     output.append(last_part)
     return ''.join(output)
-
