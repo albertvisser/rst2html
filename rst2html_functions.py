@@ -138,8 +138,8 @@ def make_path(root, path):
 
 def read_conf(naam, debug=False):
     """read a config file; returns //conf//, a dictionary of options"""
-    invalid = 'Config: invalid value for {}'
-    does_not_exist = invalid + ' {} does not exist'
+    invalid = rhfn.get_text('sett_invalid')
+    does_not_exist = invalid + " - " + rhfn.get_text('no_such_sett')
     test = HERE / naam
     with test.open() as _in:
         conf = yaml.load(_in)
@@ -200,10 +200,10 @@ def load_custom_directives():
 def get_custom_directives_filename():
     if custom_directives.exists():
         fname = custom_directives
-        verb = 'opgehaald'
+        verb = rhfn.get_text('loaded')
     else:
         fname = custom_directives_template
-        verb = 'initieel aangemaakt, nog niet opgeslagen'
+        verb = rhfn.get_text('init')
     return fname, verb
 
 def css_link2file(text):
@@ -282,12 +282,8 @@ def build_trefwoordenlijst(path):
         getrefs(file, path, reflinks)
     current_letter = ""
     # produceer het begin van de pagina
-    data = [
-        "Trefwoordenlijst",
-        "================",
-        "",
-            ""
-        ]
+    hdr = rhfn.get_text('index_header')
+    data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
     for key in sorted(reflinks.keys()):
         if key[0] != current_letter:

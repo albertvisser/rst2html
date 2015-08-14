@@ -70,7 +70,7 @@ class Rst2Html(object):
             items = self.subdirs + items
         return rhfn.list_all(items, naam)
 
-    def scandocs(self):         # gewijzigd maar nog niet getest (kan via makerefdoc view)
+    def scandocs(self):
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
         trefwoordenregister op"""
         mld = ""
@@ -90,7 +90,7 @@ class Rst2Html(object):
                 mld = rhfn.save_to(self.conf['mirror'] / "trefwoorden.html",
                     cssfile.join((begin, end)))
         if not mld:
-            mld = "Trefwoordenlijst aangemaakt"
+            mld = rhfn.get_text('index_built')
         return mld
 
     def lang(self, value):
@@ -123,7 +123,7 @@ class Rst2Html(object):
         ## return self.output
         rstfile = htmlfile = newfile = rstdata  = ""
         settings = self.conffile
-        mld = "conffile is " + settings
+        mld = rhfn.get_text('conf_init').format(settings)
         rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -145,7 +145,7 @@ class Rst2Html(object):
             self.get_subdirs()
             self.current = ""
             rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
-            mld = 'settings loaded from ' + settings
+            mld = rhfn.get_text('conf_loaded').format(settings)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'yml', self.lang('yaml'))
@@ -159,10 +159,10 @@ class Rst2Html(object):
         if newfile == "":
             newfile = settings
         if newfile.endswith(os.pathsep):
-            mld = "Not a valid filename"
+            mld = rhfn.get_text('fname_invalid')
         if mld == "":
             if rstdata == "":
-                mld = "Tekstveld invullen s.v.p."
+                mld = rhfn.get_text('supply_text')
             else:
                 sett_ok = False
                 for txt in rhfn.SETT_KEYS:
@@ -170,7 +170,7 @@ class Rst2Html(object):
                         sett_ok = True
                         break
                 if not sett_ok:
-                    mld = "Niet uitgevoerd: tekstveld bevat waarschijnlijk geen settings"
+                    mld = rhfn.set_text('conf_invalid')
         if mld == "":
             newpath = pathlib.Path(newfile)
             if newpath.suffix != ".yml":
@@ -179,7 +179,7 @@ class Rst2Html(object):
             fullname = HERE / newfile
             mld = rhfn.save_to(fullname, data)
             if mld == "":
-                mld = "settings opgeslagen als " + str(fullname)
+                mld = rhfn.get_text('conf_saved').format(str(fullname))
             settings = newfile
             newfile = ""
         return self.output.format(self.all_source(rstfile),
@@ -200,7 +200,7 @@ class Rst2Html(object):
         except OSError as e:
             mld = str(e)
         if not mld:
-            mld = "Directives file {}".format(verb)
+            mld = rhfn.get_text('dirs_loaded').format(verb)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
@@ -211,12 +211,11 @@ class Rst2Html(object):
         """
         mld = ''
         if rstdata == "":
-            mld = "Niet opgeslagen: geen tekst opgegeven"
+            mld = rhfn.get_text('supply_text')
         if mld == "":
             mld = rhfn.save_to(rhfn.custom_directives, rstdata)
         if mld == "":
-            mld = ("Directives file opgeslagen, "
-                'herstart de server om wijzigingen te activeren')
+            mld = rhfn.get_text('dirs_saved')
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'py', self.lang('python'))
@@ -228,9 +227,9 @@ class Rst2Html(object):
         pre-builds save-filename by changing extension from rst to html"""
         mld = ""
         if rstfile == "":
-            mld = "dit lijkt me onmogelijk" # stond open bij afsluiten browser
+            mld = rhfn.get_text('unlikely_1')
         elif rstfile == "-- new --":
-            mld = "Vergeet niet een nieuwe filenaam op te geven om te saven"
+            mld = rhfn.get_text('save_reminder')
             htmlfile = newfile = rstdata = ""
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
@@ -257,7 +256,7 @@ class Rst2Html(object):
                 htmlfile = str(source.with_suffix(".html").relative_to(
                     self.conf['source']))
                 newfile = ""
-                mld = "Source file {0} opgehaald".format(str(source))
+                mld = rhfn.get_text('src_loaded').format(str(source))
                 ## with open('/tmp/rst2html_source', 'w') as _out:
                     ## _out.write(rstdata)
         return self.output.format(self.all_source(rstfile),
@@ -273,9 +272,9 @@ class Rst2Html(object):
         if newfile == "":
             newfile = rstfile
             if newfile == "":
-                mld = "dit lijkt me onmogelijk" # browser gesloten met pagina open?
+                mld = rhfn.get_text('unlikely_1')
             elif newfile == "-- new --":
-                mld = "Naam invullen of filenaam voor source selecteren s.v.p."
+                mld = rhfn.get_text('src_name_missing')
             elif rstfile.endswith("/"):
                 self.current = rstfile[:-1]
                 mld = " "
@@ -283,15 +282,15 @@ class Rst2Html(object):
                 self.current = ""
                 mld = " "
         elif newfile == "-- new --":
-            mld = "Naam invullen of filenaam voor source selecteren s.v.p."
+            mld = rhfn.get_text('src_name_missing')
         if mld == "":
             if newfile.endswith("/"):
                 if self.current:
-                    mld = "nieuwe subdirectory (voorlopig) alleen in root mogelijk"
+                    mld = rhfn.get_text('no_subdir')
             elif rstdata == "":
-                mld = "Tekstveld invullen s.v.p."
+                mld = rhfn.get_text('supply_text')
             elif rstdata[0] == "<":
-                mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
+                mld = rhfn.get_text('rst_invalid')
         if mld == "":
             if newfile.endswith("/"):
                 source = self.conf['source']
@@ -310,8 +309,7 @@ class Rst2Html(object):
                         mld = str(err)
                 if mld == "":
                     self.get_subdirs()
-                    mld = "nieuwe subdirectory {} aangemaakt in {}".format(nieuw,
-                        source)
+                    mld = rhfn.get_text('new_subdir').format(nieuw, source)
                     if root != source:
                         mld += " en {}".format(root)
             else:
@@ -322,7 +320,7 @@ class Rst2Html(object):
                     newpath = where / newfile
                 mld = rhfn.save_to(newpath, rstdata)
                 if mld == "":
-                    mld = "rst source opgeslagen als " + str(newpath.resolve())
+                    mld = rhfn.get_text('rst_saved').format(str(newpath.resolve()))
                 ## rstfile = str(newpath.relative_to(where) # self.conf['source']))
                 rstfile = newpath.name
                 ## htmlfile = str(newpath.with_suffix(".html").relative_to(where) #  self.conf['source']))
@@ -339,8 +337,10 @@ class Rst2Html(object):
         needs browser back button to return to application page - not sure if it works in all browsers"""
         mld = ""
         if rstdata == "":
-            mld = "Tekstveld invullen s.v.p."
+            mld = rhfn.get_text('supply_text')
         if mld == "":
+            ## mld = rhfn.save_to(rstfile, rstdata) # savepad wel correct?
+            ## if not mld:
             return rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -352,14 +352,14 @@ class Rst2Html(object):
         mld = ""
         if newfile == "":
             if rstfile == "":   # browser afgesloten met pagina open?
-                mld = "dit lijkt me onmogelijk"
+                mld = rhfn.get_text('unlikely_1')
             elif rstfile == "-- new --":
-                mld = "Filenaam voor source opgeven of selecteren s.v.p."
+                mld = rhfn.get_text('src_name_missing')
             else:
                 rstpath = pathlib.Path(rstfile)
                 htmlpath = pathlib.Path(htmlfile)
         elif newfile.startswith("-- new --"):
-            mld = "Filenaam voor source opgeven of selecteren s.v.p."
+            mld = rhfn.get_text('src_name_missing')
         else:
             newpath = pathlib.Path(newfile)
             ext = newpath.suffix
@@ -374,7 +374,7 @@ class Rst2Html(object):
                 htmlpath = newpath.with_suffix(".html")
         if mld == "":
             ## if htmlfile == "":
-                ## mld = "dit lijkt me onmogelijk"
+                ## mld = rhfn.get_text('unlikely_1')
             if htmlfile in ("-- new --", ".."):
                 ## if rstfile == "-- new --":
                     ## newpath = pathlib.Path(newfile)
@@ -392,9 +392,9 @@ class Rst2Html(object):
                         htmlpath = pathlib.Path(rstfile + ".html")
         if mld == "":
             if rstdata == "":
-                mld = "Tekstveld invullen s.v.p."
+                mld = rhfn.get_text('supply_text')
             elif rstdata[0] == "<":
-                mld = "niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)"
+                mld = rhfn.get_text('rst_invalid')
         if mld == "":
             rstfile = self.currentify(self.conf['source']) / rstpath
             htmlfile = self.currentify(self.conf['root']) / htmlpath
@@ -407,7 +407,7 @@ class Rst2Html(object):
                 newdata = self.conf['all_css'].join((begin, end))
                 mld = rhfn.save_to(htmlfile, newdata)
                 if mld == "":
-                    mld = "rst omgezet naar html en opgeslagen als " + str(htmlfile)
+                    mld = rhfn.get_text('rst_2_html').format(str(htmlfile))
             rstfile = rstpath.name
             htmlfile = htmlpath.name
             newfile = ""
@@ -420,7 +420,7 @@ class Rst2Html(object):
         """load html file and show code"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+            mld = rhfn.get_text('html_name_missing')
         else:
             htmlpath = pathlib.Path(htmlfile)
             rstfile = htmlpath.with_suffix(".rst")
@@ -429,7 +429,7 @@ class Rst2Html(object):
             with htmlfile.open() as f_in:
                 ## rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
                 rstdata = f_in.read().replace("&nbsp", "&amp;nbsp")
-            mld = "target html {0} opgehaald".format(htmlfile)
+            mld = rhfn.get_text('html_loaded').format(htmlfile)
             rstfile = rstfile.name
             htmlfile = htmlfile.name
         return self.output.format(self.all_source(rstfile),
@@ -467,16 +467,16 @@ class Rst2Html(object):
         mld = ""
         # moet hier niet iets bij als if newfile: htmlfile = newfile ? Of mag "new" niet?
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --",  ".."):
-            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+            mld = rhfn.get_text('html_name_missing')
         elif rstdata == "":
-            mld = "Tekstveld invullen s.v.p."
+            mld = rhfn.get_text('supply_text')
         if mld == "":
             htmlfile = self.currentify(self.conf['root']) / htmlfile
             newdata = rstdata # striplines(rstdata)
             mld = rhfn.save_to(htmlfile, newdata)
             rstdata = newdata.replace("&nbsp", "&amp;nbsp")
             if mld == "":
-                mld = "Gewijzigde html opgeslagen als " + str(htmlfile)
+                mld = rhfn.get_text('html_saved').format(str(htmlfile))
             ## rstfile = os.path.split(rstfile)[1]
             htmlfile = htmlfile.name
             newfile = ""
@@ -491,9 +491,9 @@ class Rst2Html(object):
         along the way the right stylesheets are added"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-            mld = "Filenaam voor html opgeven of selecteren s.v.p."
+            mld = rhfn.get_text('html_name_missing')
         elif not rstdata.startswith('<'):
-            mld = "Please load html first"
+            mld = rhfn.get_text('load_html')
         else:
             rstdata = self.complete_header(rstdata)
             target = self.currentify(self.conf['mirror']) / htmlfile
@@ -501,7 +501,7 @@ class Rst2Html(object):
             ## htmlfile = target.name
             if not mld:
                 x = "/" if self.current else ""
-                mld = " gekopieerd naar {0}/{1}{2}{3}".format(self.conf['mirror'],
+                mld = rhfn.get_text('copied_to').format(self.conf['mirror'],
                     self.current, x, htmlfile)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -529,7 +529,7 @@ class Rst2Html(object):
             destfile = self.conf['mirror'] / htmlfile
             htmlfile = self.conf['root'] / htmlfile
             if not destfile.exists(): #only process files with target counterpart
-                results.append(str(rstfile) + ' skipped: not in target directory')
+                results.append(rhfn.get_text('target_missing').format(str(rstfile))
                 continue
             # lees de rst source en zet ze om
             with rstfile.open() as f_in:
@@ -545,7 +545,7 @@ class Rst2Html(object):
                 results.append(mld)
                 continue
             if not destfile.exists(): #do not process files not on mirror site
-                results.append(str(htmlfile) + ' not present at mirror')
+                results.append(rhfn.get_text('mirror_missing').format(str(htmlfile))
                 continue
             # nog wat aanpassingen en kopieren naar mirror
             data = self.complete_header(newdata)
@@ -556,6 +556,7 @@ class Rst2Html(object):
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
+
     @cherrypy.expose
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         rstdata = rhfn.determine_most_recently_updated(settings)
@@ -563,7 +564,6 @@ class Rst2Html(object):
             self.conf['root'], settings)
         #TODO: add button to return to loadconf page for these settings and send page
 
-#~ print cherrypy.config
 if __name__ == "__main__":
     ## domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
     ## cherrypy.quickstart(Rst2Html())

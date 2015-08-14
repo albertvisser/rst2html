@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # onhover descriptions for buttons and fields
 
 t_settings = select a settings file, indicating the site to work on and other parameters
@@ -60,3 +58,36 @@ c_custom = Custom directives
 c_loadxtra = Load
 c_savextra = Save
 c_qref = Quick reStructuredText
+
+# notifications and such
+
+index_built = Trefwoordenlijst aangemaakt
+conf_init = conffile is {}
+conf_loaded = settings loaded from {}
+fname_invalid = Not a valid filename
+supply_text = Tekstveld invullen s.v.p.
+conf_invalid = Niet uitgevoerd: tekstveld bevat waarschijnlijk geen settings
+conf_saved = settings opgeslagen als {}
+dirs_loaded = Directives loaded from {}
+dirs_saved = Directives file opgeslagen, herstart de server om wijzigingen te activeren
+unlikely_1 = Pagina stond waarschijnijk open bij afsluiten browser
+save_reminder = Vergeet niet een nieuwe filenaam op te geven om te saven
+src_loaded = Source file {} opgehaald
+src_name_missing = Filenaam voor source opgeven of selecteren s.v.p.
+no_subdir = nieuwe subdirectory (voorlopig) alleen in root mogelijk
+rst_invalid = niet uitgevoerd: tekstveld bevat waarschijnlijk HTML (begint met <)
+new_subdir = nieuwe subdirectory {} aangemaakt in {}
+rst_saved = rst source opgeslagen als {}
+rst_2_html = rst omgezet naar html en opgeslagen als {}
+html_loaded = target html {} opgehaald
+html_name_missing = Filenaam voor html opgeven of selecteren s.v.p.
+html_saved = Gewijzigde html opgeslagen als {}
+load_html = Please load html first
+copied_to = gekopieerd naar {}/{}{}{}
+target_missing = {} skipped: not in target directory
+mirror_missing = {} not present at mirror
+sett_invalid = Config: invalid value for {}
+no_such_sett = {} does not exist
+loaded = opgehaald
+init = initieel aangemaakt, nog niet opgeslagen
+index_header = Trefwoordenlijst
