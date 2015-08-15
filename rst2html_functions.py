@@ -8,6 +8,8 @@ import inspect
 import glob
 import yaml
 import datetime
+## import gettext
+
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
 standard_directives = {}
@@ -41,6 +43,11 @@ SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
     'starthead:', 'endhead:')
 
 # eigengebakken spul, tzt te vervangen door gnu_gettext zaken
+## app_title = 'Rst2HTML'
+## locale = HERE / 'locale'
+## gettext.install(app_title, str(locale))
+## languages = {'nl': gettext.translation(app_title, locale, languages=['nl']),
+    ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 languages = {}
 for name, code in (('english', 'en'), ('dutch', 'nl')):
     with open('{}.lng'.format(name)) as _in:
@@ -139,8 +146,8 @@ def make_path(root, path):
 
 def read_conf(naam, debug=False):
     """read a config file; returns //conf//, a dictionary of options"""
-    invalid = rhfn.get_text('sett_invalid')
-    does_not_exist = invalid + " - " + rhfn.get_text('no_such_sett')
+    invalid = get_text('sett_invalid')
+    does_not_exist = invalid + " - " + get_text('no_such_sett')
     test = HERE / naam
     with test.open() as _in:
         conf = yaml.load(_in)
@@ -201,10 +208,10 @@ def load_custom_directives():
 def get_custom_directives_filename():
     if custom_directives.exists():
         fname = custom_directives
-        verb = rhfn.get_text('loaded')
+        verb = get_text('loaded')
     else:
         fname = custom_directives_template
-        verb = rhfn.get_text('init')
+        verb = get_text('init')
     return fname, verb
 
 def css_link2file(text):
@@ -283,7 +290,7 @@ def build_trefwoordenlijst(path):
         getrefs(file, path, reflinks)
     current_letter = ""
     # produceer het begin van de pagina
-    hdr = rhfn.get_text('index_header')
+    hdr = get_text('index_header')
     data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
     for key in sorted(reflinks.keys()):
