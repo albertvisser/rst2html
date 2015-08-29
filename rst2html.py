@@ -303,22 +303,18 @@ class Rst2Html(object):
                 source = self.conf['source']
                 root = self.conf['root']
                 nieuw = newfile[:-1]
-                newpath = source / nieuw
-                try:
-                    newpath.mkdir()
-                except OSError as err:
-                    mld = str(err)
+                mld = rhfn.create_path(source, nieuw)
                 if mld == "" and root != source:
-                    newpath = root / nieuw
-                    try:
-                        newpath.mkdir()
-                    except OSError as err:
-                        mld = str(err)
+                    mld = rhfn.create_path(root, nieuw)
+                if mld == "" and mirror != source:
+                    mld = rhfn.create_path(mirror, nieuw)
                 if mld == "":
                     self.get_subdirs()
                     mld = rhfn.get_text('new_subdir').format(nieuw, source)
                     if root != source:
                         mld += " en {}".format(root)
+                    if mirror != source:
+                        mld += " en {}".format(mirror)
             else:
                 where = self.currentify(self.conf['source'])
                 newpath = where / newfile

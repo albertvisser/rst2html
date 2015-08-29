@@ -144,6 +144,14 @@ def make_path(root, path):
         path = pathlib.Path(path)
     return path
 
+def create_path(root, new)
+    newpath = root / new
+    try:
+        newpath.mkdir()
+    except OSError as err:
+        return str(err)
+    return ""
+
 def read_conf(naam, debug=False):
     """read a config file; returns //conf//, a dictionary of options"""
     invalid = get_text('sett_invalid')
