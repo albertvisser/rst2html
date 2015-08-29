@@ -144,7 +144,7 @@ def make_path(root, path):
         path = pathlib.Path(path)
     return path
 
-def create_path(root, new)
+def create_path(root, new):
     newpath = root / new
     try:
         newpath.mkdir()
