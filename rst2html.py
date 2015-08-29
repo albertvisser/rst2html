@@ -340,6 +340,8 @@ class Rst2Html(object):
         mld = ""
         if rstdata == "":
             mld = rhfn.get_text('supply_text')
+        elif rstdata[0] == "<":
+            mld = rhfn.get_text('rst_invalid')
         if mld == "":
             fname = rstfile
             if rstdata != self.oldtext:
