@@ -328,7 +328,7 @@ class Rst2Html(object):
                 rstfile = newpath.name
                 ## htmlfile = str(newpath.with_suffix(".html").relative_to(where) #  self.conf['source']))
                 htmlfile = newpath.with_suffix(".html").name
-                newfile = ""
+            newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
