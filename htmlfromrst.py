@@ -54,8 +54,10 @@ def main(input):
     if not input:
         print(usage)
         return
+    app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
     frm = MainFrame(None, input)
     frm.show()
+    app.restoreOverrideCursor()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
