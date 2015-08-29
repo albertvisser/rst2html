@@ -13,6 +13,11 @@ import rst2html_functions as rhfn
 list_confs = rhfn.list_confs        # only because it's in all the views's return statement
 HERE = pathlib.Path(__file__).parents[0]
 TEMPLATE = HERE / "rst2html.html"
+previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
+    'background-color: #C6E2FF; text-align: center; position: fixed">'
+    '<a href={}><button>Back to editor</button></a></div>')
+# TODO: a simple "position:fixed" causes this div to shrink and cover the leftmost bit of the
+# page - do I mind?
 
 class Rst2Html(object):
     "the actual webapp"
@@ -24,6 +29,7 @@ class Rst2Html(object):
         self.conf = rhfn.read_conf(self.conffile)
         self.get_subdirs()
         self.current = ""
+        self.oldtext = self.oldhtml = ""
         with TEMPLATE.open() as f_in:
             ## self.output = f_in.read()
             # eigengebakken language support
@@ -253,6 +259,7 @@ class Rst2Html(object):
             except IOError as e:
                 mld = str(e)
             if not mld:
+                self.oldtext = rstdata
                 htmlfile = str(source.with_suffix(".html").relative_to(
                     self.conf['source']))
                 newfile = ""
@@ -275,7 +282,7 @@ class Rst2Html(object):
                 mld = rhfn.get_text('unlikely_1')
             elif newfile == "-- new --":
                 mld = rhfn.get_text('src_name_missing')
-            elif rstfile.endswith("/"):
+            elif rstfile.endswith(os.pathsep): # "/"):
                 self.current = rstfile[:-1]
                 mld = " "
             elif rstfile == "..":
@@ -333,15 +340,29 @@ class Rst2Html(object):
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """convert rst to html and show result
-
-        needs browser back button to return to application page - not sure if it works in all browsers"""
+        """
         mld = ""
         if rstdata == "":
             mld = rhfn.get_text('supply_text')
         if mld == "":
-            ## mld = rhfn.save_to(rstfile, rstdata) # savepad wel correct?
-            ## if not mld:
-            return rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
+            fname = rstfile
+            if rstdata != self.oldtext:
+                fname = newfile or fname
+                if fname == '' or fname.startswith("--") or "/" in fname or \
+                        not fname.endswith(".rst"):
+                    mld = rhfn.get_text('rst_filename_error')
+                else:
+                    mld = rhfn.save_to(
+                        self.currentify(self.conf['source']) / pathlib.Path(fname),
+                        rstdata)
+        if mld == "":
+            previewdata = rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
+            pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
+            start, end = previewdata[:pos], previewdata[pos:]
+            loadrst = 'loadrst?rstfile={}'.format(fname)
+            preview = bytes(previewbutton.format(loadrst), encoding="UTF-8")
+            previewdata = preview.join((start, end))
+            return previewdata
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), 'rst', self.lang('rst'))
@@ -399,7 +420,8 @@ class Rst2Html(object):
             rstfile = self.currentify(self.conf['source']) / rstpath
             htmlfile = self.currentify(self.conf['root']) / htmlpath
             newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
-            mld = rhfn.save_to(rstfile, rstdata)
+            if rstdata != self.oldtext:
+                mld = rhfn.save_to(rstfile, rstdata)
             if mld == "":
                 begin, rest = str(newdata, encoding='utf-8').split(
                     '<link rel="stylesheet"',1)
@@ -429,6 +451,7 @@ class Rst2Html(object):
             with htmlfile.open() as f_in:
                 ## rstdata = "".join(f_in.readlines()).replace("&nbsp", "&amp;nbsp")
                 rstdata = f_in.read().replace("&nbsp", "&amp;nbsp")
+                self.oldhtml = rstdata
             mld = rhfn.get_text('html_loaded').format(htmlfile)
             rstfile = rstfile.name
             htmlfile = htmlfile.name
@@ -451,11 +474,19 @@ class Rst2Html(object):
                 niks, rstdata = rstdata.split("<link", 1)
             except ValueError:
                 embed = False
+        if mld == "":
+            if rstdata != self.oldhtml:
+                mld = rhfn.save_to(
+                    self.currentify(self.conf['root']) / htmlfile, rstdata)
         if not mld:
             with self.conf['css'].open() as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">', '</style>'))
             newdata = newdata.join((data, rstdata))
+            pos = newdata.index('>', newdata.index('<body')) + 1
+            start, end = newdata[:pos], newdata[pos:]
+            loadhtml = 'loadhtml?htmlfile={}'.format(htmlfile)
+            newdata = previewbutton.format(loadhtml).join((start, end))
             return newdata
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],

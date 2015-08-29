@@ -91,3 +91,4 @@ no_such_sett = {} does not exist
 loaded = loaded
 init = initialized, but not saved yet
 index_header = Index
+rst_filename_error = Not executed: name for rst file incorrect
