@@ -302,6 +302,7 @@ class Rst2Html(object):
             if newfile.endswith("/"):
                 source = self.conf['source']
                 root = self.conf['root']
+                mirror = self.conf['mirror']
                 nieuw = newfile[:-1]
                 mld = rhfn.create_path(source, nieuw)
                 if mld == "" and root != source:
