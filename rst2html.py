@@ -562,7 +562,7 @@ class Rst2Html(object):
                 results.append(rhfn.get_text('target_missing').format(str(rstfile)))
                 continue
             # lees de rst source en zet ze om
-            with rstfile.open() as f_in:
+            with rstfile.open(encoding='utf-8') as f_in:
                 rstdata = ''.join(f_in.readlines())
             newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
             # nog wat aanpassingen en dan opslaan in target
