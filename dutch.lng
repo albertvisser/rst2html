@@ -32,6 +32,8 @@ t_refkey = definieer een verwijzing naar (een plek op) deze pagina t.b.v. de 'cr
 t_startbody = genereer standaard begin van de body section
 t_navlinks = genereer navigatielinks
 t_textheader = genereer begin van de tekst met titel
+t_startcenter = Tijdelijk marges negeren om brede images te tonen
+t_endcenter = Terug naar originele marges
 t_endbody = genereer standaard einde van de body section
 
 # captions for buttons etc

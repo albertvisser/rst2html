@@ -27,6 +27,7 @@ projlinks = (("/actiereg/", 'ActieReg'),
             ("/albums/", 'Albums'),
             ("/apropos/", 'A Propos'),
             ("/htmledit/", 'HTML Editor'),
+            ("/cssedit/", 'CSS Editor'),
             ("/xmledit/", 'XML Editor'),
             ("/doctree/", 'DocTree'),
             ("/filefindr/", 'FileFindR'),
@@ -101,6 +102,34 @@ class TextHeader(Directive):
         text.append('<p class="date">last modified on {}</p>'.format(datum))
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
+
+class StartMarginless(Directive):
+    """opschorten van de marges voor bv. een paginabreed plaatje
+    """
+    required_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '</div></div><div style="margin: auto">'
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+class EndMarginless(Directive):
+    """marges terugzetten - zou eigenlijk niet moeten werken omdat je een id
+    vaker gebruikt
+    """
+    required_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '</div><div id="container"><div id="body">'
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
 
 class EndBody(Directive):
     """genereert het eind van de body div en de container div

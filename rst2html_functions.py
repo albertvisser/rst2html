@@ -27,11 +27,14 @@ standard_directives.update({
     "bottom": Bottom,
     "refkey": RefKey,
     })
-from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody
+from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, \
+    StartMarginless, EndMarginless
 standard_directives.update({
     "startbody": StartBody,
     "navlinks": NavLinks,
     "textheader": TextHeader,
+    "startcenter": StartMarginless,
+    "endcenter": EndMarginless,
     "endbody": EndBody,
     })
 

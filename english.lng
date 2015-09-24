@@ -32,6 +32,8 @@ t_refkey = Define a reference to (a location on) this page for use with the 'cre
 t_startbody = Generate standard start of the body section
 t_navlinks = Generate navigation links
 t_textheader = Generate start of the text with title
+t_startcenter = Temporary suspend margins to display wide image(s)
+t_endcenter = Restore margins
 t_endbody = Generate standard end of the body section
 
 # captions for buttons etc
