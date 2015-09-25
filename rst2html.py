@@ -478,7 +478,7 @@ class Rst2Html(object):
                 mld = rhfn.save_to(
                     self.currentify(self.conf['root']) / htmlfile, rstdata)
         if not mld:
-            with self.conf['css'].open() as f_in:
+            with self.conf['css'].open(encoding='utf-8') as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">', '</style>'))
             newdata = newdata.join((data, rstdata))
