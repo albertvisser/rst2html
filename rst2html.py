@@ -241,10 +241,12 @@ class Rst2Html(object):
             self.current = rstfile[:-1]
             rstdata = ""
             mld = " "
+            htmlfile = rstfile
         elif rstfile == "..":
             self.current = ""
             rstdata = ""
             mld = " "
+            htmlfile = rstfile
         if not mld:
             source = self.currentify(self.conf['source']) / rstfile
             try:
@@ -262,8 +264,7 @@ class Rst2Html(object):
                 self.oldtext = rstdata
                 ## htmlfile = str(source.with_suffix(".html").relative_to(
                     ## self.conf['source']))
-                htmlfile = source.with_suffix(".html").relative_to(
-                    self.conf['source']))
+                htmlfile = source.with_suffix(".html").name
                 newfile = ""
                 mld = rhfn.get_text('src_loaded').format(str(source))
                 ## with open('/tmp/rst2html_source', 'w') as _out:
