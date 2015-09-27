@@ -360,6 +360,46 @@ def build_file_list(path, ext):
                     items.append((str(pp.relative_to(path)), ptime))
     return items
 
+def check_if_rst(data, filename=None):
+    """simple check if data contains html
+
+    if filename is filled, also check if it's a correct name
+    """
+    mld = ""
+    if data == "":
+        mld = get_text('supply_text')
+    elif data.startswith('<'):
+        return get_text('rst_invalid')
+    elif filename is None:
+        pass
+    ## this is too much since we also cater for a name without extension in the right location
+    ## test = os.path.splitext(filename)
+    ## if test[0] == "" or test[1] != '.rst':
+        ## mld = get_text('src_name_missing')
+    elif filename.endswith("/") or filename in ("", "-- new --", ".."):
+        mld = get_text('src_name_missing')
+    return mld
+
+def check_if_html(data, filename=None):
+    """simple check if rstdata contains html
+
+    if htmlfile is filled, also check if it's a correct name
+    """
+    mld = ""
+    if data == "":
+        mld = get_text('supply_text')
+    elif not data.startswith('<'):
+        mld = get_text('load_html')
+    elif filename is None:
+        pass
+    ## this is too much since we also cater for a name without extension in the right location
+    ## test = os.path.splitext(htmlfile)
+    ## if test[0] == "" or test[1] != '.html':
+        ## mld = get_text('html_name_missing')
+    elif filename.endswith("/") or filename in ("", "-- new --", ".."):
+        mld = get_text('html_name_missing')
+    return mld
+
 class Compare:
     """Compare three lists of files with their last changetimes
     """

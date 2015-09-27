@@ -260,7 +260,9 @@ class Rst2Html(object):
                 mld = str(e)
             if not mld:
                 self.oldtext = rstdata
-                htmlfile = str(source.with_suffix(".html").relative_to(
+                ## htmlfile = str(source.with_suffix(".html").relative_to(
+                    ## self.conf['source']))
+                htmlfile = source.with_suffix(".html").relative_to(
                     self.conf['source']))
                 newfile = ""
                 mld = rhfn.get_text('src_loaded').format(str(source))
@@ -338,11 +340,12 @@ class Rst2Html(object):
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """convert rst to html and show result
         """
-        mld = ""
-        if rstdata == "":
-            mld = rhfn.get_text('supply_text')
-        elif rstdata[0] == "<":
-            mld = rhfn.get_text('rst_invalid')
+        mld = rhfn.check_if_rst(rstdata) # rstfile toevoegen omdat ik die ook gebruik?
+        ## mld = ""
+        ## if rstdata == "":
+            ## mld = rhfn.get_text('supply_text')
+        ## elif rstdata[0] == "<":
+            ## mld = rhfn.get_text('rst_invalid')
         if mld == "":
             fname = rstfile
             if rstdata != self.oldtext:
@@ -460,23 +463,21 @@ class Rst2Html(object):
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        mld = ""
-        embed = True
-        data = ''
-        try:
-            data, rstdata = rstdata.split("<link", 1)
-        except ValueError:
-            embed = False
-        while embed:
-            niks, rstdata = rstdata.split(">", 1)
+        ## mld = ""
+        mld = rhfn.check_if_html(rstdata)
+        if not mld:
+            embed = True
+            data = ''
             try:
-                niks, rstdata = rstdata.split("<link", 1)
+                data, rstdata = rstdata.split("<link", 1)
             except ValueError:
                 embed = False
-        ## if mld == "":
-            ## if rstdata != self.oldhtml:
-                ## mld = rhfn.save_to(
-                    ## self.currentify(self.conf['root']) / htmlfile, rstdata)
+            while embed:
+                niks, rstdata = rstdata.split(">", 1)
+                try:
+                    niks, rstdata = rstdata.split("<link", 1)
+                except ValueError:
+                    embed = False
         if not mld:
             with self.conf['css'].open(encoding='utf-8') as f_in:
                 lines = "".join(f_in.readlines())
@@ -494,12 +495,13 @@ class Rst2Html(object):
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """save displayed (edited) html"""
-        mld = ""
-        # moet hier niet iets bij als if newfile: htmlfile = newfile ? Of mag "new" niet?
-        if htmlfile.endswith("/") or htmlfile in ("", "-- new --",  ".."):
-            mld = rhfn.get_text('html_name_missing')
-        elif rstdata == "":
-            mld = rhfn.get_text('supply_text')
+        mld = rhfn.check_if_html(rstdata, htmlfile)
+        ## mld = ""
+        ## # moet hier niet iets bij als if newfile: htmlfile = newfile ? Of mag "new" niet?
+        ## if htmlfile.endswith("/") or htmlfile in ("", "-- new --",  ".."):
+            ## mld = rhfn.get_text('html_name_missing')
+        ## elif rstdata == "":
+            ## mld = rhfn.get_text('supply_text')
         if mld == "":
             htmlfile = self.currentify(self.conf['root']) / htmlfile
             newdata = rstdata # striplines(rstdata)
@@ -519,12 +521,14 @@ class Rst2Html(object):
         """copy html to mirror site
 
         along the way the right stylesheets are added"""
-        mld = ""
-        if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-            mld = rhfn.get_text('html_name_missing')
-        elif not rstdata.startswith('<'):
-            mld = rhfn.get_text('load_html')
-        else:
+        mld = rhfn.check_if_html(rstdata, htmlfile)
+        ## mld = ""
+        ## if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
+            ## mld = rhfn.get_text('html_name_missing')
+        ## elif not rstdata.startswith('<'):
+            ## mld = rhfn.get_text('load_html')
+        ## else:
+        if not mld:
             rstdata = self.complete_header(rstdata)
             target = self.currentify(self.conf['mirror']) / htmlfile
             mld = rhfn.save_to(target, rstdata)
