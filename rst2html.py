@@ -473,10 +473,10 @@ class Rst2Html(object):
                 niks, rstdata = rstdata.split("<link", 1)
             except ValueError:
                 embed = False
-        if mld == "":
-            if rstdata != self.oldhtml:
-                mld = rhfn.save_to(
-                    self.currentify(self.conf['root']) / htmlfile, rstdata)
+        ## if mld == "":
+            ## if rstdata != self.oldhtml:
+                ## mld = rhfn.save_to(
+                    ## self.currentify(self.conf['root']) / htmlfile, rstdata)
         if not mld:
             with self.conf['css'].open(encoding='utf-8') as f_in:
                 lines = "".join(f_in.readlines())
