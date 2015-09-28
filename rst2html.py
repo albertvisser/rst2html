@@ -278,50 +278,52 @@ class Rst2Html(object):
         """(re)save rst file using selected name
 
         if new  name specified, use that (extension must be .rst)"""
-        mld = ""
-        if newfile == "":
-            newfile = rstfile
-            if newfile == "":
-                mld = rhfn.get_text('unlikely_1')
-            elif newfile == "-- new --":
-                mld = rhfn.get_text('src_name_missing')
-            elif rstfile.endswith(os.pathsep): # "/"):
-                self.current = rstfile[:-1]
-                mld = " "
-            elif rstfile == "..":
-                self.current = ""
-                mld = " "
-        elif newfile == "-- new --":
-            mld = rhfn.get_text('src_name_missing')
+        fname = newname or rstfile
+        mld = rhfn.check_if_rst(rstdata, fname)
+        ## mld = ""
+        ## if newfile == "":
+            ## newfile = rstfile
+            ## if newfile == "":
+                ## mld = rhfn.get_text('unlikely_1')
+            ## elif newfile == "-- new --":
+                ## mld = rhfn.get_text('src_name_missing')
+            ## elif rstfile.endswith(os.pathsep): # "/"):
+                ## self.current = rstfile[:-1]
+                ## mld = " "
+            ## elif rstfile == "..":
+                ## self.current = ""
+                ## mld = " "
+        ## elif newfile == "-- new --":
+            ## mld = rhfn.get_text('src_name_missing')
+        ## if mld == "":
+            ## if newfile.endswith("/"):
+                ## if self.current:
+                    ## mld = rhfn.get_text('no_subdir')
+            ## elif rstdata == "":
+                ## mld = rhfn.get_text('supply_text')
+            ## elif rstdata[0] == "<":
+                ## mld = rhfn.get_text('rst_invalid')
         if mld == "":
-            if newfile.endswith("/"):
-                if self.current:
-                    mld = rhfn.get_text('no_subdir')
-            elif rstdata == "":
-                mld = rhfn.get_text('supply_text')
-            elif rstdata[0] == "<":
-                mld = rhfn.get_text('rst_invalid')
-        if mld == "":
-            if newfile.endswith("/"):
-                source = self.conf['source']
-                root = self.conf['root']
-                mirror = self.conf['mirror']
-                nieuw = newfile[:-1]
-                mld = rhfn.create_path(source, nieuw)
-                if mld == "" and root != source:
-                    mld = rhfn.create_path(root, nieuw)
-                if mld == "" and mirror != source:
-                    mld = rhfn.create_path(mirror, nieuw)
-                if mld == "":
-                    self.get_subdirs()
-                    mld = rhfn.get_text('new_subdir').format(nieuw, source)
-                    if root != source:
-                        mld += " en {}".format(root)
-                    if mirror != source:
-                        mld += " en {}".format(mirror)
-            else:
+            ## if newfile.endswith("/"):
+                ## source = self.conf['source']
+                ## root = self.conf['root']
+                ## mirror = self.conf['mirror']
+                ## nieuw = newfile[:-1]
+                ## mld = rhfn.create_path(source, nieuw)
+                ## if mld == "" and root != source:
+                    ## mld = rhfn.create_path(root, nieuw)
+                ## if mld == "" and mirror != source:
+                    ## mld = rhfn.create_path(mirror, nieuw)
+                ## if mld == "":
+                    ## self.get_subdirs()
+                    ## mld = rhfn.get_text('new_subdir').format(nieuw, source)
+                    ## if root != source:
+                        ## mld += " en {}".format(root)
+                    ## if mirror != source:
+                        ## mld += " en {}".format(mirror)
+            ## else:
                 where = self.currentify(self.conf['source'])
-                newpath = where / newfile
+                newpath = where / fname
                 if newpath.suffix != ".rst":
                     newfile += ".rst"
                     newpath = where / newfile
@@ -341,7 +343,11 @@ class Rst2Html(object):
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """convert rst to html and show result
         """
-        mld = rhfn.check_if_rst(rstdata) # rstfile toevoegen omdat ik die ook gebruik?
+        if rstdata == self.oldtext:
+            mld = rhfn.check_if_rst(rstdata) # alleen inhoud controleren
+        else:
+            rstfile = newfile or rstfile
+            mld = rhfn.check_if_rst(rstdata, rstfile)
         ## mld = ""
         ## if rstdata == "":
             ## mld = rhfn.get_text('supply_text')
@@ -373,53 +379,61 @@ class Rst2Html(object):
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """(re)save rst file, (re)convert to html and (re)save html file using selected names"""
-        mld = ""
-        if newfile == "":
-            if rstfile == "":   # browser afgesloten met pagina open?
-                mld = rhfn.get_text('unlikely_1')
-            elif rstfile == "-- new --":
-                mld = rhfn.get_text('src_name_missing')
-            else:
-                rstpath = pathlib.Path(rstfile)
-                htmlpath = pathlib.Path(htmlfile)
-        elif newfile.startswith("-- new --"):
-            mld = rhfn.get_text('src_name_missing')
-        else:
-            newpath = pathlib.Path(newfile)
-            ext = newpath.suffix
-            if ext == ".rst":
-                rstpath = newpath
-                htmlpath = newpath.with_suffix('.html')
-            elif ext == ".html":
-                rstpath = newpath.with_suffix(".rst")
-                htmlpath = newpath
-            else:
-                rstpath = newpath.with_suffix(".rst")
-                htmlpath = newpath.with_suffix(".html")
-        if mld == "":
-            ## if htmlfile == "":
+        fname = newname or rstfile
+        name, test = os.path.splitext(fname)
+        if test in ('.html', ''):
+            fname = name + '.rst'
+        mld = rhfn.check_if_rst(rstdata, fname)
+        ## mld = ""
+        ## if newfile == "":
+            ## if rstfile == "":   # browser afgesloten met pagina open?
                 ## mld = rhfn.get_text('unlikely_1')
-            if htmlfile in ("-- new --", ".."):
-                ## if rstfile == "-- new --":
-                    ## newpath = pathlib.Path(newfile)
-                    ## ext = newpath.suffix
-                    ## if ext == ".html":
-                        ## htmlpath = newpath
+            ## elif rstfile == "-- new --":
+                ## mld = rhfn.get_text('src_name_missing')
+            ## else:
+                ## rstpath = pathlib.Path(rstfile)
+                ## htmlpath = pathlib.Path(htmlfile)
+        ## elif newfile.startswith("-- new --"):
+            ## mld = rhfn.get_text('src_name_missing')
+        ## else:
+            ## newpath = pathlib.Path(newfile)
+            ## ext = newpath.suffix
+            ## if ext == ".rst":
+                ## rstpath = newpath
+                ## htmlpath = newpath.with_suffix('.html')
+            ## elif ext == ".html":
+                ## rstpath = newpath.with_suffix(".rst")
+                ## htmlpath = newpath
+            ## else:
+                ## rstpath = newpath.with_suffix(".rst")
+                ## htmlpath = newpath.with_suffix(".html")
+        ## if mld == "":
+            ## ## if htmlfile == "":
+                ## ## mld = rhfn.get_text('unlikely_1')
+            ## if htmlfile in ("-- new --", ".."):
+                ## ## if rstfile == "-- new --":
+                    ## ## newpath = pathlib.Path(newfile)
+                    ## ## ext = newpath.suffix
+                    ## ## if ext == ".html":
+                        ## ## htmlpath = newpath
+                    ## ## else:
+                        ## ## htmlpath = newpath.with_suffix(".html")
+                ## ## else:
+                    ## rstpath = pathlib.Path(rstfile)
+                    ## ext = rstpath.suffix
+                    ## if ext == ".rst":
+                        ## htmlpath = rstpath.with_suffix(".html")
                     ## else:
-                        ## htmlpath = newpath.with_suffix(".html")
-                ## else:
-                    rstpath = pathlib.Path(rstfile)
-                    ext = rstpath.suffix
-                    if ext == ".rst":
-                        htmlpath = rstpath.with_suffix(".html")
-                    else:
-                        htmlpath = pathlib.Path(rstfile + ".html")
+                        ## htmlpath = pathlib.Path(rstfile + ".html")
+        ## if mld == "":
+            ## if rstdata == "":
+                ## mld = rhfn.get_text('supply_text')
+            ## elif rstdata[0] == "<":
+                ## mld = rhfn.get_text('rst_invalid')
         if mld == "":
-            if rstdata == "":
-                mld = rhfn.get_text('supply_text')
-            elif rstdata[0] == "<":
-                mld = rhfn.get_text('rst_invalid')
-        if mld == "":
+            newpath = pathlib.Path(fname)
+            rstpath = newpath.with_suffix(".rst")
+            htmlpath = newpath.with_suffix(".html")
             rstfile = self.currentify(self.conf['source']) / rstpath
             htmlfile = self.currentify(self.conf['root']) / htmlpath
             newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
