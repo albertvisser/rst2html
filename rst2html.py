@@ -278,7 +278,7 @@ class Rst2Html(object):
         """(re)save rst file using selected name
 
         if new  name specified, use that (extension must be .rst)"""
-        fname = newname or rstfile
+        fname = newfile or rstfile
         mld = rhfn.check_if_rst(rstdata, fname)
         ## mld = ""
         ## if newfile == "":
@@ -322,18 +322,18 @@ class Rst2Html(object):
                     ## if mirror != source:
                         ## mld += " en {}".format(mirror)
             ## else:
-                where = self.currentify(self.conf['source'])
-                newpath = where / fname
-                if newpath.suffix != ".rst":
-                    newfile += ".rst"
-                    newpath = where / newfile
-                mld = rhfn.save_to(newpath, rstdata)
-                if mld == "":
-                    mld = rhfn.get_text('rst_saved').format(str(newpath.resolve()))
-                ## rstfile = str(newpath.relative_to(where) # self.conf['source']))
-                rstfile = newpath.name
-                ## htmlfile = str(newpath.with_suffix(".html").relative_to(where) #  self.conf['source']))
-                htmlfile = newpath.with_suffix(".html").name
+            where = self.currentify(self.conf['source'])
+            newpath = where / fname
+            if newpath.suffix != ".rst":
+                newfile += ".rst"
+                newpath = where / newfile
+            mld = rhfn.save_to(newpath, rstdata)
+            if mld == "":
+                mld = rhfn.get_text('rst_saved').format(str(newpath.resolve()))
+            ## rstfile = str(newpath.relative_to(where) # self.conf['source']))
+            rstfile = newpath.name
+            ## htmlfile = str(newpath.with_suffix(".html").relative_to(where) #  self.conf['source']))
+            htmlfile = newpath.with_suffix(".html").name
             newfile = ""
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
@@ -379,7 +379,7 @@ class Rst2Html(object):
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """(re)save rst file, (re)convert to html and (re)save html file using selected names"""
-        fname = newname or rstfile
+        fname = newfile or rstfile
         name, test = os.path.splitext(fname)
         if test in ('.html', ''):
             fname = name + '.rst'
