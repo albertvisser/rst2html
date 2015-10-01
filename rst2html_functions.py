@@ -51,6 +51,8 @@ SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
 ## gettext.install(app_title, str(locale))
 ## languages = {'nl': gettext.translation(app_title, locale, languages=['nl']),
     ## 'en': gettext.translation(app_title, locale, languages=['en'])}
+# constants for loaded data
+RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
 languages = {}
 for name, code in (('english', 'en'), ('dutch', 'nl')):
     with open('{}.lng'.format(name)) as _in:
@@ -225,6 +227,26 @@ def get_custom_directives_filename():
         verb = get_text('init')
     return fname, verb
 
+def read_data(fname):
+    """reads data from file <fname>
+
+    on success: returns empty message and data as a string
+    on failure: returns error message and empty string for data
+    """
+    mld = ''
+    try:
+        with fname.open(encoding='utf-8') as f_in:
+            data = ''.join(f_in.readlines())
+    except UnicodeDecodeError:
+        try:
+            with fname.open(encoding='iso-8859-1') as f_in:
+                data = ''.join(f_in.readlines())
+        except IOError as e:
+            mld = str(e)
+    except IOError as e:
+        mld = str(e)
+    return mld, data
+
 def css_link2file(text):
     x, y = CSS_LINK.split('{}')
     text = text.replace(x, '  - ')
@@ -360,15 +382,15 @@ def build_file_list(path, ext):
                     items.append((str(pp.relative_to(path)), ptime))
     return items
 
-def check_if_rst(data, filename=None):
-    """simple check if data contains html
+def check_if_rst(data, loaded, filename=None):
+    """simple check if data contains rest
 
     if filename is filled, also check if it's a correct name
     """
     mld = ""
     if data == "":
         mld = get_text('supply_text')
-    elif data.startswith('<'):
+    elif loaded != RST: # data.startswith('<'):
         return get_text('rst_invalid')
     elif filename is None:
         pass
@@ -380,7 +402,7 @@ def check_if_rst(data, filename=None):
         mld = get_text('src_name_missing')
     return mld
 
-def check_if_html(data, filename=None):
+def check_if_html(data, loaded, filename=None):
     """simple check if rstdata contains html
 
     if htmlfile is filled, also check if it's a correct name
@@ -388,7 +410,7 @@ def check_if_html(data, filename=None):
     mld = ""
     if data == "":
         mld = get_text('supply_text')
-    elif not data.startswith('<'):
+    elif loaded != HTML: # not data.startswith('<'):
         mld = get_text('load_html')
     elif filename is None:
         pass
