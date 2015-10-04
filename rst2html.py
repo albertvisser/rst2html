@@ -177,14 +177,25 @@ class Rst2Html(object):
             newpath = pathlib.Path(newfile)
             if newpath.suffix != ".yml":
                 newfile += ".yml"
-            # TODO moet terugschrijven niet met een functie die yaml.dump gebruikt?
-            data = rhfn.zetom_conf(rstdata)
+            test = rhfn.zetom_conf(rstdata)
+            try:
+                test['root']
+            except KeyError:
+                mld = test
+        if mld == '':
             fullname = HERE / newfile
-            mld = rhfn.save_to(fullname, data)
-            if mld == "":
-                mld = rhfn.get_text('conf_saved').format(str(fullname))
+            rhfn.save_conf(test, fullname)
             settings = newfile
             newfile = ""
+            test = rhfn.read_conf(settings)
+            try:
+                test['root']
+            except TypeError:
+                mld = test
+            else:
+                self.conf = test
+        if mld == "":
+            mld = rhfn.get_text('conf_saved').format(str(fullname))
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), self.loaded, self.lang())
@@ -296,6 +307,8 @@ class Rst2Html(object):
                     rstdata)
         if mld == "":
             previewdata = rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
+            ## previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
+                ## self.current)
             pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
             start, end = previewdata[:pos], previewdata[pos:]
             loadrst = 'loadrst?rstfile={}'.format(fname)
@@ -364,7 +377,13 @@ class Rst2Html(object):
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         ## mld = ""
         mld = rhfn.check_if_html(rstdata, self.loaded)
-        if not mld:
+        if mld:
+            pass
+        else:
+            if 'mirror_url' in self.conf:
+                rstdata = rhfn.resolve_images(rstdata, self.conf['mirror_url'],
+                    self.current)
+            # split html on stylesheets links
             embed = True
             data = ''
             try:
@@ -377,7 +396,6 @@ class Rst2Html(object):
                     niks, rstdata = rstdata.split("<link", 1)
                 except ValueError:
                     embed = False
-        if not mld:
             with self.conf['css'].open(encoding='utf-8') as f_in:
                 lines = "".join(f_in.readlines())
             newdata = lines.join(('<style type="text/css">', '</style>'))

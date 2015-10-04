@@ -42,8 +42,8 @@ HERE = pathlib.Path(__file__).parents[0]
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
-SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
-    'starthead:', 'endhead:')
+SETT_KEYS = ('root', 'source', 'css', 'mirror', 'mirror_url', 'all_css',
+    'wid', 'hig', 'starthead', 'endhead')
 
 # eigengebakken spul, tzt te vervangen door gnu_gettext zaken
 ## app_title = 'Rst2HTML'
@@ -55,7 +55,9 @@ SETT_KEYS = ('root:', 'source:', 'css:', 'mirror:', 'all_css:', 'wid:', 'hig:',
 RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
 languages = {}
 for name, code in (('english', 'en'), ('dutch', 'nl')):
-    with open('{}.lng'.format(name)) as _in:
+    path = HERE / '{}.lng'.format(name)
+    ## with open('{}.lng'.format(name)) as _in:
+    with path.open(encoding='utf-8') as _in:
         infodict = {}
         for line in _in:
             line = line.strip()
@@ -157,34 +159,34 @@ def create_path(root, new):
         return str(err)
     return ""
 
-def read_conf(naam, debug=False):
-    """read a config file; returns //conf//, a dictionary of options"""
+def read_conf(naam):
+    """read a config file; returns a dictionary of options
+
+    not sure of checking for correctness is in the right place here"""
     invalid = get_text('sett_invalid')
     does_not_exist = invalid + " - " + get_text('no_such_sett')
     test = HERE / naam
-    with test.open() as _in:
-        conf = yaml.load(_in)
-    conf['root'] = pathlib.Path(conf['root'])
-    if not conf['root'].exists():
-        return does_not_exist.format('"root":', conf['root'])
-    conf['source'] = make_path(conf['root'], conf['source'])
-    if not conf['source'].exists():
-        return does_not_exist.format('"source":', conf['source'])
-    conf['css'] = make_path(conf['root'], conf['css'])
-    if not conf['css'].exists():
-        return does_not_exist.format('"css":', conf['css'])
-    conf['mirror'] = make_path(conf['root'], conf['mirror'])
-    if not conf['mirror'].exists():
-        return invalid.format("mirror")
-    csslinks = ''
-    try:
-        for x in conf['all_css']:
-            if csslinks:
-                csslinks += '\n'
-            csslinks += CSS_LINK.format(x)
-    except ValueError:
-        return invalid.format("all_css")
-    conf['all_css'] = csslinks
+    with test.open(encoding='utf-8') as _in:
+        conf = yaml.safe_load(_in) # let's be paranoid
+    for sett in SETT_KEYS[:4]:
+        if sett == 'root':
+            conf[sett] = pathlib.Path(conf[sett])
+        else:
+            conf[sett] = make_path(conf['root'], conf[sett])
+        if not conf[sett].exists():
+            return does_not_exist.format('"{}":'.format(sett), conf[sett])
+    for sett in ('all_css', 'starthead', 'endhead'):
+        data = ''
+        try:
+            for x in conf[sett]:
+                if data:
+                    data += '\n'
+                if sett == 'all_css':
+                    x = CSS_LINK.format(x)
+                data += x
+        except ValueError:
+            return invalid.format(sett)
+        conf[sett] = data
     try:
         conf['wid'] = int(conf['wid'])
     except ValueError:
@@ -233,7 +235,7 @@ def read_data(fname):
     on success: returns empty message and data as a string
     on failure: returns error message and empty string for data
     """
-    mld = ''
+    mld = data = ''
     try:
         with fname.open(encoding='utf-8') as f_in:
             data = ''.join(f_in.readlines())
@@ -249,16 +251,21 @@ def read_data(fname):
 
 def css_link2file(text):
     x, y = CSS_LINK.split('{}')
-    text = text.replace(x, '  - ')
+    text = text.replace(x, '')
     text = text.replace(y, '')
     return text
 
 def zetom_conf(text):
+    """convert text (from input area) to settings dict and return it
+
+    also check settings for correctness (valid locations)
+    """
     data = []
+    conf = {}
     for line in text.split(os.linesep):
         probeer = line.strip().split(': ')
         if len(probeer) > 1:
-            sleutel = probeer[0] + ":"
+            sleutel = probeer[0]
             data.append([SETT_KEYS.index(sleutel), sleutel,
                 [css_link2file(probeer[1])]])
         else:
@@ -267,10 +274,8 @@ def zetom_conf(text):
     for ix, item in enumerate(data):
         seq, key, value = item
         if key == SETT_KEYS[0]:     # root
-            ## rootparts = value[0].split('/')
             rootparts = pathlib.Path(value[0]).parts
         elif key in SETT_KEYS[1:4]: # ander path
-            ## textparts = value[0].split('/')
             textparts = pathlib.Path(value[0]).parts
             if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
                 continue
@@ -286,15 +291,20 @@ def zetom_conf(text):
             if textparts:
                 value += ' + ' + '/'.join(textparts)
             data[ix] = seq, key, [value]
-    lines = []
-    for _, key, value in data:
-        if key == SETT_KEYS[4]:
-            lines.append(key)
-            for y in value:
-                lines.append(y)
+    for num, key, value in data:
+        if num in (5, 8, 9):
+            conf[key] = value
         else:
-            lines.append(key + ' ' + value[0])
-    return os.linesep.join(lines) + os.linesep
+            conf[key] = value[0]
+    return conf
+
+def save_conf(conf, fullname):
+
+    if fullname.exists():
+        shutil.copyfile(str(fullname),
+            str(fullname.with_suffix(fullname.suffix + '.bak')))
+    with fullname.open('w', encoding='utf-8') as _out:
+        yaml.dump(conf, _out, default_flow_style=False)
 
 def getrefs(path, source, reflinks):
     "search for keywords in source file and remember their locations"
@@ -421,6 +431,28 @@ def check_if_html(data, loaded, filename=None):
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
         mld = get_text('html_name_missing')
     return mld
+
+def resolve_images(rstdata, url, loc):
+    data = []
+    pos = rstdata.find('<img')
+    while pos >= 0:
+        pos2 = rstdata.find('src="', pos) + 5
+        begin = rstdata[:pos2]
+        if begin.startswith('http'):
+            pos = pos2
+        else:
+            if begin.startswith('/'):
+                begin = begin[:-1]
+            data.append(begin)
+            rstdata = rstdata[pos2:]
+            pos = 0
+        pos = rstdata.find('<img', pos)
+    data.append(rstdata)
+    if not url.endswith('/'):
+        url += '/'
+    if loc:
+        url += loc + '/'
+    return url.join(data)
 
 class Compare:
     """Compare three lists of files with their last changetimes
