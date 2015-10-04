@@ -432,26 +432,31 @@ def check_if_html(data, loaded, filename=None):
         mld = get_text('html_name_missing')
     return mld
 
-def resolve_images(rstdata, url, loc):
+def resolve_images(rstdata, url, loc, use_bytes=False):
     data = []
-    pos = rstdata.find('<img')
+    to_find = b'<img' if use_bytes else '<img'
+    pos = rstdata.find(to_find)
     while pos >= 0:
-        pos2 = rstdata.find('src="', pos) + 5
+        test = b'src="' if use_bytes else 'src="'
+        pos2 = rstdata.find(test, pos) + 5
         begin = rstdata[:pos2]
-        if begin.startswith('http'):
+        test = b'http' if use_bytes else 'http'
+        if begin.startswith(test):
             pos = pos2
         else:
-            if begin.startswith('/'):
+            test = b'/' if use_bytes else '/'
+            if begin.startswith(test):
                 begin = begin[:-1]
             data.append(begin)
             rstdata = rstdata[pos2:]
             pos = 0
-        pos = rstdata.find('<img', pos)
+        pos = rstdata.find(to_find, pos)
     data.append(rstdata)
     if not url.endswith('/'):
         url += '/'
     if loc:
         url += loc + '/'
+    if use_bytes: url = bytes(url, encoding='utf-8')
     return url.join(data)
 
 class Compare:

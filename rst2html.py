@@ -307,8 +307,8 @@ class Rst2Html(object):
                     rstdata)
         if mld == "":
             previewdata = rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
-            ## previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
-                ## self.current)
+            previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
+                self.current, use_bytes=True)
             pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
             start, end = previewdata[:pos], previewdata[pos:]
             loadrst = 'loadrst?rstfile={}'.format(fname)
