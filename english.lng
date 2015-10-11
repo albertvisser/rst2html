@@ -89,6 +89,7 @@ load_html = Please load HTML first
 copied_to = Copied to {}/{}{}{}
 target_missing = {} skipped: not in target directory
 mirror_missing = {} not present at mirror
+sett_missing = Config: please provide value for {}
 sett_invalid = Config: invalid value for {}
 no_such_sett = {} does not exist
 loaded = loaded

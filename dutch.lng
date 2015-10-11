@@ -89,6 +89,7 @@ load_html = Eerst html laden s.v.p.
 copied_to = gekopieerd naar {}/{}{}{}
 target_missing = {} overgeslagen: niet in target directory
 mirror_missing = {} niet aanwezig in mirror
+sett_missing = Config: Geef een waarde op voor {}
 sett_invalid = Config: ongeldige waarde voor {}
 no_such_sett = {} bestaat niet
 loaded = opgehaald
