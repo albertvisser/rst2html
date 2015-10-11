@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -26,8 +25,6 @@ class Rst2Html(object):
         """initialize using imported settings; read template; register directives"""
         rhfn.register_directives()
         self.conffile = 'settings.yml'
-        self.conf = rhfn.read_conf(self.conffile)
-        self.get_subdirs()
         self.current = ""
         self.oldtext = self.oldhtml = ""
         with TEMPLATE.open() as f_in:
@@ -55,8 +52,11 @@ class Rst2Html(object):
     def all_source(self, naam):
         """build list of options from rst files"""
         path = self.currentify(self.conf['source'])
-        all_source = [str(f.relative_to(path)) # self.conf['source']))
-            for f in path.glob("*.rst")]
+        try:
+            all_source = [str(f.relative_to(path)) # self.conf['source']))
+                for f in path.glob("*.rst")]
+        except AttributeError:
+            return ''
         items = sorted(all_source)
         if self.current:
             items.insert(0,"..")
@@ -67,8 +67,11 @@ class Rst2Html(object):
     def all_html(self, naam):
         """build list of options from html files"""
         path = self.currentify(self.conf['root'])
-        all_html = [str(f.relative_to(path)) # self.conf['root']))
-            for f in path.glob("*.html")]
+        try:
+            all_html = [str(f.relative_to(path)) # self.conf['root']))
+                for f in path.glob("*.html")]
+        except AttributeError:
+            return ''
         items = sorted(all_html)
         if self.current:
             items.insert(0,"..")
@@ -106,8 +109,10 @@ class Rst2Html(object):
             'html': ('xml/xml', 'javascript/javascript', 'css/css',
                 'htmlmixed/htmlmixed'),
             'py': ('python/python', '../addon/edit/matchbrackets'),
-            'rst': ('rst/rst', '../addon/mode/overlay')
+            'rst': ('rst/rst', '../addon/mode/overlay'),
                 }
+        if not self.loaded:
+            return ''
         return '\n'.join(scriptspec.format(x) for x in scriptdict[self.loaded])
 
     def complete_header(self, rstdata):
@@ -123,15 +128,32 @@ class Rst2Html(object):
             rstdata = start + middle + split_on + end
         return rstdata
 
+    def read_conf(self, settings):
+        mld, conf = rhfn.read_conf(settings)
+        if mld == '':
+            self.conf = conf
+            self.get_subdirs()
+            self.current = ""
+        self.loaded = rhfn.CONF
+        return mld
+
     @cherrypy.expose
     def index(self):
         """show page with empty fields (and selectable filenames)"""
+        # config defaults so we can always show the first page
+        self.conf = { 'wid': 100, 'hig': 32,'source': '.', 'root': '.' }
         ## return self.output
         rstfile = htmlfile = newfile = rstdata  = ""
         settings = self.conffile
-        mld = rhfn.get_text('conf_init').format(settings)
-        rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
-        self.loaded = rhfn.CONF
+        fullname = HERE / settings
+        ## mld, rstdata = self.read_conf(settings)
+        ## if rstdata:
+            ## mld = rhfn.get_text('conf_init').format(settings)
+        mld, rstdata = rhfn.read_data(fullname)
+        if mld == '':
+            mld = self.read_conf(settings)
+            if mld == '':
+                mld = rhfn.get_text('conf_init').format(fullname)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), self.loaded, self.lang())
@@ -141,19 +163,19 @@ class Rst2Html(object):
         """load indicated .yml file
 
         changes the locations of source, target and web mirror files"""
-        mld = ''
-        test = rhfn.read_conf(settings)
-        try:
-            test['root']
-        except TypeError:
-            mld = test
-        if not mld:
-            self.conf = test
-            self.get_subdirs()
-            self.current = ""
-            rstdata = '\n'.join(['{}: {}'.format(x,y) for x, y in self.conf.items()]) # ""
-            self.loaded = rhfn.CONF
-            mld = rhfn.get_text('conf_loaded').format(settings)
+        ## fullname = HERE / newfile
+        ## mld, text = self.read_conf(settings)
+        ## if text:
+            ## rstdata = text
+            ## mld = rhfn.get_text('conf_loaded').format(settings)
+        if newfile and newfile != settings:
+            settings = newfile
+        fullname = HERE / settings
+        mld, rstdata = rhfn.read_data(fullname)
+        if mld == '':
+            mld = self.read_conf(settings)
+            if mld == '':
+                mld = rhfn.get_text('conf_loaded').format(fullname)
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), self.loaded, self.lang())
@@ -177,25 +199,28 @@ class Rst2Html(object):
             newpath = pathlib.Path(newfile)
             if newpath.suffix != ".yml":
                 newfile += ".yml"
-            test = rhfn.zetom_conf(rstdata)
-            try:
-                test['root']
-            except KeyError:
-                mld = test
-        if mld == '':
+            ## test = rhfn.zetom_conf(rstdata)
+            ## try:
+                ## test['root']
+            ## except KeyError:
+                ## mld = test
+            ## else:
+                ## self.conf = test
+        ## if mld == '':
             fullname = HERE / newfile
-            rhfn.save_conf(test, fullname)
+            ## rhfn.save_conf(test, fullname)
+            rhfn.save_to(fullname, rstdata)
             settings = newfile
             newfile = ""
-            test = rhfn.read_conf(settings)
-            try:
-                test['root']
-            except TypeError:
-                mld = test
+            ## mld, text = self.read_conf(settings)
+            ## if text:
+                ## # rstdata = text
+                ## mld = rhfn.get_text('conf_saved').format(str(fullname))
+            mld = self.read_conf(fullname)
+            if mld != '':
+                rhfn.restore_file(fullname)
             else:
-                self.conf = test
-        if mld == "":
-            mld = rhfn.get_text('conf_saved').format(str(fullname))
+                mld = rhfn.get_text('conf_saved').format(str(fullname))
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
             self.conf['hig'], list_confs(settings), self.loaded, self.lang())
@@ -306,7 +331,7 @@ class Rst2Html(object):
                     self.currentify(self.conf['source']) / pathlib.Path(fname),
                     rstdata)
         if mld == "":
-            previewdata = rhfn.rst2html(rstdata, str(self.conf['css']), embed=True)
+            previewdata = rhfn.rst2html(rstdata, self.conf['css'])
             previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
                 self.current, use_bytes=True)
             pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
@@ -333,15 +358,11 @@ class Rst2Html(object):
             htmlpath = newpath.with_suffix(".html")
             rstfile = self.currentify(self.conf['source']) / rstpath
             htmlfile = self.currentify(self.conf['root']) / htmlpath
-            newdata = rhfn.rst2html(rstdata, str(self.conf['css']))
+            newdata = rhfn.rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext:
                 mld = rhfn.save_to(rstfile, rstdata)
             if mld == "":
-                begin, rest = str(newdata, encoding='utf-8').split(
-                    '<link rel="stylesheet"',1)
-                rest, end = rest.split(">",1)
-                newdata = self.conf['all_css'].join((begin, end))
-                mld = rhfn.save_to(htmlfile, newdata)
+                mld = rhfn.save_to(htmlfile, str(newdata, encoding='utf-8'))
                 if mld == "":
                     mld = rhfn.get_text('rst_2_html').format(str(htmlfile))
             rstfile = rstpath.name
@@ -375,31 +396,13 @@ class Rst2Html(object):
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        ## mld = ""
         mld = rhfn.check_if_html(rstdata, self.loaded)
         if mld:
             pass
         else:
             if 'mirror_url' in self.conf:
-                rstdata = rhfn.resolve_images(rstdata, self.conf['mirror_url'],
+                newdata = rhfn.resolve_images(rstdata, self.conf['mirror_url'],
                     self.current)
-            # split html on stylesheets links
-            embed = True
-            data = ''
-            try:
-                data, rstdata = rstdata.split("<link", 1)
-            except ValueError:
-                embed = False
-            while embed:
-                niks, rstdata = rstdata.split(">", 1)
-                try:
-                    niks, rstdata = rstdata.split("<link", 1)
-                except ValueError:
-                    embed = False
-            with self.conf['css'].open(encoding='utf-8') as f_in:
-                lines = "".join(f_in.readlines())
-            newdata = lines.join(('<style type="text/css">', '</style>'))
-            newdata = newdata.join((data, rstdata))
             pos = newdata.index('>', newdata.index('<body')) + 1
             start, end = newdata[:pos], newdata[pos:]
             loadhtml = 'loadhtml?htmlfile={}'.format(htmlfile)

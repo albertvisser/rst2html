@@ -9,6 +9,7 @@ import glob
 import yaml
 import datetime
 ## import gettext
+import collections
 
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
@@ -42,8 +43,8 @@ HERE = pathlib.Path(__file__).parents[0]
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
-SETT_KEYS = ('root', 'source', 'css', 'mirror', 'mirror_url', 'all_css',
-    'wid', 'hig', 'starthead', 'endhead')
+SETT_KEYS = ('root', 'source', 'mirror', 'mirror_url', 'css', 'wid', 'hig',
+    'starthead', 'endhead')
 
 # eigengebakken spul, tzt te vervangen door gnu_gettext zaken
 ## app_title = 'Rst2HTML'
@@ -80,11 +81,12 @@ def striplines(data):
     """list -> string met verwijdering van eventuele line endings"""
     return "".join([line.rstrip() for line in data])
 
-def rst2html(data, css, embed=False):
+def rst2html(data, css):
     """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
-        "embed_stylesheet": embed,
-        "stylesheet_path": css,
+        "embed_stylesheet": False,
+        "stylesheet_path": '',
+        "stylesheet": css,
         "report_level": 3,
         }
     return publish_string(source=data,
@@ -92,6 +94,26 @@ def rst2html(data, css, embed=False):
         writer_name='html',
         settings_overrides=overrides,
         )
+
+def read_data(fname):
+    """reads data from file <fname>
+
+    on success: returns empty message and data as a string
+    on failure: returns error message and empty string for data
+    """
+    mld = data = ''
+    try:
+        with fname.open(encoding='utf-8') as f_in:
+            data = ''.join(f_in.readlines())
+    except UnicodeDecodeError:
+        try:
+            with fname.open(encoding='iso-8859-1') as f_in:
+                data = ''.join(f_in.readlines())
+        except IOError as e:
+            mld = str(e)
+    except IOError as e:
+        mld = str(e)
+    return mld, data
 
 def save_to(fullname, data):
     """backup file, then write data to file
@@ -107,6 +129,10 @@ def save_to(fullname, data):
         except OSError as err:
             mld = str(err)
     return mld
+
+def restore_file(fname):
+    backup = fname.with_suffix(fname.suffix + '.bak')
+    backup.rename(fname)
 
 def list_all(inputlist, naam):
     """build list of options from filenames, with naam selected"""
@@ -151,6 +177,16 @@ def make_path(root, path):
         path = pathlib.Path(path)
     return path
 
+def make_url(root, path):
+    if path.startswith('mirror_url + '):
+        path = path.split(' + ', 1)[1]
+        path = '/'.join((root, path))
+    if not path.startswith('http'):
+        url = 'http://' + path
+    else:
+        url = path
+    return url
+
 def create_path(root, new):
     newpath = root / new
     try:
@@ -168,34 +204,121 @@ def read_conf(naam):
     test = HERE / naam
     with test.open(encoding='utf-8') as _in:
         conf = yaml.safe_load(_in) # let's be paranoid
-    for sett in SETT_KEYS[:4]:
+    for sett in SETT_KEYS:
+        if sett not in conf:    # some keys are allowed to be missing
+            if sett in ('starthead', 'endhead'):
+                continue
+            return get_text('sett_missing').format(sett), {}
         if sett == 'root':
             conf[sett] = pathlib.Path(conf[sett])
-        else:
+            if not conf[sett].exists():
+                return does_not_exist.format('"{}":'.format(sett), conf[sett]), {}
+        elif sett in ('source, mirror'):
             conf[sett] = make_path(conf['root'], conf[sett])
-        if not conf[sett].exists():
-            return does_not_exist.format('"{}":'.format(sett), conf[sett])
-    for sett in ('all_css', 'starthead', 'endhead'):
-        data = ''
-        try:
-            for x in conf[sett]:
-                if data:
-                    data += '\n'
-                if sett == 'all_css':
-                    x = CSS_LINK.format(x)
-                data += x
-        except ValueError:
-            return invalid.format(sett)
-        conf[sett] = data
-    try:
-        conf['wid'] = int(conf['wid'])
-    except ValueError:
-        return invalid.format("wid")
-    try:
-        conf['hig'] = int(conf['hig'])
-    except ValueError:
-        return invalid.format("hig")
+            if not conf[sett].exists():
+                return does_not_exist.format('"{}":'.format(sett), conf[sett]), {}
+        elif sett == 'mirror_url':
+            conf[sett] = make_url(conf[sett], conf['mirror_url'])
+        elif sett == 'css':
+            for ix, x in enumerate(conf[sett]):
+            ## x = CSS_LINK.format(make_url(conf['mirror_url'], x))
+                x = make_url(conf['mirror_url'], x)
+                conf[sett][ix] = x
+        elif sett in ('starthead', 'endhead'):
+            data = ''
+            try:
+                for x in conf[sett]:
+                    if data:
+                        data += '\n'
+                    data += x
+            except ValueError:
+                return invalid.format(sett), {}
+            conf[sett] = data
+        elif sett in ('wid', 'hig'):
+            try:
+                conf[sett] = int(conf[sett])
+            except ValueError:
+                return invalid.format(sett), {}
+    return '', conf
+
+def css_link2file(text):
+    x, y = CSS_LINK.split('{}')
+    text = text.replace(x, '')
+    text = text.replace(y, '')
+    return text
+
+def zetom_conf(text):
+    """convert text (from input area) to settings dict and return it
+
+    TODO: also check settings for correctness (valid locations)
+    """
+    invalid = get_text('sett_invalid')
+    does_not_exist = invalid + " - " + get_text('no_such_sett')
+    data = {}
+    conf = {}
+    for line in text.split(os.linesep):
+        if line == '':
+            continue
+        probeer = line.strip().split(': ')
+        if len(probeer) > 1:
+            sleutel = probeer[0]
+            data[sleutel] = [css_link2file(probeer[1])]
+        else:
+            data[sleutel].append(css_link2file(probeer[0]))
+    for key in SETT_KEYS: # process dictionary _data_ in this sequence
+        if key not in data:
+            continue
+        value = data[key]
+        if key == SETT_KEYS[0]:     # root
+            test = pathlib.Path(value[0])
+            if not test.exists():
+                return does_not_exist.format('"{}":'.format(sett), conf[sett])
+            rootparts = test.parts
+        elif key in SETT_KEYS[1:3]: # ander path
+            test = pathlib.Path(value[0])
+            if not test.exists():
+                return does_not_exist.format('"{}":'.format(sett), conf[sett])
+            textparts = test.parts
+            if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
+                continue
+            if len(rootparts) < len(textparts): # get smallest number of subdirs
+                max = len(rootparts)
+            else:
+                max = len(textparts)
+            i = 0
+            while (i < max and textparts[i] == rootparts[i]):
+                i += 1
+            textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
+            value = 'root'
+            if textparts:
+                value += ' + ' + '/'.join(textparts)
+            data[key] = [value]
+        elif key == 'css':
+            for ix, item in enumerate(data[key]):
+                if not item.startswith('http'):
+                    return invalid.format(sett)
+                if item.startswith(data['mirror_url'][0]):
+                    item = item.replace(data['mirror_url'][0] + '/', 'mirror_url + ')
+                    data[key][ix] = item
+        elif sett in ('wid', 'hig'):
+            try:
+                conf[sett] = int(conf[sett])
+            except ValueError:
+                return invalid.format(sett)
+    for key, value in data.items():
+        if key == 'css' or key in rhfn.SETT_KEYS[-2:]:
+            conf[key] = value
+        else:
+            conf[key] = value[0]
     return conf
+
+def save_conf(conf, fullname):
+
+    if fullname.exists():
+        shutil.copyfile(str(fullname),
+            str(fullname.with_suffix(fullname.suffix + '.bak')))
+    with fullname.open('w', encoding='utf-8') as _out:
+        yaml.dump(conf, _out, default_flow_style=False)
 
 def load_custom_directives():
     """
@@ -228,83 +351,6 @@ def get_custom_directives_filename():
         fname = custom_directives_template
         verb = get_text('init')
     return fname, verb
-
-def read_data(fname):
-    """reads data from file <fname>
-
-    on success: returns empty message and data as a string
-    on failure: returns error message and empty string for data
-    """
-    mld = data = ''
-    try:
-        with fname.open(encoding='utf-8') as f_in:
-            data = ''.join(f_in.readlines())
-    except UnicodeDecodeError:
-        try:
-            with fname.open(encoding='iso-8859-1') as f_in:
-                data = ''.join(f_in.readlines())
-        except IOError as e:
-            mld = str(e)
-    except IOError as e:
-        mld = str(e)
-    return mld, data
-
-def css_link2file(text):
-    x, y = CSS_LINK.split('{}')
-    text = text.replace(x, '')
-    text = text.replace(y, '')
-    return text
-
-def zetom_conf(text):
-    """convert text (from input area) to settings dict and return it
-
-    also check settings for correctness (valid locations)
-    """
-    data = []
-    conf = {}
-    for line in text.split(os.linesep):
-        probeer = line.strip().split(': ')
-        if len(probeer) > 1:
-            sleutel = probeer[0]
-            data.append([SETT_KEYS.index(sleutel), sleutel,
-                [css_link2file(probeer[1])]])
-        else:
-            data[-1][2].append(css_link2file(probeer[0]))
-    data.sort()
-    for ix, item in enumerate(data):
-        seq, key, value = item
-        if key == SETT_KEYS[0]:     # root
-            rootparts = pathlib.Path(value[0]).parts
-        elif key in SETT_KEYS[1:4]: # ander path
-            textparts = pathlib.Path(value[0]).parts
-            if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
-                continue
-            if len(rootparts) < len(textparts): # get smallest number of subdirs
-                max = len(rootparts)
-            else:
-                max = len(textparts)
-            i = 0
-            while (i < max and textparts[i] == rootparts[i]):
-                i += 1
-            textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
-            value = 'root'
-            if textparts:
-                value += ' + ' + '/'.join(textparts)
-            data[ix] = seq, key, [value]
-    for num, key, value in data:
-        if num in (5, 8, 9):
-            conf[key] = value
-        else:
-            conf[key] = value[0]
-    return conf
-
-def save_conf(conf, fullname):
-
-    if fullname.exists():
-        shutil.copyfile(str(fullname),
-            str(fullname.with_suffix(fullname.suffix + '.bak')))
-    with fullname.open('w', encoding='utf-8') as _out:
-        yaml.dump(conf, _out, default_flow_style=False)
 
 def getrefs(path, source, reflinks):
     "search for keywords in source file and remember their locations"
