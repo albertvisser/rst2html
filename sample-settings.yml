@@ -3,26 +3,37 @@
 
 # this file defines the following items:
 
-# root        - location of html pages
-# source   - location of .rst sources
-# css           - location of css (needs to be in one file, apparently)
-# mirror   - location of (mirror) site on local machine
-# all_css    - all css in separate files (relative links)
-# wid, hig - width and height of text area in rst2html.html
-# starthead - lines to copy directly after the <head> element (to be executed first)
-# endhead  - lines to copy directly before the </head> element (to be executed last)
-
+# root        - location of converted html pages
 root: /home/albert/www/magiokis_vv/target
+
+# source   - location of .rst sources
+# mirror   - location of (mirror) site on local machine
+# source and mirror can be defined relative to root
 source: root + ../sources
-css: root + /css/html4css_960.css
 mirror: /home/albert/www/magiokis_vv
-all_css:
-  - /css/reset.css
-  - /css/960.css
-  - /css/html4css1.css
-  - /css/magiokis.css
+# or
+# mirror: root + ..
+
+# mirror_url   - http address of (mirror) site
+mirror: http://preview.magiokis.nl
+
+# css           - locations of css files (should be absolute urls, so starting with http(s): )
+# can be defined relative to mirror_url
+css:
+- /home/albert/www/magiokis_vv/css/reset.css
+# or
+#  - mirror_url + css/reset.css
+ - mirror_url + css/960.css
+ - mirror_url + css/html4css1.css
+ - http://www.magiokis.nl/css/magiokis.css
+
+# wid, hig - width and height of text area in rst2html.html
 wid: 100
 hig: 32
+
+# starthead - text lines to copy directly after the <head> element (to be executed first)
+# endhead  - text lines to copy directly before the </head> element (to be executed last)
+# these should be valid HTML
 starthead:
 
 endhead:
