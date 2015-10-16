@@ -17,17 +17,15 @@ As a small bonus for myself I built a simple gui app to show the contents of a .
 There's also a version that can handle markdown (.md files).
 
 As another small bonus to myself, I added a javascript library to provide code highlighting in the text area. I thought of it while building the directives stuff, because it makes it slightly easier to edit the Python code.
+It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
 
 How to use
 ----------
 
-Use ``cherryd`` to run ``start_rst2html.py`` with the .conf file in this
-directory.
+Use ``cherryd`` or similar (these days I use ``gunicorn``) to run ``start_rst2html.py`` with the .conf file in this directory.
 In this configuration define the output to go to a specific port on localhost.
-Configure your local webserver to pick up the output from the port and assign it
-to a virtual domain. Have your hosts file translate the virtual domain to localhost.
-Of course you can also pick up the output directly in the web browser by specifying
-localhost:port.
+Configure your local webserver to pick up the output from the port and assign it to a virtual domain. Have your hosts file translate the virtual domain to localhost.
+Of course you can also pick up the output directly in the web browser by specifying localhost:port.
 
 
 Requirements
