@@ -23,9 +23,9 @@ css:
 - /home/albert/www/magiokis_vv/css/reset.css
 # or
 #  - mirror_url + css/reset.css
- - mirror_url + css/960.css
- - mirror_url + css/html4css1.css
- - http://www.magiokis.nl/css/magiokis.css
+- mirror_url + css/960.css
+- mirror_url + css/html4css1.css
+- http://www.magiokis.nl/css/magiokis.css
 
 # wid, hig - width and height of text area in rst2html.html
 wid: 100
