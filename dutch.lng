@@ -1,9 +1,9 @@
 # onhover descriptions for buttons and fields
 
 t_settings = selecteer een settings bestand
-t_rstbestand = selecteer een .rst bestand om te laden of op te slaan, of een directory naam om heen te gaan
-t_htmlbestand = selecteer een html bestand om te laden of op te slaan
-t_newbestand = Geef een nieuwe naam op om te laden of op te slaan. Eindig met / om een directory te maken
+t_rstfile = selecteer een .rst bestand om te laden of op te slaan, of een directory naam om heen te gaan
+t_htmlfile = selecteer een html bestand om te laden of op te slaan
+t_newfile = Geef een nieuwe naam op om te laden of op te slaan. Eindig met / om een directory te maken
 t_index = Genereer een index pagina met behulp van de 'refkey' directives in diverse documenten
 t_regen = Hergenereer alle pagina's bv. om wijziingen in de gebruiket directives door te voeren
 t_loadconf = Laad de geselecteerde settings en wijzig de locaties van source, target en web mirror
@@ -31,7 +31,7 @@ t_bottom = maak navigatiefooter van x cellen breed met 'index' en 'volgende' lin
 t_refkey = definieer een verwijzing naar (een plek op) deze pagina t.b.v. de 'create index' functie
 t_startbody = genereer standaard begin van de body section
 t_navlinks = genereer navigatielinks
-t_texhetader = genereer begin van de tekst met titel
+t_textheader = genereer begin van de tekst met titel
 t_startcenter = Tijdelijk marges negeren om brede images te tonen
 t_endcenter = Terug naar originele marges
 t_endbody = genereer standaard einde van de body section
@@ -41,10 +41,10 @@ t_endbody = genereer standaard einde van de body section
 c_settings = Settings
 c_loadconf = Laden
 c_saveconf = Opslaan
-c_rstbestand = Bron
-c_htmlbestand = Doel
+c_rstfile = Bron
+c_htmlfile = Doel
 c_newitem = -- nieuw --
-c_newbestand = nieuwe naam
+c_newfile = nieuwe naam
 c_loadsrc = Laad bron
 c_savesrc = Sla bron op
 c_convert = Zet om en toon
@@ -64,12 +64,12 @@ c_qref = Quick reStructuredText
 # notifications and such
 
 index_built = Trefwoordenlijst aangemaakt
-conf_init = confbestand is {}
-conf_loaded = settings geladen van {}
+conf_init = Configuratiebestand is {}
+conf_loaded = Settings geladen van {}
 fname_invalid = Geen geldige bestandsnaam
 supply_text = Tekstveld invullen s.v.p.
 conf_invalid = Niet uitgevoerd: tekstveld bevat geen settings
-conf_saved = settings opgeslagen als {}
+conf_saved = Settings opgeslagen als {}
 dirs_loaded = Directives {} van {}
 dirs_invalid = Niet uitgevoerd: tekstveld bevat geen directives code
 dirs_saved = Directives bestand opgeslagen, herstart de server om wijzigingen te activeren
@@ -95,4 +95,4 @@ no_such_sett = {} bestaat niet
 loaded = opgehaald
 init = initieel aangemaakt, nog niet opgeslagen
 index_header = Trefwoordenlijst
-rst_bestandname_error = Niet uitgevoerd: fout(en) in naam voor rst bestand
+rst_filename_error = Niet uitgevoerd: fout(en) in naam voor rst bestand
