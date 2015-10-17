@@ -15,7 +15,7 @@ TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
     'background-color: #C6E2FF; text-align: center; position: fixed">'
     '<a href={}><button>Back to editor</button></a></div>')
-# TODO: a simple "position:fixed" causes this div to shrink and cover the leftmost bit of the
+# TODO: the "position:fixed" causes this div to shrink and cover the leftmost bit of the
 # page - do I mind?
 
 class Rst2Html(object):
@@ -26,19 +26,7 @@ class Rst2Html(object):
         rhfn.register_directives()
         self.conffile = 'settings.yml'
         self.current = ""
-        self.oldtext = self.oldhtml = ""
-        with TEMPLATE.open() as f_in:
-            ## self.output = f_in.read()
-            # eigengebakken language support
-            output = []
-            for line in f_in:
-                while '_(' in line:
-                    start, rest = line.split('_(', 1)
-                    keyword, end = rest.split(')', 1)
-                    line = rhfn.get_text(keyword).join((start, end))
-                output.append(line)
-            self.output = ''.join(output)
-
+        self.oldtext = self.oldlang = self.oldhtml = ""
 
     def get_subdirs(self):
         self.subdirs = [str(f.relative_to(self.conf['source'])) + "/"
@@ -83,7 +71,7 @@ class Rst2Html(object):
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
         trefwoordenregister op"""
         mld = ""
-        rstdata = rhfn.build_trefwoordenlijst(self.conf['source'])
+        rstdata = rhfn.build_trefwoordenlijst(self.conf['source'], self.conf["lang"])
         mld = rhfn.save_to(self.conf['source'] / 'trefwoorden.rst', rstdata)
         if mld == "":
             cssfile = str(self.conf['css'])
@@ -99,10 +87,23 @@ class Rst2Html(object):
                 mld = rhfn.save_to(self.conf['mirror'] / "trefwoorden.html",
                     cssfile.join((begin, end)))
         if not mld:
-            mld = rhfn.get_text('index_built')
+            mld = rhfn.get_text('index_built', self.conf["lang"])
         return mld
 
-    def lang(self):
+    def format_output(self, rstfile, htmlfile, newfile, mld, rstdata, settings):
+        if self.oldlang != self.conf["lang"]:
+            self.oldlang = self.conf["lang"]
+            with TEMPLATE.open() as f_in:
+                # eigengebakken language support
+                output = []
+                for line in f_in:
+                    while '_(' in line:
+                        start, rest = line.split('_(', 1)
+                        keyword, end = rest.split(')', 1)
+                        line = rhfn.get_text(keyword, self.oldlang).join((start, end))
+                    output.append(line)
+                self.output = ''.join(output)
+        ## def lang(self):
         scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
         scriptdict = {
             'yaml': ('yaml/yaml',),
@@ -112,8 +113,12 @@ class Rst2Html(object):
             'rst': ('rst/rst', '../addon/mode/overlay'),
                 }
         if not self.loaded:
-            return ''
-        return '\n'.join(scriptspec.format(x) for x in scriptdict[self.loaded])
+            txtlang = ''
+        else:
+            txtlang = '\n'.join(scriptspec.format(x) for x in scriptdict[self.loaded])
+        return self.output.format(self.all_source(rstfile),
+            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
+            self.conf['hig'], list_confs(settings), self.loaded, txtlang)
 
     def complete_header(self, rstdata):
         if self.conf.get('starthead', ''):
@@ -131,7 +136,7 @@ class Rst2Html(object):
         return rstdata
 
     def read_conf(self, settings):
-        mld, conf = rhfn.read_conf(settings)
+        mld, conf = rhfn.read_conf(settings, self.conf["lang"])
         if mld == '':
             self.conf = conf
             self.get_subdirs()
@@ -143,22 +148,20 @@ class Rst2Html(object):
     def index(self):
         """show page with empty fields (and selectable filenames)"""
         # config defaults so we can always show the first page
-        self.conf = { 'wid': 100, 'hig': 32,'source': '.', 'root': '.' }
+        self.conf = rhfn.DFLT_CONF
         ## return self.output
         rstfile = htmlfile = newfile = rstdata  = ""
         settings = self.conffile
         fullname = HERE / settings
         ## mld, rstdata = self.read_conf(settings)
         ## if rstdata:
-            ## mld = rhfn.get_text('conf_init').format(settings)
+            ## mld = rhfn.get_text('conf_init', self.conf["lang"]).format(settings)
         mld, rstdata = rhfn.read_data(fullname)
         if mld == '':
             mld = self.read_conf(settings)
             if mld == '':
-                mld = rhfn.get_text('conf_init').format(fullname)
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+                mld = rhfn.get_text('conf_init', self.conf["lang"]).format(fullname)
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -169,7 +172,7 @@ class Rst2Html(object):
         ## mld, text = self.read_conf(settings)
         ## if text:
             ## rstdata = text
-            ## mld = rhfn.get_text('conf_loaded').format(settings)
+            ## mld = rhfn.get_text('conf_loaded', self.conf["lang"]).format(settings)
         if newfile and newfile != settings:
             settings = newfile
         fullname = HERE / settings
@@ -177,10 +180,9 @@ class Rst2Html(object):
         if mld == '':
             mld = self.read_conf(settings)
             if mld == '':
-                mld = rhfn.get_text('conf_loaded').format(fullname)
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+                mld = rhfn.get_text('conf_loaded', self.conf["lang"]).format(
+                    fullname)
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -188,20 +190,24 @@ class Rst2Html(object):
 
         if new name specified, use that (extension must be .yml)"""
         mld = ""
-        if newfile == "":
-            newfile = settings
-        if newfile.endswith(os.pathsep):
-            mld = rhfn.get_text('fname_invalid')
+        if newfile:
+            if newfile.endswith(os.pathsep):
+                mld = rhfn.get_text('fname_invalid', self.conf["lang"])
+            else:
+                settings = newfile
+                newfile = ""
         if mld == "":
             if rstdata == "":
-                mld = rhfn.get_text('supply_text')
+                mld = rhfn.get_text('supply_text', self.conf["lang"])
             elif self.loaded != rhfn.CONF:
-                mld = rhfn.get_text('conf_invalid')
+                mld = rhfn.get_text('conf_invalid', self.conf["lang"])
         if mld == "":
-            newpath = pathlib.Path(newfile)
-            if newpath.suffix != ".yml":
-                newfile += ".yml"
-            ## test = rhfn.zetom_conf(rstdata)
+            fullname = HERE / settings
+            test = ".yml"
+            if fullname.suffix != test:
+                fullname = fullname.with_suffix(test)
+                settings += test
+            ## test = rhfn.zetom_conf(rstdata, self.conf["lang"])
             ## try:
                 ## test['root']
             ## except KeyError:
@@ -209,7 +215,6 @@ class Rst2Html(object):
             ## else:
                 ## self.conf = test
         ## if mld == '':
-            fullname = HERE / newfile
             ## rhfn.save_conf(test, fullname)
             rhfn.save_to(fullname, rstdata)
             settings = newfile
@@ -217,15 +222,14 @@ class Rst2Html(object):
             ## mld, text = self.read_conf(settings)
             ## if text:
                 ## # rstdata = text
-                ## mld = rhfn.get_text('conf_saved').format(str(fullname))
+                ## mld = rhfn.get_text('conf_saved', self.conf["lang"]).format(str(fullname))
             mld = self.read_conf(fullname)
             if mld != '':
                 rhfn.restore_file(fullname)
             else:
-                mld = rhfn.get_text('conf_saved').format(str(fullname))
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+                mld = rhfn.get_text('conf_saved', self.conf["lang"]).format(
+                    str(fullname))
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose    # nog testen
     def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -234,15 +238,13 @@ class Rst2Html(object):
         if non-existent, create from template
         """
         mld = ''
-        fname, verb = rhfn.get_custom_directives_filename()
+        fname, verb = rhfn.get_custom_directives_filename(self.conf['lang'])
         mld, data = rhfn.read_data(fname)
         if not mld:
             rstdata = data
             self.loaded = rhfn.XTRA
-            mld = rhfn.get_text('dirs_loaded').format(verb, fname)
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+            mld = rhfn.get_text('dirs_loaded', self.conf["lang"]).format(verb, fname)
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose    # nog testen
     def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -250,16 +252,14 @@ class Rst2Html(object):
         """
         mld = ''
         if rstdata == "":
-            mld = rhfn.get_text('supply_text')
+            mld = rhfn.get_text('supply_text', self.conf["lang"])
         elif self.loaded != rhfn.XTRA:
-            mld = rhfn.get_text('dirs_invalid')
+            mld = rhfn.get_text('dirs_invalid', self.conf["lang"])
         if mld == "":
             mld = rhfn.save_to(rhfn.custom_directives, rstdata)
         if mld == "":
-            mld = rhfn.get_text('dirs_saved')
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+            mld = rhfn.get_text('dirs_saved', self.conf["lang"])
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -268,9 +268,9 @@ class Rst2Html(object):
         pre-builds save-filename by changing extension from rst to html"""
         mld = ""
         if rstfile == "":
-            mld = rhfn.get_text('unlikely_1')
+            mld = rhfn.get_text('unlikely_1', self.conf["lang"])
         elif rstfile == "-- new --":
-            mld = rhfn.get_text('save_reminder')
+            mld = rhfn.get_text('save_reminder', self.conf["lang"])
             htmlfile = newfile = rstdata = ""
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
@@ -290,18 +290,17 @@ class Rst2Html(object):
             self.oldtext = rstdata = data
             htmlfile = source.with_suffix(".html").name
             newfile = ""
-            mld = rhfn.get_text('src_loaded').format(str(source))
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+            mld = rhfn.get_text('src_loaded', self.conf["lang"]).format(str(source))
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """(re)save rst file using selected name
 
-        if new name specified, use that (extension must be .rst)"""
+        if new name specified, use that (extension must be .rst)
+        """
         fname = newfile or rstfile
-        mld = rhfn.check_if_rst(rstdata, self.loaded, fname)
+        mld = rhfn.check_if_rst(rstdata, self.loaded, fname, self.conf["lang"])
         if mld == "":
             where = self.currentify(self.conf['source'])
             newpath = where / fname
@@ -310,13 +309,12 @@ class Rst2Html(object):
                 newpath = where / newfile
             mld = rhfn.save_to(newpath, rstdata)
             if mld == "":
-                mld = rhfn.get_text('rst_saved').format(str(newpath.resolve()))
+                mld = rhfn.get_text('rst_saved', self.conf["lang"]).format(
+                    str(newpath.resolve()))
             rstfile = newpath.name
             htmlfile = newpath.with_suffix(".html").name
             newfile = ""
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -324,9 +322,9 @@ class Rst2Html(object):
         """
         fname = newfile or rstfile
         if rstdata == self.oldtext:
-            mld = rhfn.check_if_rst(rstdata, self.loaded) # alleen inhoud controleren
+            mld = rhfn.check_if_rst(rstdata, self.loaded, lang=self.conf["lang"]) # alleen inhoud controleren
         else:
-            mld = rhfn.check_if_rst(rstdata, self.loaded, fname)
+            mld = rhfn.check_if_rst(rstdata, self.loaded, fname, self.conf["lang"])
         if mld == "":
             if rstdata != self.oldtext:
                 mld = rhfn.save_to(
@@ -342,18 +340,18 @@ class Rst2Html(object):
             preview = bytes(previewbutton.format(loadrst), encoding="UTF-8")
             previewdata = preview.join((start, end))
             return previewdata
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        """(re)save rst file, (re)convert to html and (re)save html file using selected names"""
+        """(re)save rst file, (re)convert to html and (re)save html file
+        using selected names
+        """
         fname = newfile or rstfile
         name, test = os.path.splitext(fname)
         if test in ('.html', ''):
             fname = name + '.rst'
-        mld = rhfn.check_if_rst(rstdata, self.loaded, fname)
+        mld = rhfn.check_if_rst(rstdata, self.loaded, fname, self.conf["lang"])
         if mld == "":
             newpath = pathlib.Path(fname)
             rstpath = newpath.with_suffix(".rst")
@@ -366,20 +364,19 @@ class Rst2Html(object):
             if mld == "":
                 mld = rhfn.save_to(htmlfile, str(newdata, encoding='utf-8'))
                 if mld == "":
-                    mld = rhfn.get_text('rst_2_html').format(str(htmlfile))
+                    mld = rhfn.get_text('rst_2_html', self.conf["lang"]).format(
+                        str(htmlfile))
             rstfile = rstpath.name
             htmlfile = htmlpath.name
             newfile = ""
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """load html file and show code"""
         mld = ""
         if htmlfile.endswith("/") or htmlfile in ("", "-- new --", ".."):
-            mld = rhfn.get_text('html_name_missing')
+            mld = rhfn.get_text('html_name_missing', self.conf["lang"])
         else:
             htmlpath = pathlib.Path(htmlfile)
             rstfile = htmlpath.with_suffix(".rst")
@@ -388,17 +385,15 @@ class Rst2Html(object):
             mld, data = rhfn.read_data(htmlfile)
         if not mld:
             self.oldhtml = rstdata = data.replace("&nbsp", "&amp;nbsp")
-            mld = rhfn.get_text('html_loaded').format(htmlfile)
+            mld = rhfn.get_text('html_loaded', self.conf["lang"]).format(htmlfile)
             self.loaded = rhfn.HTML
             rstfile = rstfile.name
             htmlfile = htmlfile.name
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, str(rstdata), self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        mld = rhfn.check_if_html(rstdata, self.loaded)
+        mld = rhfn.check_if_html(rstdata, self.loaded, lang=self.conf["lang"])
         if mld:
             pass
         else:
@@ -410,52 +405,45 @@ class Rst2Html(object):
             loadhtml = 'loadhtml?htmlfile={}'.format(htmlfile)
             newdata = previewbutton.format(loadhtml).join((start, end))
             return newdata
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """save displayed (edited) html"""
-        mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile)
+        mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile, self.conf["lang"])
         if mld == "":
             htmlfile = self.currentify(self.conf['root']) / htmlfile
             newdata = rstdata # striplines(rstdata)
             mld = rhfn.save_to(htmlfile, newdata)
             rstdata = newdata.replace("&nbsp", "&amp;nbsp")
             if mld == "":
-                mld = rhfn.get_text('html_saved').format(str(htmlfile))
+                mld = rhfn.get_text('html_saved', self.conf["lang"]).format(
+                    str(htmlfile))
             htmlfile = htmlfile.name
             newfile = ""
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """copy html to mirror site
 
         along the way the right stylesheets are added"""
-        mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile)
+        mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile, self.conf["lang"])
         if not mld:
             rstdata = self.complete_header(rstdata)
             target = self.currentify(self.conf['mirror']) / htmlfile
             mld = rhfn.save_to(target, rstdata)
             if not mld:
                 x = "/" if self.current else ""
-                mld = rhfn.get_text('copied_to').format(self.conf['mirror'],
-                    self.current, x, htmlfile)
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+                mld = rhfn.get_text('copied_to', self.conf["lang"]).format(
+                    self.conf['mirror'], self.current, x, htmlfile)
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         "build references document"
         mld = self.scandocs()
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -487,7 +475,8 @@ class Rst2Html(object):
                 results.append(mld)
                 continue
             if not destfile.exists(): #do not process files not on mirror site
-                results.append(rhfn.get_text('mirror_missing').format(str(htmlfile)))
+                results.append(rhfn.get_text('mirror_missing',
+                    self.conf["lang"]).format(str(htmlfile)))
                 continue
             # nog wat aanpassingen en kopieren naar mirror
             data = self.complete_header(newdata)
@@ -495,16 +484,16 @@ class Rst2Html(object):
             if mld:
                 results.append(mld)
         rstdata = '\n'.join(results)
-        return self.output.format(self.all_source(rstfile),
-            self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, self.lang())
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        rstdata = rhfn.determine_most_recently_updated(settings)
-        return rstdata.format(self.conf['mirror'], self.conf['source'],
-            self.conf['root'], settings)
-        #TODO: add button to return to loadconf page for these settings and send page
+        mld, rstdata = rhfn.determine_most_recently_updated(settings,
+            self.conf['lang'])
+        if not mld:
+            return rstdata.format(self.conf['mirror'], self.conf['source'],
+                self.conf['root'], settings)
+        return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
 if __name__ == "__main__":
     ## domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]

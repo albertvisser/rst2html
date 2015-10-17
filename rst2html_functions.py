@@ -10,7 +10,9 @@ import yaml
 import datetime
 ## import gettext
 import collections
-
+#
+# docutils stuff (including directives
+#
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
 standard_directives = {}
@@ -39,25 +41,31 @@ standard_directives.update({
     "endbody": EndBody,
     })
 
+#
+# internals
+#
 HERE = pathlib.Path(__file__).parents[0]
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
+# settings stuff
 SETT_KEYS = ('root', 'source', 'mirror', 'mirror_url', 'css', 'wid', 'hig',
-    'starthead', 'endhead')
-
-# eigengebakken spul, tzt te vervangen door gnu_gettext zaken
-## app_title = 'Rst2HTML'
-## locale = HERE / 'locale'
-## gettext.install(app_title, str(locale))
-## languages = {'nl': gettext.translation(app_title, locale, languages=['nl']),
-    ## 'en': gettext.translation(app_title, locale, languages=['en'])}
+    'lang', 'starthead', 'endhead')
+DFLT_CONF = { 'wid': 100, 'hig': 32,'source': '.', 'root': '.', 'lang': 'en'}
 # constants for loaded data
 RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
+#
+# Language support : eigengebakken spul, tzt te vervangen door gnu_gettext zaken (of niet)
+#
+# map filenames (minus .lng suffix) to language codes
+language_map = (
+    ('english', 'en'),
+    ('dutch', 'nl')
+    )
+# create dictionaries
 languages = {}
-for name, code in (('english', 'en'), ('dutch', 'nl')):
+for name, code in language_map:
     path = HERE / '{}.lng'.format(name)
-    ## with open('{}.lng'.format(name)) as _in:
     with path.open(encoding='utf-8') as _in:
         infodict = {}
         for line in _in:
@@ -66,10 +74,16 @@ for name, code in (('english', 'en'), ('dutch', 'nl')):
             key, value = line.split(' = ', 1)
             infodict[key] = value
         languages[code] = infodict
-
+# look up text
 def get_text(keyword, lang='en'):
     data = languages[lang]
     return data[keyword]
+## gettext stuff to use instead
+## app_title = 'Rst2HTML'
+## locale = HERE / 'locale'
+## gettext.install(app_title, str(locale))
+## languages = {'nl': gettext.translation(app_title, locale, languages=['nl']),
+    ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 #---
 def register_directives():
     for name, func in standard_directives.items():
@@ -195,20 +209,22 @@ def create_path(root, new):
         return str(err)
     return ""
 
-def read_conf(naam):
+def read_conf(naam, lang=DFLT_CONF['lang']):
     """read a config file; returns a dictionary of options
 
     not sure of checking for correctness is in the right place here"""
-    invalid = get_text('sett_invalid')
-    does_not_exist = invalid + " - " + get_text('no_such_sett')
+    invalid = get_text('sett_invalid', lang)
+    does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
     test = HERE / naam
     with test.open(encoding='utf-8') as _in:
         conf = yaml.safe_load(_in) # let's be paranoid
     for sett in SETT_KEYS:
         if sett not in conf:    # some keys are allowed to be missing
-            if sett in ('starthead', 'endhead'):
+            if sett in ('lang', 'starthead', 'endhead'):
+                if sett in DFLT_CONF:
+                    conf[sett] = DFLT_CONF[sett]
                 continue
-            return get_text('sett_missing').format(sett), {}
+            return get_text('sett_missing', lang).format(sett), {}
         if sett == 'root':
             conf[sett] = pathlib.Path(conf[sett])
             if not conf[sett].exists():
@@ -247,13 +263,13 @@ def css_link2file(text):
     text = text.replace(y, '')
     return text
 
-def zetom_conf(text):
+def zetom_conf(text, lang=DFLT_CONF['lang']):
     """convert text (from input area) to settings dict and return it
 
     TODO: also check settings for correctness (valid locations)
     """
-    invalid = get_text('sett_invalid')
-    does_not_exist = invalid + " - " + get_text('no_such_sett')
+    invalid = get_text('sett_invalid', lang)
+    does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
     data = {}
     conf = {}
     for line in text.split(os.linesep):
@@ -343,13 +359,13 @@ def load_custom_directives():
                 oms = desc[0].split(':', 1)[1].strip()
             rd.directives.register_directive(directive_name, value)
 
-def get_custom_directives_filename():
+def get_custom_directives_filename(lang=DFLT_CONF['lang']):
     if custom_directives.exists():
         fname = custom_directives
-        verb = get_text('loaded')
+        verb = get_text('loaded', lang)
     else:
         fname = custom_directives_template
-        verb = get_text('init')
+        verb = get_text('init', lang)
     return fname, verb
 
 def getrefs(path, source, reflinks):
@@ -373,13 +389,13 @@ def getrefs(path, source, reflinks):
                         reflinks.setdefault(word, [])
                         reflinks[word].append(link)
 
-def build_trefwoordenlijst(path):
+def build_trefwoordenlijst(path, lang=DFLT_CONF['lang']):
     reflinks = {}
     for file in path.iterdir():
         getrefs(file, path, reflinks)
     current_letter = ""
     # produceer het begin van de pagina
-    hdr = get_text('index_header')
+    hdr = get_text('index_header', lang)
     data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
     for key in sorted(reflinks.keys()):
@@ -438,44 +454,44 @@ def build_file_list(path, ext):
                     items.append((str(pp.relative_to(path)), ptime))
     return items
 
-def check_if_rst(data, loaded, filename=None):
+def check_if_rst(data, loaded, filename=None, lang=DFLT_CONF['lang']):
     """simple check if data contains rest
 
     if filename is filled, also check if it's a correct name
     """
     mld = ""
     if data == "":
-        mld = get_text('supply_text')
+        mld = get_text('supply_text', lang)
     elif loaded != RST: # data.startswith('<'):
-        return get_text('rst_invalid')
+        return get_text('rst_invalid', lang)
     elif filename is None:
         pass
     ## this is too much since we also cater for a name without extension in the right location
     ## test = os.path.splitext(filename)
     ## if test[0] == "" or test[1] != '.rst':
-        ## mld = get_text('src_name_missing')
+        ## mld = get_text('src_name_missing', DFLT_CONF['lang'])
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
-        mld = get_text('src_name_missing')
+        mld = get_text('src_name_missing', lang)
     return mld
 
-def check_if_html(data, loaded, filename=None):
+def check_if_html(data, loaded, filename=None, lang=DFLT_CONF['lang']):
     """simple check if rstdata contains html
 
     if htmlfile is filled, also check if it's a correct name
     """
     mld = ""
     if data == "":
-        mld = get_text('supply_text')
+        mld = get_text('supply_text', lang)
     elif loaded != HTML: # not data.startswith('<'):
-        mld = get_text('load_html')
+        mld = get_text('load_html', lang)
     elif filename is None:
         pass
     ## this is too much since we also cater for a name without extension in the right location
     ## test = os.path.splitext(htmlfile)
     ## if test[0] == "" or test[1] != '.html':
-        ## mld = get_text('html_name_missing')
+        ## mld = get_text('html_name_missing', lang)
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
-        mld = get_text('html_name_missing')
+        mld = get_text('html_name_missing', lang)
     return mld
 
 def resolve_images(rstdata, url, loc, use_bytes=False):
@@ -600,12 +616,14 @@ def compare_lists(list1, list2, list3):
         timeslist.append(line)
     return timeslist
 
-def determine_most_recently_updated(settingsfile):
+def determine_most_recently_updated(settingsfile, lang=DFLT_CONF['lang']):
     """output the site inventory to html, accentuating the most recently updated
     items
     parts of this logic belong in the template, but since I'm not using a template
     engine I'm implementing it here"""
-    opts = read_conf(settingsfile)
+    mld, opts = read_conf(settingsfile, lang)
+    if mld:
+        return mld, ''
     source = build_file_list(opts['source'], '.rst')
     target = build_file_list(opts['root'], '.html')
     mirror = build_file_list(opts['mirror'], '.html')
@@ -624,4 +642,4 @@ def determine_most_recently_updated(settingsfile):
             line = line.replace('{row.%s}' % idx, word)
         output.append(line)
     output.append(last_part)
-    return ''.join(output)
+    return '', ''.join(output)
