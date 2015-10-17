@@ -119,12 +119,14 @@ class Rst2Html(object):
         if self.conf.get('starthead', ''):
             split_on = '<head>' # + os.linesep
             start, end = rstdata.split(split_on, 1)
-            middle = os.linesep.join(self.conf['starthead'])
+            ## middle = os.linesep.join(self.conf['starthead'])
+            middle = self.conf['starthead']
             rstdata = start + split_on + middle + end
         if self.conf.get('endhead', ''):
             split_on = '</head>' # + os.linesep
             start, end = rstdata.split(split_on, 1)
-            middle = os.linesep.join(self.conf['endhead'])
+            ## middle = os.linesep.join(self.conf['endhead'])
+            middle = self.conf['endhead']
             rstdata = start + middle + split_on + end
         return rstdata
 
