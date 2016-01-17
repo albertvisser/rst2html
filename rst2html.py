@@ -93,16 +93,16 @@ class Rst2Html(object):
     def format_output(self, rstfile, htmlfile, newfile, mld, rstdata, settings):
         if self.oldlang != self.conf["lang"]:
             self.oldlang = self.conf["lang"]
-            with TEMPLATE.open() as f_in:
-                # eigengebakken language support
-                output = []
-                for line in f_in:
-                    while '_(' in line:
-                        start, rest = line.split('_(', 1)
-                        keyword, end = rest.split(')', 1)
-                        line = rhfn.get_text(keyword, self.oldlang).join((start, end))
-                    output.append(line)
-                self.output = ''.join(output)
+        with TEMPLATE.open() as f_in:
+            # eigengebakken language support
+            output = []
+            for line in f_in:
+                while '_(' in line:
+                    start, rest = line.split('_(', 1)
+                    keyword, end = rest.split(')', 1)
+                    line = rhfn.get_text(keyword, self.oldlang).join((start, end))
+                output.append(line)
+            self.output = ''.join(output)
         ## def lang(self):
         scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
         scriptdict = {
