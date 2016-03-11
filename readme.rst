@@ -8,16 +8,17 @@ When I found out how to build *directives* I could also apply some simple layout
 
 There's a primitive way built in to work with pages in different directories; instead of loading a page you load a directory and then choose the page to load.
 
-To be able to work on different sites at the same time I built a way to change the configuration from one set of source-target directories to another.
+To be able to work on different sites at the same time I built a way to change the configuration from one set of source-target-mirror directories to another.
 
-I also separated out the directives modules according to what they are used for, and made it possible to dedicate a directives module to the site you're working on via the configuration. When you do that it will be possible to load, edit and save the code for the directives from within this webapp (activating them is not yet supported but coming soon I hope).
+I also wanted to separate out the directives modules according to what they are used for, and make it possible to dedicate a directives module to the site you're working on via the configuration. When you do that it will be possible to load, edit and save the code for the directives from within this webapp (activating them is not yet supported but coming soon I hope - this is also the reason why most directives are in the general collection despite being project-specific).
 
 
 As a small bonus for myself I built a simple gui app to show the contents of a .rst file, mainly so I could use this from within SciTE. It's a Python script that takes a filename for its argument.
-There's also a version that can handle markdown (.md files).
+There's also a version that can handle markdown (.md) files.
 
 As another small bonus to myself, I added a javascript library to provide code highlighting in the text area. I thought of it while building the directives stuff, because it makes it slightly easier to edit the Python code.
 It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
+
 
 How to use
 ----------
