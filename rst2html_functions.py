@@ -148,12 +148,26 @@ def restore_file(fname):
     backup = fname.with_suffix(fname.suffix + '.bak')
     backup.rename(fname)
 
-def list_all(inputlist, naam):
+## def list_all(inputlist, naam):
+
+def list_subdirs(path):
+    return [str(f.relative_to(path)) + "/" for f in path.iterdir() if f.is_dir()]
+
+def list_files(path, is_not_root, naam, ext):
     """build list of options from filenames, with naam selected"""
+    try:
+        items = [str(f.relative_to(path)) for f in path.glob("*.{}".format(ext))]
+    except AttributeError:
+        return ''
+    items.sort()
+    if is_not_root:
+        items.insert(0,"..")
+    else:
+        items = list_subdirs(path) + items
     out = []
-    for f in inputlist:
+    for f in items:
         s = ' selected="selected"' if naam == f else ''
-        out.append("<option{1}>{0}</option>".format(f, s))
+        out.append("<option{}>{}</option>".format(s, f))
     return "".join(out)
 
 def list_confs(naam):
@@ -438,7 +452,7 @@ def build_trefwoordenlijst(path, lang=DFLT_CONF['lang']):
         data.append(" ")
     return "\n".join(data)
 
-def build_file_list(path, ext):
+def list_all_files(path, ext):
     """returns a list of files with a given extension under a given path
     (1 subdirectory deep)
     """
@@ -624,9 +638,9 @@ def determine_most_recently_updated(settingsfile, lang=DFLT_CONF['lang']):
     mld, opts = read_conf(settingsfile, lang)
     if mld:
         return mld, ''
-    source = build_file_list(opts['source'], '.rst')
-    target = build_file_list(opts['root'], '.html')
-    mirror = build_file_list(opts['mirror'], '.html')
+    source = list_all_files(opts['source'], '.rst')
+    target = list_all_files(opts['root'], '.html')
+    mirror = list_all_files(opts['mirror'], '.html')
     timelist = compare_lists(source, target, mirror)
     template = HERE / 'stand.html'
     with template.open() as _in:
