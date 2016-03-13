@@ -9,7 +9,6 @@ sys.path.append('.')
 import os
 import pathlib
 import rst2html_functions as rhfn
-list_confs = rhfn.list_confs        # only because it's in all the views's return statement
 HERE = pathlib.Path(__file__).parents[0]
 TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
@@ -96,7 +95,7 @@ class Rst2Html(object):
             txtlang = '\n'.join(scriptspec.format(x) for x in scriptdict[self.loaded])
         return self.output.format(self.all_source(rstfile),
             self.all_html(htmlfile), newfile, mld, rstdata, self.conf['wid'],
-            self.conf['hig'], list_confs(settings), self.loaded, txtlang)
+            self.conf['hig'], rhfn.list_confs(settings), self.loaded, txtlang)
 
     def complete_header(self, rstdata):
         if self.conf.get('starthead', ''):
