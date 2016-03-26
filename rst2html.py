@@ -390,8 +390,7 @@ class Rst2Html(object):
             mld = rhfn.save_to(target, rstdata)
             if not mld:
                 x = "/" if self.current else ""
-                mld = rhfn.get_text('copied_to', self.conf["lang"]).format(
-                    self.conf['mirror'], self.current, x, htmlfile)
+                mld = rhfn.get_text('copied_to', self.conf["lang"]).format(target)
         return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
     @cherrypy.expose
