@@ -41,7 +41,8 @@ def delete_site(site_name): pass # needed?
 
 def read_settings(site_name):
     sitedoc = site_coll.find_one({'name': site_name})
-    return sitedoc['settings']
+    if sitedoc:
+        return sitedoc['settings']
 
 def change_setting(site_name, sett_name, value):
     """modify a site setting to the given value
