@@ -1,5 +1,6 @@
 # tests for rst2html_functions
 # only test what we've modified
+# TODO: build test code for R2hState methods
 import os
 import subprocess as sp
 import pprint
@@ -8,7 +9,7 @@ import rst2html_functions_mongo as rhfn
 from docs2mongo import clear_db as init_db
 from test_mongodml import list_database_contents
 
-def main():
+def test_functions():
 
     # clear out test data
     testsite = 'test'
@@ -20,9 +21,8 @@ def main():
     print('creating new site and doing some failure tests on updating...', end=' ')
     new_site = 'test'
     mld = rhfn.new_conf(new_site)
-    assert mld == None
-    mld, sett = rhfn.read_conf(new_site)
     assert mld == ''
+    sett = rhfn.read_conf(new_site)
     assert sett == {'url': '/rst2html-data/test', 'hig': 32, 'lang': 'en',
         'css': [], 'wid': 100}
     mld = rhfn.new_conf('test')
@@ -52,10 +52,11 @@ def main():
 
     sitename = rhfn.default_site()
     assert sitename == 'test'
-    msg, conf = rhfn.read_conf(sitename)
+    conf = rhfn.read_conf('not_test')
+    assert conf == None
+    conf = rhfn.read_conf(sitename)
     expected = {'lang': 'en', 'css': [], 'url': '/rst2html-data/test',
         'wid': 100, 'hig': 32}
-    assert msg == ''
     assert conf == expected
 
     text = rhfn.conf2text(conf)
@@ -68,11 +69,10 @@ def main():
     assert text == expected
     text = text.replace('[]', "['http://www.example.com/test.css']")
     msg = rhfn.save_conf(sitename, text)
-    assert msg == None
+    assert msg == ''
     expected = {'hig': 32, 'wid': 100, 'url': '/rst2html-data/test',
         'css': ['http://www.example.com/test.css'], 'lang': 'en'}
-    msg, conf = rhfn.read_conf(sitename)
-    assert msg == ''
+    conf = rhfn.read_conf(sitename)
     assert conf == expected
     print('ok')
 
@@ -222,22 +222,12 @@ def main():
     # so here we just pprint an htmlview the lot
     olddata = rhfn.build_progress_list(sitename)
     ## pprint.pprint(olddata)
-    mld, data = rhfn.determine_most_recently_updated(sitename)
-    assert mld == ''
-    with open('test.html', 'w', encoding='utf-8') as f:
-        f.write(data)
-    ## sp.Popen(['/home/albert/bin/viewhtml', '/tmp/test.html'])
 
     errors = rhfn.update_all(sitename, conf)
     assert errors == [('tilanus', 'mirror_missing'),
         ('de groot', 'mirror_missing')]
     newdata = rhfn.build_progress_list(sitename)
     ## pprint.pprint(newdata)
-    mld, data = rhfn.determine_most_recently_updated(sitename)
-    assert mld == ''
-    with open('test2.html', 'w', encoding='utf-8') as f:
-        f.write(data)
-    ## sp.Popen(['/home/albert/bin/viewhtml', '/tmp/test2.html'])
     # compare newdata with olddata and check for expected differences
     # force creating missing html and mirror documents:
     errors = rhfn.update_all(sitename, conf, missing=True)
@@ -273,18 +263,164 @@ def main():
     rhfn.save_html_data(sitename, dirnaam, naam, 'updated')
     rhfn.save_to_mirror(sitename, dirnaam, naam)
     result = rhfn.build_trefwoordenlijst(sitename)
-    assert result == []
-    msg, data = rhfn.read_src_data(sitename, '', 'reflist')
-    assert msg == ""
-    assert data == '\n'.join(['Index', '=====', '', '`R`_ ', '', 'R', '-', '',
+    assert result == '\n'.join(['Index', '=====', '', '`R`_ ', '', 'R', '-', '',
         '+   Ref1 `#`__ ', '+   Ref2 `#`__ ', ' ',
         '..  _R1: jansen.html#here1', '..  _R2: jansen.html#here2', ' ',
         '__ R1_', '__ R2_', ' '])
-    ## with open('/tmp/reflist.rst', 'w', encoding='utf-8') as f:
-        ## f.write(data)
-    ## sp.Popen(['python3', 'htmlfromrst.py', '/tmp/reflist.rst'])
     print('ok')
 
+def test_class():
+    print('Initializing state... ', end = '')
+    state = rhfn.R2hState()
+    assert state.sitename == 'test'
+    print('ok')
+
+    print('testing currentify... ', end='')
+    state.current = ''
+    fname = 'blub.rst'
+    assert state.currentify(fname) == fname
+    dirname = 'fish_goes'
+    state.current = dirname
+    assert state.currentify(fname) == '/'.join((dirname, fname))
+    print('ok')
+
+    print('testing read_conf... ', end='')
+    confdata = {'lang': 'en', 'css': ['http://www.example.com/test.css'],
+        'url': '/rst2html-data/test', 'wid': 100, 'hig': 32}
+    state.subdirs = None
+    mld = state.read_conf('test')
+    assert mld == ''
+    assert state.loaded == 'yaml'
+    assert state.conf == confdata
+    assert state.subdirs == ['guichelheil/']
+    assert state.current == ''
+    print('ok')
+
+    print('testing index... ', end='')
+    data = state.index()
+    confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
+        'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
+    confdata_text = '\n'.join((
+        'css:',
+        '- http://www.example.com/test.css',
+        'hig: 32',
+        'lang: en',
+        'url: /rst2html-data/test',
+        'wid: 100\n'))
+    assert data == ('', '', '', 'Settings file is test', confdata_text, 'test')
+    assert state.conf == confdata
+    assert state.subdirs == ['guichelheil/']
+    assert state.current == ''
+    assert state.loaded == 'yaml'
+    print('ok')
+
+    print('testing loadconf... ', end='')
+    data = state.loadconf('test', '', '')                   # ok
+    assert data == ('Settings loaded from test', confdata_text, 'test', '')
+    assert state.conf == confdata
+    assert state.subdirs == ['guichelheil/']
+    assert state.current == ''
+    assert state.loaded == 'yaml'
+    assert state.sitename == 'test'
+    data = state.loadconf('test', 'blub', ' to be unchanged') # other conf - fail
+    assert data == ('blub does not exist', ' to be unchanged', 'blub', '')
+    confdata_2 = {'lang': 'en', 'hig': 32, 'wid': 100,
+        'css': ['http://www.example.com/test.css'], 'url': '/rst2html-data/test'}
+    assert state.conf == confdata_2
+    assert state.subdirs == ['guichelheil/']
+    assert state.current == ''
+    assert state.loaded == 'yaml'
+    assert state.sitename == 'test'
+    data = state.loadconf('blub', 'test', 'xx')                   # other conf - ok
+    assert data == ('Settings loaded from test', confdata_text, 'test', '')
+    confdata_3 = {'css': ['http://www.example.com/test.css'], 'lang': 'en',
+        'url': '/rst2html-data/test', 'wid': 100, 'hig': 32}
+    assert state.conf == confdata_3
+    assert state.subdirs == ['guichelheil/']
+    assert state.current == ''
+    assert state.loaded == 'yaml'
+    assert state.sitename == 'test'
+    print('ok')
+
+    print('testing saveconf... ', end='')
+    data = state.saveconf('test', '', '')
+    assert data == ('Please provide content for text area', 'test', '')
+    state.loaded = rhfn.RST
+    data = state.saveconf('test', '', 'config text')
+    assert data == ("Not executed: text area doesn't contain settings data",
+        'test', '')
+    state.loaded = rhfn.CONF
+    data = state.saveconf('test', '', 'config text')
+    assert 'Config: invalid value for' in data[0]
+    assert data[1:] == ('test', '')
+    data = state.saveconf('test', '', confdata_text)
+    confdata_4 = {'wid': 100, 'css': ['http://www.example.com/test.css'],
+        'lang': 'en', 'hig': 32, 'url': '/rst2html-data/test'}
+    assert data == (confdata_4, 'test', '')
+    data = state.saveconf('blub', '', confdata_text)
+    assert data == ('blub does not exist', 'blub', '')
+    data = state.saveconf('test', 'blub', confdata_text)
+    confdata_5 = {'hig': 32, 'lang': 'en', 'url': '/rst2html-data/blub', 'wid': 100,
+        'css': []}
+    assert data == (confdata_5, 'blub', '')
+    print('ok')
+    return
+
+    print('testing loadrst... ', end='')
+    data = state.loadrst()
+    print('ok')
+
+    print('testing saverst... ', end='')
+    data = state.saverst()
+    print('ok')
+
+    print('testing convert... ', end='')
+    data = state.convert()
+    print('ok')
+
+    print('testing saveall... ', end='')
+    data = state.saveall()
+    print('ok')
+
+    print('testing loadhtml... ', end='')
+    data = state.loadhtml()
+    print('ok')
+
+    print('testing showhtml... ', end='')
+    data = state.showhtml()
+    print('ok')
+
+    print('testing savehtml... ', end='')
+    data = state.savehtml()
+    print('ok')
+
+    print('testing copytoroot... ', end='')
+    data = state.copytoroot()
+    print('ok')
+
+    print('testing makerefdoc... ', end='')
+    data = state.makerefdoc()
+    print('ok')
+
+    print('testing convert_all... ', end='')
+    data = state.convert_all()
+    print('ok')
+
+    print('testing overview... ', end='')
+    data = state.overview()
+    print('ok')
+
+# no need to test these as they are deactivated in the page
+    print('testing loadxtra... ', end='')
+    data = state.loadxtra()
+    print('ok')
+
+    print('testing savextra... ', end='')
+    data = state.savextra()
+    print('ok')
+
+
 if __name__ == '__main__':
-    ## main()
-    list_database_contents()
+    test_functions()
+    test_class()
+    ## list_database_contents()
