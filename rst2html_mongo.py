@@ -25,9 +25,11 @@ scriptdict = {
         }
 
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
-    all_source = rhfn.list_files(self.conffile, self.current, rstfile, 'src',
+    """build page html out of various parameters and a template file
+    """
+    all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
         state.conf["lang"])
-    all_html = rhfn.list_files(self.conffile, self.current, htmlfile, 'dest',
+    all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
         state.conf["lang"])
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
@@ -80,7 +82,47 @@ def format_progress_list(timelist):
             line = line.replace('{row.%s}' % str(idx + 1), timestring)
         output.append(line)
     output.append(last_part)
-    return ''.join(output).format(sitename)
+    return ''.join(output)
+
+def resolve_images(rstdata, url, loc):
+    """fix the urls in image links so that preview html points to the right place
+    """
+    data = []
+    pos = rstdata.find('<img')
+    while pos >= 0:
+        pos2 = rstdata.find('src="', pos) + 5
+        if rstdata[pos2:].startswith('http'):
+            pos = pos2
+        else:
+            begin = rstdata[:pos2]
+            if begin.startswith('/'):
+                begin = begin[1:]
+            data.append(begin)
+            rstdata = rstdata[pos2:]
+            if rstdata.startswith('/'):
+                rstdata = rstdata[1:]
+            pos = 0
+        pos = rstdata.find('<img', pos)
+    data.append(rstdata)
+    url = url.rstrip('/') + '/' # make sure url ends with one and only one /
+    if loc:
+        url = url + loc.strip('/') + '/' # if present add loc with no double //'s
+    return url.join(data)
+
+def format_previewdata(state, previewdata, fname, ftype):
+    """
+    Insert a "back to source" button into the HTML to show
+
+    arg1 = previewdata: the html to show (utf-8 string)
+    arg2 = filename parameter for the screen to return to
+    arg3 = type of this file: `rst` or `html`
+    """
+    previewdata = resolve_images(previewdata, state.conf['url'], state.current)
+    pos = previewdata.index('>', previewdata.index('<body')) + 1
+    start, end = previewdata[:pos], previewdata[pos:]
+    loadrst = 'load{0}?{0}file={1}'.format(ftype, fname)
+    previewdata = previewbutton.format(loadrst).join((start, end))
+    return previewdata
 
 class Rst2Html(object):
     "the actual webapp"
@@ -159,10 +201,9 @@ class Rst2Html(object):
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """convert rst to html and show result
         """
-        mld, data = self.state.convert(rstfile, newfile, rstdata)
+        mld, previewdata, fname = self.state.convert(rstfile, newfile, rstdata)
         if mld == '':
-            return data
-        rstfile, newfile = data
+            return format_previewdata(self.state, previewdata, fname, 'rst')
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 
@@ -179,15 +220,15 @@ class Rst2Html(object):
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """load html file and show code"""
-        mld, rstdata, rstfile = self.state.loadhtml(htmlfile)
+        mld, rstdata, rstfile, htmlfile = self.state.loadhtml(htmlfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
-        mld, data = self.state.showhtml(rstdata)
+        mld, previewdata, fname = self.state.showhtml(rstdata)
         if mld == '':
-            return data
+            return format_previewdata(self.state, previewdata, fname, 'html')
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 
@@ -229,7 +270,7 @@ class Rst2Html(object):
         items
         """
         data = self.state.overview()
-        return format_progress_list(data)
+        return format_progress_list(data).format(settings)
         ## if not mld:
             ## return rstdata.format(settings)
         ## return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,

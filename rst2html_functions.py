@@ -508,31 +508,35 @@ def check_if_html(data, loaded, filename=None, lang=DFLT_CONF['lang']):
         mld = get_text('html_name_missing', lang)
     return mld
 
-def resolve_images(rstdata, url, loc, use_bytes=False):
+def resolve_images(rstdata, url, loc): ##, use_bytes=False):
     data = []
-    to_find = b'<img' if use_bytes else '<img'
-    pos = rstdata.find(to_find)
+    ## to_find = b'<img' if use_bytes else '<img'
+    ## pos = rstdata.find(to_find)
+    pos = rstdata.find('<img')
     while pos >= 0:
-        test = b'src="' if use_bytes else 'src="'
-        pos2 = rstdata.find(test, pos) + 5
+        ## test = b'src="' if use_bytes else 'src="'
+        ## pos2 = rstdata.find(test, pos) + 5
+        pos2 = rstdata.find('src="', pos) + 5
         begin = rstdata[:pos2]
-        test = b'http' if use_bytes else 'http'
-        if begin.startswith(test):
+        ## test = b'http' if use_bytes else 'http'
+        ## if begin.startswith(test):
+        if begin.startswith('http'):
             pos = pos2
         else:
-            test = b'/' if use_bytes else '/'
-            if begin.startswith(test):
+            ## test = b'/' if use_bytes else '/'
+            ## if begin.startswith(test):
+            if begin.startswith('/'):
                 begin = begin[:-1]
             data.append(begin)
             rstdata = rstdata[pos2:]
             pos = 0
-        pos = rstdata.find(to_find, pos)
+        pos = rstdata.find('<img', pos)
     data.append(rstdata)
     if not url.endswith('/'):
         url += '/'
     if loc:
         url += loc + '/'
-    if use_bytes: url = bytes(url, encoding='utf-8')
+    ## if use_bytes: url = bytes(url, encoding='utf-8')
     return url.join(data)
 
 class Compare:

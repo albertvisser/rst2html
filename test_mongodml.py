@@ -134,9 +134,10 @@ def main():
     print('ok')
 
 if __name__ == '__main__':
-    try:
-        main()
-    except AssertionError:
-        raise
-    finally:
-        list_database_contents()
+    print(dml.list_dirs('blub'))
+    ## try:
+        ## main()
+    ## except AssertionError:
+        ## raise
+    ## finally:
+        ## list_database_contents()

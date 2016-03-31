@@ -4,6 +4,9 @@ from pymongo import MongoClient
 cl = MongoClient()
 db = cl.rst2html_database
 site_coll = db.site_coll
+stat_keys = ('src', 'dest', 'to_mirror')
+Stats = namedtuple('Stats', stat_keys)
+
 
 def clear_db(site_name):
     db.drop_collection(site_coll)
@@ -131,8 +134,6 @@ def list_docs(site_name, doctype='', directory=''):
 
 
 def _get_stats(docinfo):
-    stat_keys = ('src', 'dest', 'to_mirror')
-    Stats = namedtuple('Stats', stat_keys)
     stats = []
     for key in stat_keys:
         if key in docinfo and 'updated' in docinfo[key]:

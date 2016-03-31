@@ -9,7 +9,49 @@ import rst2html_functions_mongo as rhfn
 from docs2mongo import clear_db as init_db
 from test_mongodml import list_database_contents
 
-def test_functions():
+confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
+    'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
+confdata_2 = {'lang': 'en', 'hig': 32, 'wid': 100,
+    'css': ['http://www.example.com/test.css'], 'url': '/rst2html-data/test'}
+confdata_3 = {'css': ['http://www.example.com/test.css'], 'lang': 'en',
+    'url': '/rst2html-data/test', 'wid': 100, 'hig': 32}
+confdata_4 = {'wid': 100, 'css': ['http://www.example.com/test.css'],
+    'lang': 'en', 'hig': 32, 'url': '/rst2html-data/test'}
+confdata_5 = {'hig': 32, 'lang': 'en', 'url': '/rst2html-data/blub', 'wid': 100,
+    'css': []}
+confdata_text = '\n'.join((
+    'css:',
+    '- http://www.example.com/test.css',
+    'hig: 32',
+    'lang: en',
+    'url: /rst2html-data/test',
+    'wid: 100\n'))
+
+jansen_txt = """bah humbug
+.. refkey:: ref1: here1
+.. refkey:: ref2: here2
+end"""
+converted_txt = """\
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<title></title>
+<link rel="stylesheet" href="http://www.example.com/test.css" type="text/css" />
+</head>
+<body>
+<div class="document">
+
+
+<p>hallo vriendjes</p>
+</div>
+</body>
+</html>
+"""
+
+def test_functions_setup():
 
     # clear out test data
     testsite = 'test'
@@ -18,6 +60,7 @@ def test_functions():
         'rst2html-data', testsite)
     sp.call(['rm', '-R', '{}'.format(mirror)])
 
+def test_new_site():
     print('creating new site and doing some failure tests on updating...', end=' ')
     new_site = 'test'
     mld = rhfn.new_conf(new_site)
@@ -44,10 +87,11 @@ def test_functions():
     assert mld == 'Config: invalid value for lang'
     print('ok')
 
+def test_readwrite_conf():
     print('reading and writing conf...', end=' ')
-    expected = '<option>-- new --</option><option>test</option>'
+    expected = '<option>test</option>'
     assert rhfn.list_confs() == expected
-    expected = '<option>-- new --</option><option selected="selected">test</option>'
+    expected = '<option selected="selected">test</option>'
     assert rhfn.list_confs('test') == expected
 
     sitename = rhfn.default_site()
@@ -75,7 +119,9 @@ def test_functions():
     conf = rhfn.read_conf(sitename)
     assert conf == expected
     print('ok')
+    return sitename, conf
 
+def test_list_files(sitename):
     print('listing dirs and files...', end=' ')
     naam = 'jansen'
     msg = rhfn.save_src_data(sitename, '', naam,
@@ -99,7 +145,15 @@ def test_functions():
     assert rhfn.list_subdirs(sitename, 'dest') == expected
     assert rhfn.list_subdirs(sitename, 'other') == expected
 
-    expected_0 = '<option>-- new --</option><option>guichelheil/</option>'
+    # nonexistent site
+    data = rhfn.list_files(sitename, 'blub', '', '', 'en')
+    print(data)
+    data = rhfn.list_files(sitename, 'blub', '', 'rst', 'en')
+    print(data)
+    data = rhfn.list_files(sitename, 'blub', 'xxx', '', 'en')
+    print(data)
+
+    expected_0 = '<option>guichelheil/</option>'
     expected_1 = expected_0 + '<option>jansen.rst</option>'
     expected_2 = expected_0 + '<option selected="selected">jansen.rst</option>'
     assert rhfn.list_files(sitename) == expected_1
@@ -112,7 +166,7 @@ def test_functions():
     current = ''
     assert rhfn.list_files(sitename, current) == expected_1
     current = 'guichelheil'
-    expected_0 = '<option>-- new --</option><option>..</option>'
+    expected_0 = '<option>..</option>'
     expected_1 = expected_0 + '<option>hendriksen.rst</option>'
     expected_2 = expected_0 + '<option selected="selected">hendriksen.rst</option>'
     expected_3 = expected_0 + '<option selected="selected">hendriksen.html</option>'
@@ -126,12 +180,14 @@ def test_functions():
     naam = 'hendriksen.html'
     assert rhfn.list_files(sitename, current, naam) == expected_3
     print('ok')
+    return current
 
+def test_readwrite_docs(sitename, current):
     print('reading and writing documents...', end = ' ')
     namen = ('', 'jansen', 'jansen.rst', 'jansen.html')
-    expected_msg_1 = ('src_name_missing', '', '', 'Not a valid source file name')
+    expected_msg_1 = ('src_name_missing', '', '', 'rst_filename_error')
     expected_data_1 = ('', 'now creating jansen', 'now creating jansen', '')
-    expected_msg_2 = ('html_name_missing', '', 'Not a valid target file name', '')
+    expected_msg_2 = ('html_name_missing', '', 'html_filename_error', '')
     expected_data_2 = ('', '<p>now creating jansen</p>', '',
         '<p>now creating jansen</p>')
     expected_msg_3 = ('html_name_missing', '', 'Not a valid html file name', '')
@@ -185,6 +241,7 @@ def test_functions():
         assert msg == expected_msg_2[ix]
     print('ok')
 
+def test_check_formats(sitename, current):
     print("check_if_rst in various situations...", end=" ")
     msg1 = "supply_text"
     msg2 = "rst_invalid"
@@ -215,6 +272,7 @@ def test_functions():
     assert rhfn.check_if_html("some text", rhfn.HTML, filename="-- new --") == msg3
     print('ok')
 
+def test_progress_list(sitename, current, conf):
     print('building progress list and updating all documents...', end=' ')
     # hard to assert-test because it uses actual date-time stamps
     # maybe I should create a separate demo site for this
@@ -234,6 +292,7 @@ def test_functions():
     assert errors == []
     print('ok')
 
+def test_reference_list(sitename, current):
     print('building reference document...', end=' ')
     # 1. add references to "jansen", save html and promote to mirror
     naam = 'jansen'
@@ -269,7 +328,8 @@ def test_functions():
         '__ R1_', '__ R2_', ' '])
     print('ok')
 
-def test_class():
+
+def test_state_class():
     print('Initializing state... ', end = '')
     state = rhfn.R2hState()
     assert state.sitename == 'test'
@@ -296,131 +356,348 @@ def test_class():
     assert state.current == ''
     print('ok')
 
+    return state
+
+def test_index(state):
     print('testing index... ', end='')
+
     data = state.index()
-    confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
-        'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
-    confdata_text = '\n'.join((
-        'css:',
-        '- http://www.example.com/test.css',
-        'hig: 32',
-        'lang: en',
-        'url: /rst2html-data/test',
-        'wid: 100\n'))
     assert data == ('', '', '', 'Settings file is test', confdata_text, 'test')
     assert state.conf == confdata
     assert state.subdirs == ['guichelheil/']
     assert state.current == ''
     assert state.loaded == 'yaml'
-    print('ok')
 
+    print('ok')
+    return state
+
+def test_load_conf(state):
     print('testing loadconf... ', end='')
-    data = state.loadconf('test', '', '')                   # ok
+
+    data = state.loadconf('test', '')
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert state.conf == confdata
     assert state.subdirs == ['guichelheil/']
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    data = state.loadconf('test', 'blub', ' to be unchanged') # other conf - fail
-    assert data == ('blub does not exist', ' to be unchanged', 'blub', '')
-    confdata_2 = {'lang': 'en', 'hig': 32, 'wid': 100,
-        'css': ['http://www.example.com/test.css'], 'url': '/rst2html-data/test'}
+
+    data = state.loadconf('test', 'blub') # other conf - fail
+    assert data == ('blub does not exist', confdata_text, 'blub', '')
     assert state.conf == confdata_2
     assert state.subdirs == ['guichelheil/']
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    data = state.loadconf('blub', 'test', 'xx')                   # other conf - ok
+
+    data = state.loadconf('blub', 'test')                   # other conf - ok
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
-    confdata_3 = {'css': ['http://www.example.com/test.css'], 'lang': 'en',
-        'url': '/rst2html-data/test', 'wid': 100, 'hig': 32}
     assert state.conf == confdata_3
     assert state.subdirs == ['guichelheil/']
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    print('ok')
 
+    print('ok')
+    return state
+
+def test_save_conf(state):
     print('testing saveconf... ', end='')
+
     data = state.saveconf('test', '', '')
     assert data == ('Please provide content for text area', 'test', '')
+
     state.loaded = rhfn.RST
     data = state.saveconf('test', '', 'config text')
     assert data == ("Not executed: text area doesn't contain settings data",
         'test', '')
+
     state.loaded = rhfn.CONF
     data = state.saveconf('test', '', 'config text')
     assert 'Config: invalid value for' in data[0]
     assert data[1:] == ('test', '')
+
     data = state.saveconf('test', '', confdata_text)
-    confdata_4 = {'wid': 100, 'css': ['http://www.example.com/test.css'],
-        'lang': 'en', 'hig': 32, 'url': '/rst2html-data/test'}
     assert data == (confdata_4, 'test', '')
+
     data = state.saveconf('blub', '', confdata_text)
-    assert data == ('blub does not exist', 'blub', '')
+    assert data == ('blub does not exist', 'test', '')
+
     data = state.saveconf('test', 'blub', confdata_text)
-    confdata_5 = {'hig': 32, 'lang': 'en', 'url': '/rst2html-data/blub', 'wid': 100,
-        'css': []}
     assert data == (confdata_5, 'blub', '')
-    print('ok')
-    return
 
+    print('ok')
+    return state
+
+def test_loadrst(state):
     print('testing loadrst... ', end='')
-    data = state.loadrst()
-    print('ok')
 
+    data = state.loadrst('')
+    assert data == ('Oops! Page was probably open on closing the browser',
+        confdata_text, '', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.CONF
+    assert state.oldtext == ''
+
+    data = state.loadrst('-- new --')
+    assert data == ("Don't forget to supply a new filename on saving", '', '', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.CONF
+    assert state.oldtext == ''
+
+    data = state.loadrst('guichelheil/')
+    assert data == ('switching to directory guichelheil', '', '', '')
+    assert state.current == 'guichelheil'
+    assert state.loaded == rhfn.CONF
+    assert state.oldtext == ''
+
+    data = state.loadrst('..')
+    assert data == ('switching to parent directory', '', '', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.CONF
+    assert state.oldtext == ''
+
+    data = state.loadrst('jansen.rst')
+    assert data == ('Source file jansen.rst loaded', jansen_txt, 'jansen.html', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.RST
+    assert state.oldtext == jansen_txt
+
+    data = state.loadrst('jansen')
+    assert data == ('Source file jansen loaded', jansen_txt, 'jansen.html', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.RST
+    assert state.oldtext == jansen_txt
+
+    data = state.loadrst('jansen.html')
+    assert data == ('Not executed: name for rst file incorrect', jansen_txt,
+        'jansen.html', '')
+    assert state.current == ''
+    assert state.loaded == rhfn.RST
+    assert state.oldtext == jansen_txt
+
+    print('ok')
+    return state
+
+def test_saverst(state):
     print('testing saverst... ', end='')
-    data = state.saverst()
-    print('ok')
 
+    data = state.saverst('jansen.rst', '', 'hallo vriendjes')
+    assert data == ('Rst source saved as jansen.rst', 'jansen.rst', 'jansen.html', '')
+
+    data = state.saverst('jansen', '', 'hallo vriendjes')
+    assert data == ('Rst source saved as jansen.rst', 'jansen.rst', 'jansen.html', '')
+
+    data = state.saverst('jansen.rst', 'monty', 'my hovercraft is full of eels')
+    assert data == ('src_file_missing', 'monty.rst', 'monty.html', '')
+
+    state.loaded = rhfn.CONF
+    data = state.saverst('jansen.rst', '', 'hallo vriendjes')
+    assert data == ("Not executed: text area doesn't contain restructured text",
+        'monty.rst', 'monty.html', '')
+
+    print('ok')
+    return state
+
+def test_convert(state):
     print('testing convert... ', end='')
-    data = state.convert()
+    state.oldtext = 'hallo vriendjes'
+    data = state.convert('jansen.rst', '', 'hallo vriendjes')
+    assert data == ("Not executed: text area doesn't contain restructured text",
+        '', '')
+    state.loaded = rhfn.RST
+    data = state.convert('jansen.rst', '', 'hallo vriendjes')
+    assert data == ('', converted_txt, 'jansen.rst')
+    data = state.convert('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
+    assert data == ('', converted_txt, 'pietersen.rst')
+    state.oldtext = 'something else'
+    data = state.convert('jansen.rst', '', 'hallo vriendjes')
+    assert data == ('', converted_txt, 'jansen.rst')
+    data = state.convert('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
+    assert data == ('', converted_txt, 'pietersen.rst')
     print('ok')
+    return state
 
+def test_saveall(state):
     print('testing saveall... ', end='')
-    data = state.saveall()
+    state.oldtext = 'hallo vriendjes'
+    state.loaded = rhfn.HTML
+    data = state.saveall('jansen.rst', '', 'hallo vriendjes')
+    assert data == ("Not executed: text area doesn't contain restructured text",
+        'monty.rst', 'monty.html', '')
+    state.loaded = rhfn.RST
+    data = state.saveall('jansen.rst', '', 'hallo vriendjes')
+    assert data == ('Rst converted to html and saved as jansen.html',
+        'jansen.rst', 'jansen.html', '')
+    data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
+    assert data == ('Rst converted to html and saved as pietersen.html',
+        'pietersen.rst', 'pietersen.html', '')
+    state.oldtext = 'something else'
+    data = state.saveall('jansen.rst', '', 'hallo vriendjes')
+    assert data == ('Rst converted to html and saved as jansen.html',
+        'jansen.rst', 'jansen.html', '')
+    data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
+    assert data == ('Rst converted to html and saved as pietersen.html',
+        'pietersen.rst', 'pietersen.html', '')
     print('ok')
+    return state
 
+def test_loadhtml(state):
     print('testing loadhtml... ', end='')
-    data = state.loadhtml()
+    data = state.loadhtml('')
+    assert data == ('Please enter or select a target (.html) filename',
+        jansen_txt, 'pietersen.rst', 'pietersen.html')
+    data = state.loadhtml('..')
+    assert data == ('Please enter or select a target (.html) filename',
+        jansen_txt, 'pietersen.rst', 'pietersen.html')
+    data = state.loadhtml('guichelheil/')
+    assert data == ('Please enter or select a target (.html) filename',
+        jansen_txt, 'pietersen.rst', 'pietersen.html')
+    data = state.loadhtml('-- new --')
+    assert data == ('Please enter or select a target (.html) filename',
+        jansen_txt, 'pietersen.rst', 'pietersen.html')
+    data = state.loadhtml('jansen')
+    assert data == ('Target html jansen.html loaded', converted_txt, 'jansen.rst',
+        'jansen.html')
+    data = state.loadhtml('jansen.html')
+    assert data == ('Target html jansen.html loaded', converted_txt, 'jansen.rst',
+        'jansen.html')
+    data = state.loadhtml('jansen.rst')
+    assert data == ('Not executed: name for html file incorrect', converted_txt,
+        'jansen.rst', 'jansen.html')
     print('ok')
+    return state
 
+def test_showhtml(state):
     print('testing showhtml... ', end='')
-    data = state.showhtml()
+    state.htmlfile = 'jansen.html'
+    state.loaded = rhfn.RST
+    data = state.showhtml(converted_txt)
+    assert data == ('Please load HTML first', '', '')
+    state.loaded = rhfn.HTML
+    data = state.showhtml(converted_txt)
+    assert data == ('', converted_txt, 'jansen.html')
     print('ok')
+    return state
 
+def test_savehtml(state):
     print('testing savehtml... ', end='')
-    data = state.savehtml()
+    state.loaded = rhfn.RST
+    data = state.savehtml('jansen.html', converted_txt)
+    assert data == ('Please load HTML first', converted_txt, 'jansen.html', '')
+    state.loaded = rhfn.HTML
+    data = state.savehtml('jansen.html', converted_txt)
+    assert data == ('Modified HTML saved as jansen.html', converted_txt,
+        'jansen.html', '')
     print('ok')
+    return state
 
+def test_copytoroot(state):
     print('testing copytoroot... ', end='')
-    data = state.copytoroot()
+    state.loaded = rhfn.RST
+    data = state.copytoroot('jansen.html', converted_txt)
+    assert data == ('Please load HTML first', 'jansen.html')
+    state.loaded = rhfn.HTML
+    data = state.copytoroot('jansen.html', converted_txt)
+    assert data == ('Copied to siteroot/jansen.html', 'jansen.html')
     print('ok')
+    return state
 
+def test_makerefdoc(state):
     print('testing makerefdoc... ', end='')
     data = state.makerefdoc()
+    assert data == ('Index created', 'Index\n=====\n\n')
     print('ok')
+    return state
 
+def test_convert_all(state):
+    # not much more than receiving the results of the earlier tested update_all
     print('testing convert_all... ', end='')
     data = state.convert_all()
+    assert data == '\n'.join(('pietersen not present at mirror'
+        'horrorscenario skipped: not in target directory'))
     print('ok')
+    return state
 
+def test_overview(state):
     print('testing overview... ', end='')
+    # not much more than receiving the results of the earlier tested build_progress_list
     data = state.overview()
+    print(data)
+    # this yields time-dependent data so we can't do a simple assert on it:
+    [
+        ('/', 'horrorscenario', 0, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 96000),
+            dest=datetime.datetime(1, 1, 1, 0, 0),
+            to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
+        ('/', 'jansen', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
+        ('/', 'pietersen', 1, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 257000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 314000),
+            to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
+        ('/', 'reflist', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 289000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 341000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 343000))),
+        ('/', 'tilanus', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 92000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 370000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 373000))),
+        ('guichelheil', 'de groot', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 51, 941000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 395000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 397000))),
+        ('guichelheil', 'hendriksen', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 103000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 383000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 386000)))]
     print('ok')
+    return state
 
-# no need to test these as they are deactivated in the page
+def test_loadxtra(state):
     print('testing loadxtra... ', end='')
     data = state.loadxtra()
     print('ok')
+    return state
 
+def test_savextra(state):
     print('testing savextra... ', end='')
     data = state.savextra()
     print('ok')
 
 
+def main():
+    test_functions_setup()
+    test_new_site()
+    sitename, conf = test_readwrite_conf()
+    current = test_list_files(sitename)
+    test_readwrite_docs(sitename, current)
+    test_check_formats(sitename, current)
+    test_progress_list(sitename, current, conf)
+    test_reference_list(sitename, current)
+
+    state = test_state_class()
+    state = test_index(state)
+    state = test_load_conf(state)
+    state = test_save_conf(state)
+    state = test_loadrst(state)
+    state = test_saverst(state)
+    state = test_convert(state)
+    state = test_saveall(state)
+    state = test_loadhtml(state)
+    state = test_showhtml(state)
+    state = test_savehtml(state)
+    state = test_copytoroot(state)
+    state = test_makerefdoc(state)
+    state = test_convert_all(state)
+    state = test_overview(state)
+    # no need to test these as they are deactivated in the page
+    ## state = test_loadxtra(state)
+    ## state = test_savextra(state)
+
 if __name__ == '__main__':
-    test_functions()
-    test_class()
+    main()
     ## list_database_contents()

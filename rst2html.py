@@ -286,14 +286,21 @@ class Rst2Html(object):
                     self.currentify(self.conf['source'])[0] / pathlib.Path(fname),
                     rstdata)
         if mld == "":
-            previewdata = rhfn.rst2html(rstdata, self.conf['css'])
+            ## previewdata = rhfn.rst2html(rstdata, self.conf['css'])
+            ## previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
+                ## self.current, use_bytes=True)
+            ## pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
+            ## start, end = previewdata[:pos], previewdata[pos:]
+            ## loadrst = 'loadrst?rstfile={}'.format(fname)
+            ## preview = bytes(previewbutton.format(loadrst), encoding="UTF-8")
+            ## previewdata = preview.join((start, end))
+            previewdata = str(rhfn.rst2html(rstdata, self.conf['css']), encoding='utf-8')
             previewdata = rhfn.resolve_images(previewdata, self.conf['mirror_url'],
-                self.current, use_bytes=True)
-            pos = previewdata.index(b'>', previewdata.index(b'<body')) + 1
+                self.current)
+            pos = previewdata.index('>', previewdata.index('<body')) + 1
             start, end = previewdata[:pos], previewdata[pos:]
             loadrst = 'loadrst?rstfile={}'.format(fname)
-            preview = bytes(previewbutton.format(loadrst), encoding="UTF-8")
-            previewdata = preview.join((start, end))
+            previewdata = previewbutton.format(loadrst).join((start, end))
             return previewdata
         return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
