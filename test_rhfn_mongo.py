@@ -26,7 +26,17 @@ confdata_text = '\n'.join((
     'lang: en',
     'url: /rst2html-data/test',
     'wid: 100\n'))
-
+newconfdata = {'lang': 'en', 'css': [], 'hig': 32, 'url': '', 'wid': 100}
+newconfdata_text = "css: []\nhig: 32\nlang: en\nurl: ''\nwid: 100\n"
+expected_overview = [
+    ('/', 'horrorscenario', 0),
+    ('/', 'jansen', 2),
+    ('/', 'pietersen', 1),
+    ('/', 'reflist', 2),
+    ('/', 'tilanus', 2),
+    ('guichelheil', 'de groot', 2),
+    ('guichelheil', 'hendriksen', 2)
+    ]
 jansen_txt = """bah humbug
 .. refkey:: ref1: here1
 .. refkey:: ref2: here2
@@ -66,10 +76,10 @@ def test_new_site():
     mld = rhfn.new_conf(new_site)
     assert mld == ''
     sett = rhfn.read_conf(new_site)
-    assert sett == {'url': '/rst2html-data/test', 'hig': 32, 'lang': 'en',
-        'css': [], 'wid': 100}
+    assert sett == {}
     mld = rhfn.new_conf('test')
     assert mld == 'Site already exists'
+    sett = {x:y for x, y in rhfn.DFLT_CONF.items()}
     sett['url'] = 'something else'
     mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
     assert mld == 'Please do not modify the url value'
@@ -85,6 +95,9 @@ def test_new_site():
     sett['lang'] = 'xx'
     mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for lang'
+    sett['lang'] = 'en'
+    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    assert mld == ''
     print('ok')
 
 def test_readwrite_conf():
@@ -99,8 +112,8 @@ def test_readwrite_conf():
     conf = rhfn.read_conf('not_test')
     assert conf == None
     conf = rhfn.read_conf(sitename)
-    expected = {'lang': 'en', 'css': [], 'url': '/rst2html-data/test',
-        'wid': 100, 'hig': 32}
+    expected = {'url': '/rst2html-data/test',
+        'wid': 100, 'css': [], 'hig': 32, 'lang': 'en'}
     assert conf == expected
 
     text = rhfn.conf2text(conf)
@@ -146,12 +159,11 @@ def test_list_files(sitename):
     assert rhfn.list_subdirs(sitename, 'other') == expected
 
     # nonexistent site
+    data = rhfn.list_subdirs('oink')
+    assert data == []
+    # nonexistent subdir
     data = rhfn.list_files(sitename, 'blub', '', '', 'en')
-    print(data)
-    data = rhfn.list_files(sitename, 'blub', '', 'rst', 'en')
-    print(data)
-    data = rhfn.list_files(sitename, 'blub', 'xxx', '', 'en')
-    print(data)
+    assert data == '`blub` not found'
 
     expected_0 = '<option>guichelheil/</option>'
     expected_1 = expected_0 + '<option>jansen.rst</option>'
@@ -374,6 +386,16 @@ def test_index(state):
 def test_load_conf(state):
     print('testing loadconf... ', end='')
 
+    data = state.loadconf('-- new --', '')
+    assert data == ('New site will be created on save', newconfdata_text,
+        '-- new --', '')
+    assert state.conf == newconfdata
+    assert state.subdirs == []
+    assert state.current == ''
+    assert state.loaded == 'yaml'
+    assert state.sitename == '-- new --'
+    assert state.newconf == True
+
     data = state.loadconf('test', '')
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert state.conf == confdata
@@ -381,6 +403,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
+    assert state.newconf == False
 
     data = state.loadconf('test', 'blub') # other conf - fail
     assert data == ('blub does not exist', confdata_text, 'blub', '')
@@ -389,6 +412,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
+    assert state.newconf == False
 
     data = state.loadconf('blub', 'test')                   # other conf - ok
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
@@ -397,20 +421,22 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
+    assert state.newconf == False
 
     print('ok')
     return state
 
 def test_save_conf(state):
     print('testing saveconf... ', end='')
+    last_sett = state.sitename
 
     data = state.saveconf('test', '', '')
-    assert data == ('Please provide content for text area', 'test', '')
+    assert data == ('Please provide content for text area', last_sett, '')
 
     state.loaded = rhfn.RST
     data = state.saveconf('test', '', 'config text')
     assert data == ("Not executed: text area doesn't contain settings data",
-        'test', '')
+        last_sett, '')
 
     state.loaded = rhfn.CONF
     data = state.saveconf('test', '', 'config text')
@@ -423,7 +449,8 @@ def test_save_conf(state):
     data = state.saveconf('blub', '', confdata_text)
     assert data == ('blub does not exist', 'test', '')
 
-    data = state.saveconf('test', 'blub', confdata_text)
+    state.newconf = True
+    data = state.saveconf('test', 'blub', newconfdata_text)
     assert data == (confdata_5, 'blub', '')
 
     print('ok')
@@ -470,7 +497,7 @@ def test_loadrst(state):
     assert state.oldtext == jansen_txt
 
     data = state.loadrst('jansen.html')
-    assert data == ('Not executed: name for rst file incorrect', jansen_txt,
+    assert data == ('Not executed: not a valid source file name', jansen_txt,
         'jansen.html', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
@@ -563,7 +590,7 @@ def test_loadhtml(state):
     assert data == ('Target html jansen.html loaded', converted_txt, 'jansen.rst',
         'jansen.html')
     data = state.loadhtml('jansen.rst')
-    assert data == ('Not executed: name for html file incorrect', converted_txt,
+    assert data == ('Not executed: not a valid target file name', converted_txt,
         'jansen.rst', 'jansen.html')
     print('ok')
     return state
@@ -614,7 +641,8 @@ def test_convert_all(state):
     # not much more than receiving the results of the earlier tested update_all
     print('testing convert_all... ', end='')
     data = state.convert_all()
-    assert data == '\n'.join(('pietersen not present at mirror'
+    test = data.split('\n')
+    assert sorted(test) == sorted(('pietersen not present at mirror',
         'horrorscenario skipped: not in target directory'))
     print('ok')
     return state
@@ -623,37 +651,8 @@ def test_overview(state):
     print('testing overview... ', end='')
     # not much more than receiving the results of the earlier tested build_progress_list
     data = state.overview()
-    print(data)
     # this yields time-dependent data so we can't do a simple assert on it:
-    [
-        ('/', 'horrorscenario', 0, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 96000),
-            dest=datetime.datetime(1, 1, 1, 0, 0),
-            to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
-        ('/', 'jansen', 2, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
-        ('/', 'pietersen', 1, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 257000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 314000),
-            to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
-        ('/', 'reflist', 2, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 289000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 341000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 343000))),
-        ('/', 'tilanus', 2, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 92000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 370000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 373000))),
-        ('guichelheil', 'de groot', 2, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 51, 941000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 395000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 397000))),
-        ('guichelheil', 'hendriksen', 2, Stats(
-            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 103000),
-            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 383000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 386000)))]
+    assert sorted([item[:3] for item in data]) == sorted(expected_overview)
     print('ok')
     return state
 

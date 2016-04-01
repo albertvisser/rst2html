@@ -65,6 +65,7 @@ c_qref = Quick reStructuredText
 
 index_built = Trefwoordenlijst aangemaakt
 conf_init = Configuratiebestand is {}
+new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de settings
 conf_loaded = Settings geladen van {}
 fname_invalid = Geen geldige bestandsnaam
 supply_text = Tekstveld invullen s.v.p.

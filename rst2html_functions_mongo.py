@@ -155,10 +155,7 @@ def new_conf(sitename):
     returns None on success, message on failure
     """
     mld = dml.create_new_site(sitename)
-    if mld: return mld
-    dml.update_settings(sitename, DFLT_CONF)
-    dml.change_setting(sitename, "url", '/rst2html-data/{}'.format(sitename))
-    return ''
+    return mld
 
 def list_confs(sitename='', lang=DFLT_CONF['lang']):
     """build list of options containing all possible site settings
@@ -222,8 +219,10 @@ def list_subdirs(sitename, ext=''):
         ext = 'src'
     elif ext != 'src':
         ext = 'dest'
-    test = dml.list_dirs(sitename, ext)
-    if test is None: test = [] # 'Wrong type', but we can't return a message
+    try:
+        test = dml.list_dirs(sitename, ext)
+    except FileNotFoundError:
+        return []
     return [x + '/' for x in test]
 
 def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
@@ -234,7 +233,10 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
         if ext:
             ext = EXT2LOC[ext]
     if current:
-        items = dml.list_docs(sitename, ext, directory=current)
+        try:
+            items = dml.list_docs(sitename, ext, directory=current)
+        except FileNotFoundError:
+            return "`{}` not found".format(current)
     else:
         items = dml.list_docs(sitename, ext)
     if items is None:
@@ -592,6 +594,7 @@ class R2hState:
         self.sitename = default_site()
         self.current = ""
         self.oldtext = self.oldlang = self.oldhtml = ""
+        self.newconf = False
 
     def currentify(self, fname):
         if self.current:
@@ -600,15 +603,22 @@ class R2hState:
 
     def read_conf(self, settings):
         # settings is hier de site naam
-        conf = read_conf(settings)
-        if conf is not None:
+        if self.newconf:
             mld = ''
-            self.conf = conf
-            self.subdirs = list_subdirs(settings, 'src')
+            self.conf = DFLT_CONF
+            self.subdirs = []
             self.current = ""
             self.loaded = CONF
         else:
-            mld = get_text('no_such_sett', self.conf["lang"]).format(settings)
+            conf = read_conf(settings)
+            if conf is not None:
+                mld = ''
+                self.conf = conf
+                self.subdirs = list_subdirs(settings, 'src')
+                self.current = ""
+                self.loaded = CONF
+            else:
+                mld = get_text('no_such_sett', self.conf["lang"]).format(settings)
         return mld
 
     def index(self):
@@ -623,21 +633,34 @@ class R2hState:
             self.sitename)
 
     def loadconf(self, settings, newfile):
+        """load settings for indicated site name
+
+        if "-- new --" specified, create new settings from default (but don't save)
+        """
         mld = ""
         if newfile and newfile != settings:
             self.settings = newfile
         else:
             self.settings = settings
-            self.newfile = ''
-        if mld == "":
-            mld = self.read_conf(self.settings)
+        if settings == get_text('c_newitem', self.conf["lang"]):
+            self.newconf = True
+            okmeld = 'new_conf_made'
+        else:
+            self.newconf = False
+            okmeld = 'conf_loaded'
+        mld = self.read_conf(self.settings)
         if mld == '':
+            if newfile:
+                self.newfile = ''
             self.rstdata = conf2text(self.conf)
-            mld = get_text('conf_loaded', self.conf["lang"]).format(self.settings)
+            mld = get_text(okmeld, self.conf["lang"]).format(self.settings)
             self.sitename = self.settings
         return mld, self.rstdata, self.settings, self.newfile
 
     def saveconf(self, settings, newfile, rstdata):
+        """(re)save settings file using selected name
+
+        if new name specified, use that"""
         mld = ""
         newsett = settings
         if rstdata == "":
@@ -647,11 +670,15 @@ class R2hState:
         if mld == '':
             if newfile and newfile != newsett:
                 newsett = newfile
+            if self.newconf:
+                rstdata = rstdata.replace("url: ''",
+                    "url: '/rst2html-data/{}'".format(newsett))
                 mld = new_conf(newsett)
-            else:
-                mld = save_conf(newsett, rstdata, self.conf["lang"])
+        if mld == "":
+            mld = save_conf(newsett, rstdata, self.conf["lang"])
         if mld == "":
             self.newfile = ''
+            self.newconf = False
             self.settings = newsett
             mld = read_conf(self.settings)
             if self.oldlang != self.conf["lang"]:   # doe ik hier nog wat mee?

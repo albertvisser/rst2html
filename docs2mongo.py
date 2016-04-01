@@ -25,6 +25,7 @@ def create_new_site(site_name):
         'docs': {'/': {}}
         }
     site_coll.insert_one(new_site)
+    return ''
 
 def list_sites():
     return [doc['name'] for doc in site_coll.find() if 'name' in doc]
@@ -75,9 +76,13 @@ def create_new_dir(site_name, directory):
     site_coll.update_one({'name': site_name}, {'$set': {'docs': sitedoc['docs']}})
 
 def list_dirs(site_name, doctype=''):
-    ## if doctype not in locs:
-        ## return # caller should test for return value being None: 'Wrong directory tree type'
+    """list subdirs with documents of a given type in a given site
+
+    raises FileNotFoundError if site doesn't exist
+    """
     sitedoc = site_coll.find_one({'name': site_name})
+    if sitedoc is None:
+        raise FileNotFoundError('Site bestaat niet')
     dirlist = []
     for dirname, doclist in sitedoc['docs'].items():
         if dirname == '/':
@@ -119,6 +124,7 @@ def create_new_doc(site_name, doc_name, directory=''):
 def list_docs(site_name, doctype='', directory=''):
     """list the documents of a given type in a given directory
 
+    assumes site exists
     raises FileNotFoundError if directory doesn't exist
     """
     ## if doctype not in locs:

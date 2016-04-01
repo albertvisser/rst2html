@@ -65,6 +65,7 @@ c_qref = Quick reStructuredText
 
 index_built = Index created
 conf_init = Settings file is {}
+new_conf_made = New site will be created on save
 conf_loaded = Settings loaded from {}
 fname_invalid = Not a valid filename
 supply_text = Please provide content for text area
