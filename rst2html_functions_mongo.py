@@ -372,6 +372,7 @@ def save_to(fullname, data): # to be used for actual file system data
 
 def save_src_data(sitename, current, fname, data, new=False):
     "save the source data on the server"
+    ## print('args for save_src_name:', sitename, current, fname, new)
     fname, ext = os.path.splitext(fname)
     if ext not in ('', EXTS[0]):
         return 'rst_filename_error'
@@ -379,7 +380,11 @@ def save_src_data(sitename, current, fname, data, new=False):
         dml.create_new_dir(sitename, current)
     try:
         if new:
-            dml.create_new_doc(sitename, fname, directory=current)
+            ## print('save_src_name: creating new document')
+            try:
+                dml.create_new_doc(sitename, fname, directory=current)
+            except FileExistsError:
+                return 'src_name_taken'
         dml.update_rst(sitename, fname, data, directory=current)
         return ''
     except AttributeError as e:
@@ -640,9 +645,9 @@ class R2hState:
         """
         mld = ""
         if newfile and newfile != settings:
-            self.settings = newfile
+            self.settings = self.sitename = newfile
         else:
-            self.settings = settings
+            self.settings = self.sitename = settings
         if settings == get_text('c_newitem', self.conf["lang"]):
             self.newconf = True
             okmeld = 'new_conf_made'
@@ -682,7 +687,7 @@ class R2hState:
         if mld == "":
             self.newfile = ''
             self.newconf = False
-            self.settings = newsett
+            self.settings = self.sitename = newsett
             self.rstdata = rstdata
             mld = self.read_conf(self.settings)
             if self.oldlang != self.conf["lang"]:   # doe ik hier nog wat mee?
@@ -724,6 +729,7 @@ class R2hState:
             mld = 'unlikely_1'
         elif rstfile == get_text('c_newitem', self.conf["lang"]):
             mld = 'save_reminder'
+            self.loaded = RST
             self.htmlfile = self.newfile = self.rstdata = ""
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
@@ -738,11 +744,13 @@ class R2hState:
         if not mld:
             mld, data = read_src_data(self.sitename, self.current, rstfile)
         if mld:
+            self.oldtext = self.rstdata
             mld = get_text(mld, self.conf["lang"])
             if '{}' in mld: mld = mld.format(fmtdata)
         else:
             self.loaded = RST
             self.oldtext = self.rstdata = data
+            self.rstfile = rstfile
             self.htmlfile = os.path.splitext(rstfile)[0] + ".html"
             self.newfile = ""
             mld = get_text('src_loaded', self.conf["lang"]).format(rstfile)
@@ -750,7 +758,7 @@ class R2hState:
 
     def saverst(self, rstfile, newfile, rstdata):
         fname = newfile or rstfile
-        is_new_file = (newfile == "")
+        is_new_file = newfile != ""
         mld = check_if_rst(rstdata, self.loaded, fname)
         if mld:
             mld = get_text(mld, self.conf["lang"])
@@ -761,8 +769,11 @@ class R2hState:
             mld = save_src_data(self.sitename, self.current, fname, rstdata,
                 is_new_file)
             if mld == "":
+                self.oldtext = self.rstdata = rstdata
                 mld = get_text('rst_saved', self.conf["lang"]).format(
                     self.currentify(fname))
+            else:
+                mld = get_text('rst_saved', self.conf["lang"])
             self.rstfile = fname
             self.htmlfile = name + ".html"
             self.newfile = ""
@@ -774,40 +785,42 @@ class R2hState:
             mld = check_if_rst(rstdata, self.loaded) # alleen inhoud controleren
         else:
             mld = check_if_rst(rstdata, self.loaded, fname)
-        if mld:
-            mld = get_text(mld, self.conf["lang"])
-        else:
+        if mld == '':
             if rstdata != self.oldtext: # only if current text type == previous text type
-                mld = save_src_data(self.sitename, self.current, fname, rstdata,
-                    self.conf["lang"])
+                mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
             previewdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
             return mld, previewdata, fname
         else:
+            mld = get_text(mld, self.conf["lang"])
             return mld, '', ''
 
     def saveall(self, rstfile, newfile, rstdata):
         fname = newfile or rstfile
+        is_new_file = newfile != ""
         name, test = os.path.splitext(fname)
         if test in ('.html', ''):
             fname = name + '.rst'
         mld = check_if_rst(rstdata, self.loaded, fname)
-        if mld:
-            mld = get_text(mld, self.conf["lang"])
-        else:
+        if mld == '':
             self.rstfile = fname
             self.htmlfile = name + ".html"
             newdata = str(rst2html(rstdata, self.conf['css']),  encoding='utf-8')
-            if rstdata != self.oldtext:
+            if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
-                    rstdata)
+                    rstdata, is_new_file)
+                if mld == "":
+                    self.oldtext = self.rstdata = rstdata
             if mld == "":
                 mld = save_html_data(self.sitename, self.current, self.htmlfile,
                     newdata)
                 if mld == "":
-                    mld = get_text('rst_2_html', self.conf["lang"]).format(
-                        self.currentify(self.htmlfile))
-            self.newfile = ""
+                    mld = 'rst_2_html'
+                self.newfile = ""
+        if mld:
+            mld = get_text(mld, self.conf["lang"])
+            if '{}' in mld:
+                mld = mld.format(self.currentify(self.htmlfile))
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def loadhtml(self, htmlfile):
@@ -855,7 +868,7 @@ class R2hState:
                 mld = get_text('html_saved', self.conf["lang"]).format(
                     self.currentify(self.htmlfile))
             self.newfile = ""
-        return mld, self.rstdata, self.htmlfile, self.newfile
+        return mld, self.rstdata, self.newfile
 
     def copytoroot(self, htmlfile, rstdata):
         """copy html to mirror site
@@ -872,7 +885,7 @@ class R2hState:
                 self.htmlfile = htmlfile
                 mld = get_text('copied_to', self.conf["lang"]).format(
                     'siteroot/' + self.currentify(self.htmlfile))
-        return mld, self.htmlfile
+        return mld
 
     def makerefdoc(self):
         rstdata = build_trefwoordenlijst(self.sitename, self.conf["lang"])

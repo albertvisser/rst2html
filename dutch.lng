@@ -82,6 +82,7 @@ unlikely_1 = Pagina stond waarschijnijk open bij afsluiten browser
 save_reminder = Vergeet niet een nieuwe bestandnaam op te geven om te saven
 src_loaded = Source bestand {} opgehaald
 src_name_missing = bestandnaam voor source opgeven of selecteren s.v.p.
+src_name_taken = Source bestand bestaat al
 no_subdir = nieuwe subdirectory (voorlopig) alleen in root mogelijk
 rst_invalid = niet uitgevoerd: tekstveld bevat geen restructured tekst
 new_subdir = nieuwe subdirectory {} aangemaakt in {}

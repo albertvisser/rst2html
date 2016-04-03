@@ -113,6 +113,8 @@ def create_new_doc(site_name, doc_name, directory=''):
     sitedoc = site_coll.find_one({'name': site_name})
     if directory not in sitedoc['docs']:
         raise FileNotFoundError('Subdirectory bestaat niet')
+    if doc_name in sitedoc['docs'][directory]:
+        raise FileExistsError
     new_doc = {'current': '', 'previous': ''}
     new_doc_id = site_coll.insert_one(new_doc).inserted_id
     dts = datetime.datetime.utcnow()
@@ -180,7 +182,8 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     sitedoc = site_coll.find_one({'name': site_name})
     try:
         doc_id = sitedoc['docs'][directory][doc_name][doctype]['docid']
-    except KeyError:
+        #trows TypeError when doc_name doesn't exist, KeyError on nonexisting docid
+    except (TypeError, KeyError):
         raise FileNotFoundError("Document doesn't exist")
     doc_data = site_coll.find_one({'_id': doc_id})
     return doc_data['current']

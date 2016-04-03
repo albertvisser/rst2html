@@ -245,9 +245,8 @@ class Rst2Html(object):
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """copy html to mirror site
-
-        along the way the right stylesheets are added"""
-        mld, rstdata = self.state.copytoroot(htmlfile, rstdata)
+        """
+        mld = self.state.copytoroot(htmlfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 
