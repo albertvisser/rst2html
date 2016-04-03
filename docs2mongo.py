@@ -8,7 +8,7 @@ stat_keys = ('src', 'dest', 'to_mirror')
 Stats = namedtuple('Stats', stat_keys)
 
 
-def clear_db(site_name):
+def clear_db():
     db.drop_collection(site_coll)
 
 def read_db():
@@ -131,6 +131,8 @@ def list_docs(site_name, doctype='', directory=''):
         ## return # caller should test for return value being None: 'Wrong directory tree type'
     if not directory: directory = '/'
     sitedoc = site_coll.find_one({'name': site_name})
+    if sitedoc is None:
+        raise FileNotFoundError('Site bestaat niet')
     if directory not in sitedoc['docs']:
         raise FileNotFoundError('Subdirectory bestaat niet')
     doclist = []

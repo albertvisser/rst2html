@@ -27,10 +27,13 @@ scriptdict = {
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
-    all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
-        state.conf["lang"])
-    all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
-        state.conf["lang"])
+    if state.newfile:
+        all_source , all_html = [], []
+    else:
+        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
+            state.conf["lang"])
+        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
+            state.conf["lang"])
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []

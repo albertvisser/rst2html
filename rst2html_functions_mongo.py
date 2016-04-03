@@ -147,12 +147,13 @@ def get_custom_directives_filename():
 def default_site():
     """return the first entry in the sites list to provide as default
     """
-    return dml.list_sites()[0]
+    all_sites = dml.list_sites()
+    return all_sites[0] if all_sites else ''
 
 def new_conf(sitename):
     """create a new site definition including settings
 
-    returns None on success, message on failure
+    returns '' on success, message on failure
     """
     mld = dml.create_new_site(sitename)
     return mld
@@ -236,9 +237,12 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
         try:
             items = dml.list_docs(sitename, ext, directory=current)
         except FileNotFoundError:
-            return "`{}` not found".format(current)
+            return "Directory `{}` not found".format(current)
     else:
-        items = dml.list_docs(sitename, ext)
+        try:
+            items = dml.list_docs(sitename, ext)
+        except FileNotFoundError:
+            return "Site not found"
     if items is None:
         return 'Wrong type: `{}`'.format(ext)
     else:
@@ -603,19 +607,16 @@ class R2hState:
 
     def read_conf(self, settings):
         # settings is hier de site naam
+        mld = self.current = self.loaded = ""
+        self.subdirs = []
+        self.conf = DFLT_CONF
         if self.newconf:
-            mld = ''
-            self.conf = DFLT_CONF
-            self.subdirs = []
-            self.current = ""
             self.loaded = CONF
         else:
             conf = read_conf(settings)
             if conf is not None:
-                mld = ''
                 self.conf = conf
                 self.subdirs = list_subdirs(settings, 'src')
-                self.current = ""
                 self.loaded = CONF
             else:
                 mld = get_text('no_such_sett', self.conf["lang"]).format(settings)
@@ -670,7 +671,9 @@ class R2hState:
         if mld == '':
             if newfile and newfile != newsett:
                 newsett = newfile
-            if self.newconf:
+            if newsett == get_text('c_newitem', self.conf["lang"]):
+                mld = get_text('fname_invalid', self.conf["lang"])
+            elif self.newconf:
                 rstdata = rstdata.replace("url: ''",
                     "url: '/rst2html-data/{}'".format(newsett))
                 mld = new_conf(newsett)
@@ -680,12 +683,13 @@ class R2hState:
             self.newfile = ''
             self.newconf = False
             self.settings = newsett
-            mld = read_conf(self.settings)
+            self.rstdata = rstdata
+            mld = self.read_conf(self.settings)
             if self.oldlang != self.conf["lang"]:   # doe ik hier nog wat mee?
                 self.oldlang = self.conf["lang"]
         if mld == '':
             mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
-        return mld, self.settings, self.newfile
+        return mld, self.rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
         # this data actually *does* come from the file system as itś code stored on the server
