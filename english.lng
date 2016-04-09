@@ -63,7 +63,6 @@ c_qref = Quick reStructuredText
 
 # notifications and such
 
-index_built = Index created
 conf_init = Settings file is {}
 new_conf_made = New site will be created on save
 conf_loaded = Settings loaded from {}
@@ -82,10 +81,13 @@ unlikely_1 = Oops! Page was probably open on closing the browser
 save_reminder = Don't forget to supply a new filename on saving
 src_loaded = Source file {} loaded
 src_name_missing = Please enter or select a source (.rst) file name
+chdir_down = switching to directory {}
+chdir_up = switching to parent directory
 src_name_taken = Source file already exists
 no_subdir = New subdirectory (for now) only possible under root
 rst_invalid = Not executed: text area doesn't contain restructured text
-new_subdir = New subdirectory {} created in {}
+dir_name_taken = Subdirectory {} already exists
+new_subdir = New subdirectory {} created
 rst_saved = Rst source saved as {}
 rst_2_html = Rst converted to html and saved as {}
 rst_filename_error = Not executed: not a valid source file name
@@ -99,8 +101,8 @@ load_html = Please load HTML first
 copied_to = Copied to {}
 target_missing = {} skipped: not in target directory
 mirror_missing = {} not present at mirror
+docs_converted = Site documents regenerated, messages below
 loaded = loaded
 init = initialized, but not saved yet
 index_header = Index
-chdir_down = switching to directory {}
-chdir_up = switching to parent directory
+index_built = Index created as reflist.html

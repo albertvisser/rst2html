@@ -12,9 +12,9 @@ def main():
     ## print(dml.get_all_doc_data(site_name))
     ## return
 
-    dml.clear_db(site_name)
+    dml.clear_db()
     test = dml.create_new_site(site_name)
-    assert test is None
+    assert test is ''
     test = dml.create_new_site(site_name)
     assert test == 'Site already exists'
     assert dml.list_sites() == [site_name]
@@ -134,10 +134,10 @@ def main():
     print('ok')
 
 if __name__ == '__main__':
-    print(dml.list_dirs('blub'))
-    ## try:
-        ## main()
-    ## except AssertionError:
-        ## raise
-    ## finally:
-        ## list_database_contents()
+    ## print(dml.list_dirs('blub'))
+    try:
+        main()
+    except AssertionError:
+        raise
+    finally:
+        list_database_contents()

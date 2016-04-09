@@ -1,7 +1,8 @@
 # test scenario 1
 
+import pprint
 from rst2html_mongo import Rst2Html
-from docs2mongo import clear_db as init_db
+import docs2mongo as dml
 from test_mongodml import list_database_contents
 
 rstdata_1 = """\
@@ -17,6 +18,14 @@ test document
 This is the (slightly changed) first document
 """
 rstdata_3 = """\
+test document
+=============
+
+This is the (slightly changed) first document
+
+It's been changed even more
+"""
+rstdata_4 = """\
 test document
 =============
 
@@ -67,9 +76,6 @@ htmldata_2 = """\
 """
 
 def main():
-
-    # start from scratch
-    init_db()
 
     # simulate starting up the application
     app = Rst2Html()
@@ -123,7 +129,25 @@ def main():
     # simulate saving the new document
     data = app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
         'testdoc1.rst', rstdata_1)
-    with open('/tmp/08_saverst_new.html', 'w') as _out:
+    with open('/tmp/08a_saverst_new.html', 'w') as _out:
+        _out.write(data)
+
+    # simulate creating a new directory
+    data = app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
+        'subdir/', rstdata_1)
+    with open('/tmp/08b_saverst_newdir.html', 'w') as _out:
+        _out.write(data)
+
+    # simulate entering the new directory
+    data = app.loadrst(app.state.settings, 'subdir/', app.state.htmlfile,
+        '', rstdata_1)
+    with open('/tmp/08c_saverst_dirdown.html', 'w') as _out:
+        _out.write(data)
+
+    # simulate going back to the root
+    data = app.loadrst(app.state.settings, '..', app.state.htmlfile,
+        '', rstdata_1)
+    with open('/tmp/08d_saverst_dirup.html', 'w') as _out:
         _out.write(data)
 
     # simulate viewing the new document
@@ -206,15 +230,46 @@ def main():
     with open('/tmp/16_copytoroot.html', 'w') as _out:
         _out.write(data)
 
-    # simulate building a reference document
-
-    # simulate building a progress list
+    # change some documents by adding references
+    app.loadrst(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
+        app.state.newfile, app.state.rstdata)
+    app.saverst(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
+        app.state.newfile, app.state.rstdata + '.. refkey:: ref1: here1\n')
+    app.loadrst(app.state.settings, 'testdoc1a.rst', app.state.htmlfile,
+        app.state.newfile, app.state.rstdata)
+    app.saverst(app.state.settings, 'testdoc1a.rst', app.state.htmlfile,
+        app.state.newfile, app.state.rstdata + '.. refkey:: ref2: here2\n')
 
     # simulate updating all documents
+    data = app.convert_all(app.state.settings, app.state.rstfile, app.state.htmlfile,
+        app.state.newfile, app.state.rstdata)
+    with open('/tmp/17_convert_all.html', 'w') as _out:
+        _out.write(data)
 
+    # simulate building a progress list
+    data = app.overview(app.state.settings, app.state.rstfile, app.state.htmlfile,
+        app.state.newfile, app.state.rstdata)
+    with open('/tmp/18_overview.html', 'w') as _out:
+        _out.write(data)
 
+    # simulate building a reference document
+    data = app.makerefdoc(app.state.settings, app.state.rstfile, app.state.htmlfile,
+        app.state.newfile, app.state.rstdata)
+    with open('/tmp/19_makerefdoc.html', 'w') as _out:
+        _out.write(data)
 
 
 if __name__ == "__main__":
+    # start from scratch
+    dml.clear_db()
+    ## dml.clear_site_data('testsite')
+    # run the tests
     main()
-    list_database_contents()
+    # see what we have done
+    sitedoc, data = dml.list_site_data('testsite')
+    pprint.pprint(sitedoc)
+    for item in data:
+        pprint.pprint(item)
+    # remove our traces
+    ## dml.clear_site_data('testsite')
+    dml.clear_db()

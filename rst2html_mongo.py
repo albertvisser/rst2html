@@ -197,6 +197,9 @@ class Rst2Html(object):
         """
         mld, rstfile, htmlfile, newfile = self.state.saverst(rstfile, newfile,
             rstdata)
+        # bij aanmaken nieuwe directory wordt deze niet getoond laat staan geselecteerd -
+            # dat komt doordat er dan nog geen rst document in zit
+            # dus eigenlijk moet de rst lijst gewoon alle subdirs tonen?
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 
@@ -261,8 +264,7 @@ class Rst2Html(object):
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """regenerate all html files
         """
-        mld = ""
-        rstdata = self.state.convert_all()
+        mld, rstdata = self.state.convert_all()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 

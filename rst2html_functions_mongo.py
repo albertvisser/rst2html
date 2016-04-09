@@ -171,8 +171,7 @@ def list_confs(sitename='', lang=DFLT_CONF['lang']):
 def read_conf(naam):
     """read a config file; returns a dictionary of options
     """
-    conf = dml.read_settings(naam)
-    return conf
+    return dml.read_settings(naam)
 
 def conf2text(conf):
     return yaml.dump(conf, default_flow_style=False)
@@ -370,6 +369,15 @@ def save_to(fullname, data): # to be used for actual file system data
             mld = str(err)
     return mld
 
+def make_new_dir(sitename, fname):
+    try:
+        dml.create_new_dir(sitename, fname)
+    except FileExistsError:
+        return 'dir_name_taken'
+    ## # need to fake an rst document to have this show up in the dir list
+    ## dml.create_new_doc(sitename, ' ', fname)
+    return ''
+
 def save_src_data(sitename, current, fname, data, new=False):
     "save the source data on the server"
     ## print('args for save_src_name:', sitename, current, fname, new)
@@ -377,7 +385,10 @@ def save_src_data(sitename, current, fname, data, new=False):
     if ext not in ('', EXTS[0]):
         return 'rst_filename_error'
     if current and current + '/' not in list_subdirs(sitename):
-        dml.create_new_dir(sitename, current)
+        try:
+            dml.create_new_dir(sitename, current)
+        except FileExistsError:
+            pass # already existing is ok
     try:
         if new:
             ## print('save_src_name: creating new document')
@@ -547,6 +558,7 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
         refs, errs = get_reflinks_in_dir(sitename)
         reflinks.update(refs)
         errors.extend(errs)
+    ## print(reflinks, errors)
     current_letter = ""
     # produceer het begin van de pagina
     hdr = get_text('index_header', lang)
@@ -601,8 +613,9 @@ class R2hState:
 
     def __init__(self):
         self.sitename = default_site()
-        self.current = ""
+        self.current = self.loaded = ""
         self.oldtext = self.oldlang = self.oldhtml = ""
+        self.conf = DFLT_CONF
         self.newconf = False
 
     def currentify(self, fname):
@@ -612,15 +625,19 @@ class R2hState:
 
     def read_conf(self, settings):
         # settings is hier de site naam
-        mld = self.current = self.loaded = ""
-        self.subdirs = []
-        self.conf = DFLT_CONF
+        mld = ''
         if self.newconf:
+            self.conf = DFLT_CONF
+            self.current = ""
+            self.subdirs = []
             self.loaded = CONF
         else:
+            ## print('in readconf:', settings)
             conf = read_conf(settings)
+            ## print('in readconf:', conf)
             if conf is not None:
                 self.conf = conf
+                self.current = ""
                 self.subdirs = list_subdirs(settings, 'src')
                 self.loaded = CONF
             else:
@@ -629,7 +646,7 @@ class R2hState:
 
     def index(self):
         # config defaults so we can always show the first page
-        self.conf = DFLT_CONF
+        ## self.conf = DFLT_CONF
         self.rstfile = self.htmlfile = self.newfile = self.rstdata = ""
         mld = self.read_conf(self.sitename)
         if mld == '':
@@ -643,21 +660,19 @@ class R2hState:
 
         if "-- new --" specified, create new settings from default (but don't save)
         """
-        mld = ""
         if newfile and newfile != settings:
-            self.settings = self.sitename = newfile
-        else:
-            self.settings = self.sitename = settings
+            settings = newfile
         if settings == get_text('c_newitem', self.conf["lang"]):
             self.newconf = True
             okmeld = 'new_conf_made'
         else:
             self.newconf = False
             okmeld = 'conf_loaded'
-        mld = self.read_conf(self.settings)
+        mld = self.read_conf(settings)
         if mld == '':
             if newfile:
                 self.newfile = ''
+            self.settings = self.sitename = settings
             self.rstdata = conf2text(self.conf)
             mld = get_text(okmeld, self.conf["lang"]).format(self.settings)
             self.sitename = self.settings
@@ -680,7 +695,7 @@ class R2hState:
                 mld = get_text('fname_invalid', self.conf["lang"])
             elif self.newconf:
                 rstdata = rstdata.replace("url: ''",
-                    "url: '/rst2html-data/{}'".format(newsett))
+                    "url: /rst2html-data/{}".format(newsett))
                 mld = new_conf(newsett)
         if mld == "":
             mld = save_conf(newsett, rstdata, self.conf["lang"])
@@ -688,10 +703,10 @@ class R2hState:
             self.newfile = ''
             self.newconf = False
             self.settings = self.sitename = newsett
-            self.rstdata = rstdata
             mld = self.read_conf(self.settings)
             if self.oldlang != self.conf["lang"]:   # doe ik hier nog wat mee?
                 self.oldlang = self.conf["lang"]
+        self.rstdata = rstdata
         if mld == '':
             mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
         return mld, self.rstdata, self.settings, self.newfile
@@ -759,24 +774,30 @@ class R2hState:
     def saverst(self, rstfile, newfile, rstdata):
         fname = newfile or rstfile
         is_new_file = newfile != ""
-        mld = check_if_rst(rstdata, self.loaded, fname)
+        if fname.endswith('/'):
+            isfile = False
+            mld = make_new_dir(self.sitename, fname[:-1])
+            fmtdata = fname[:-1]
+        else:
+            isfile = True
+            mld = check_if_rst(rstdata, self.loaded, fname)
+            if mld == '':
+                name, suffix = os.path.splitext(fname)
+                if suffix != ".rst":
+                    fname = name + ".rst"
+                mld = save_src_data(self.sitename, self.current, fname, rstdata,
+                    is_new_file)
+            fmtdata = fname
+        if mld == "":
+            self.oldtext = self.rstdata = rstdata
+            mld = 'rst_saved' if isfile else 'new_subdir'
+            self.rstfile = fname
+            if isfile:
+                self.htmlfile = name + ".html"
+            self.newfile = ""
         if mld:
             mld = get_text(mld, self.conf["lang"])
-        else:
-            name, suffix = os.path.splitext(fname)
-            if suffix != ".rst":
-                fname = name + ".rst"
-            mld = save_src_data(self.sitename, self.current, fname, rstdata,
-                is_new_file)
-            if mld == "":
-                self.oldtext = self.rstdata = rstdata
-                mld = get_text('rst_saved', self.conf["lang"]).format(
-                    self.currentify(fname))
-            else:
-                mld = get_text('rst_saved', self.conf["lang"])
-            self.rstfile = fname
-            self.htmlfile = name + ".html"
-            self.newfile = ""
+            if '{}' in mld: mld = mld.format(fmtdata)
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def convert(self, rstfile, newfile, rstdata):
@@ -912,7 +933,8 @@ class R2hState:
                 data.append(msg.format(fname))
             else:
                 data.append(fname + ': ' + msg)
-        return '\n'.join(data)
+        mld = get_text('docs_converted', self.conf["lang"])
+        return mld, '\n'.join(data)
 
     def overview(self):
         return build_progress_list(self.sitename)

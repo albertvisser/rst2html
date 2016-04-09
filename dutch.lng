@@ -63,7 +63,6 @@ c_qref = Quick reStructuredText
 
 # notifications and such
 
-index_built = Trefwoordenlijst aangemaakt
 conf_init = Configuratiebestand is {}
 new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de settings
 conf_loaded = Settings geladen van {}
@@ -82,10 +81,13 @@ unlikely_1 = Pagina stond waarschijnijk open bij afsluiten browser
 save_reminder = Vergeet niet een nieuwe bestandnaam op te geven om te saven
 src_loaded = Source bestand {} opgehaald
 src_name_missing = bestandnaam voor source opgeven of selecteren s.v.p.
+chdir_down = verder in directory {}
+chdir_up = verder in parent directory
 src_name_taken = Source bestand bestaat al
 no_subdir = nieuwe subdirectory (voorlopig) alleen in root mogelijk
 rst_invalid = niet uitgevoerd: tekstveld bevat geen restructured tekst
-new_subdir = nieuwe subdirectory {} aangemaakt in {}
+dir_name_taken = Subdirectory {} bestaat al
+new_subdir = nieuwe subdirectory {} aangemaakt
 rst_saved = rst source opgeslagen als {}
 rst_2_html = rst omgezet naar html en opgeslagen als {}
 rst_filename_error = Niet uitgevoerd: fout(en) in naam voor rst bestand
@@ -99,8 +101,8 @@ load_html = Eerst html laden s.v.p.
 copied_to = gekopieerd naar {}
 target_missing = {} overgeslagen: niet in target directory
 mirror_missing = {} niet aanwezig in mirror
+docs_converted = Site documenten opnieuw gegenereerd, meldingen zie onder
 loaded = opgehaald
 init = initieel aangemaakt, nog niet opgeslagen
 index_header = Trefwoordenlijst
-chdir_down = verder in directory {}
-chdir_up = verder in parent directory
+index_built = Trefwoordenlijst aangemaakt als reflist.html
