@@ -159,11 +159,6 @@ def test_list_files(sitename):
         'now creating {}'.format(naam), True)
     assert msg == ''
 
-    msg = rhfn.make_new_dir(sitename, 'moerasspiraea')
-    assert msg == ''
-    msg = rhfn.make_new_dir(sitename, 'moerasspiraea')
-    assert msg == 'dir_name_taken'
-
     naam = 'jansen'
     msg = rhfn.save_html_data(sitename, '', naam,
         '<p>now creating {}</p>'.format(naam))
@@ -188,29 +183,61 @@ def test_list_files(sitename):
     expected_0 = '<option>guichelheil/</option>'
     expected_1 = expected_0 + '<option>jansen.rst</option>'
     expected_2 = expected_0 + '<option selected="selected">jansen.rst</option>'
+    expected_3 = expected_0 + '<option>jansen.html</option>'
+    expected_4 = expected_0 + '<option selected="selected">jansen.html</option>'
     assert rhfn.list_files(sitename) == expected_1
+    assert rhfn.list_files(sitename, ext='src') == expected_1
+    assert rhfn.list_files(sitename, ext='dest') == expected_3
     naam = ''
     assert rhfn.list_files(sitename, naam=naam) == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='src') == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='dest') == expected_3
     naam = 'nonexist'
-    assert rhfn.list_files(sitename, naam=naam) == expected_0
+    assert rhfn.list_files(sitename, naam=naam) == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='src') == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='dest') == expected_3
     naam = 'jansen.rst'
     assert rhfn.list_files(sitename, naam=naam) == expected_2
+    assert rhfn.list_files(sitename, naam=naam, ext='src') == expected_2
+    assert rhfn.list_files(sitename, naam=naam, ext='dest') == expected_3
+    naam = 'jansen.html'
+    assert rhfn.list_files(sitename, naam=naam) == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='src') == expected_1
+    assert rhfn.list_files(sitename, naam=naam, ext='dest') == expected_4
     current = ''
     assert rhfn.list_files(sitename, current) == expected_1
+    assert rhfn.list_files(sitename, current, ext='src') == expected_1
+    assert rhfn.list_files(sitename, current, ext='dest') == expected_3
     current = 'guichelheil'
     expected_0 = '<option>..</option>'
     expected_1 = expected_0 + '<option>hendriksen.rst</option>'
     expected_2 = expected_0 + '<option selected="selected">hendriksen.rst</option>'
-    expected_3 = expected_0 + '<option selected="selected">hendriksen.html</option>'
+    expected_3 = expected_0 + '<option>hendriksen.html</option>'
+    expected_4 = expected_0 + '<option selected="selected">hendriksen.html</option>'
     assert rhfn.list_files(sitename, current) == expected_1
+    assert rhfn.list_files(sitename, current, ext='src') == expected_1
+    assert rhfn.list_files(sitename, current, ext='dest') == expected_3
     naam = ''
     assert rhfn.list_files(sitename, current, naam) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='src' ) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='dest') == expected_3
     naam = 'jansen'
-    assert rhfn.list_files(sitename, current, naam) == expected_0
+    assert rhfn.list_files(sitename, current, naam) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='src' ) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='dest') == expected_3
     naam = 'hendriksen.rst'
     assert rhfn.list_files(sitename, current, naam) == expected_2
+    assert rhfn.list_files(sitename, current, naam, 'src') == expected_2
+    assert rhfn.list_files(sitename, current, naam, 'dest') == expected_3
     naam = 'hendriksen.html'
-    assert rhfn.list_files(sitename, current, naam) == expected_3
+    assert rhfn.list_files(sitename, current, naam) == expected_1
+    assert rhfn.list_files(sitename, current, naam, 'src') == expected_1
+    assert rhfn.list_files(sitename, current, naam, 'dest') == expected_4
+
+    msg = rhfn.make_new_dir(sitename, 'moerasspiraea')
+    assert msg == ''
+    msg = rhfn.make_new_dir(sitename, 'moerasspiraea')
+    assert msg == 'dir_name_taken'
     print('ok')
     return current
 
@@ -382,7 +409,7 @@ def test_state_class():
     assert mld == ''
     assert state.loaded == 'yaml'
     assert sorted_items(state.conf) == sorted_items(confdata)
-    assert state.subdirs == ['guichelheil/']
+    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     print('ok')
 
@@ -394,7 +421,7 @@ def test_index(state):
     data = state.index()
     assert data == ('', '', '', 'Settings file is test', confdata_text, 'test')
     assert sorted_items(state.conf) == sorted_items(confdata)
-    assert state.subdirs == ['guichelheil/']
+    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     assert state.loaded == 'yaml'
 
@@ -417,7 +444,7 @@ def test_load_conf(state):
     data = state.loadconf('test', '')
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
-    assert state.subdirs == ['guichelheil/']
+    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
@@ -426,7 +453,7 @@ def test_load_conf(state):
     data = state.loadconf('test', 'blub') # other conf - fail
     assert data == ('blub does not exist', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
-    assert state.subdirs == ['guichelheil/']
+    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
@@ -435,7 +462,7 @@ def test_load_conf(state):
     data = state.loadconf('blub', 'test')                   # other conf - ok
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
-    assert state.subdirs == ['guichelheil/']
+    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'

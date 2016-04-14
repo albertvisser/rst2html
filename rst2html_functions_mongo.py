@@ -227,11 +227,7 @@ def list_subdirs(sitename, ext=''):
 
 def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
     """build list of options from filenames, with `naam` selected"""
-    ext = ext or 'src'
-    if naam:
-        ext = os.path.splitext(naam)[1]
-        if ext:
-            ext = EXT2LOC[ext]
+    ext = ext or 'src' # default
     if current:
         try:
             items = dml.list_docs(sitename, ext, directory=current)

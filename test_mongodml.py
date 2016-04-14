@@ -1,3 +1,4 @@
+import sys
 import pprint
 import datetime
 import docs2mongo as dml
@@ -6,6 +7,40 @@ def list_database_contents():
     print('\n--------------- Listing database contents -------------')
     for doc in dml.read_db():
         pprint.pprint(doc)
+
+def list_site_contents(sitename, filename=''):
+    """looks like pprint shows the keys in alphabetic order,
+    so probably no ordering of my own needed
+    """
+    errs = ''
+    try:
+        sitedoc, docdata = dml.list_site_data(sitename)
+    except FileNotFoundError as e:
+        errs = str(e)
+        sitedoc, docdata = {}, []
+    if not filename:
+        print('\n--------------- Listing contents of site {} -------------'.format(
+            sitename))
+        if errs:
+            print(errs)
+        else:
+            pprint.pprint(sitedoc)
+            for doc in docdata:
+                pprint.pprint(doc)
+        return
+    with open(filename, 'w') as _out:
+        if errs:
+            _out.write(errs)
+        else:
+            pprint.pprint(sitedoc, stream=_out)
+            for doc in docdata:
+                pprint.pprint(doc, stream=_out)
+    return sitedoc, docdata
+
+    ## outdata = 'Listing contents of site "{}"'.format(sitedoc["doc"])
+    ## outline = 'Settings: {}: {}'
+    ## for setting, value in ordered([(x, y) for x, y in sitedoc["settings"].items()]):
+        ## outdata.append(outline.format(
 
 def main():
     site_name = 'test'
@@ -89,13 +124,18 @@ def main():
     print('creating new dir {}...'.format(newdir), end=' ')
     otherdoc = 'hendriksen'
     dml.create_new_dir(site_name, newdir)
-    assert dml.list_dirs(site_name, 'src') == []
+    assert dml.list_dirs(site_name, 'src') == ['guichelheil']
     assert dml.list_dirs(site_name, 'dest') == []
     assert dml.list_docs(site_name, 'src', directory=newdir) == []
     assert dml.list_docs(site_name, 'dest', directory=newdir) == []
-    print('ok')
     # try again to catch error - apparently this doesn't fail
-    dml.create_new_dir(site_name, newdir)
+    failed = True
+    try:
+        dml.create_new_dir(site_name, newdir)
+    except FileExistsError:
+        failed = True
+    assert failed
+    print('ok')
 
     ## list_database_contents()
     mld = dml.create_new_doc(site_name, otherdoc, directory=newdir)

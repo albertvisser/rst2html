@@ -51,7 +51,6 @@ def list_site_data(site_name):
     sitedoc = site_coll.find_one({'name': site_name})
     if sitedoc is None:
         raise FileNotFoundError('Site bestaat niet')
-    print('\n--------------- Listing site contents -------------')
     id_list = []
     for dirname, diritem in sitedoc['docs'].items():
         for docname, docitem in diritem.items():
