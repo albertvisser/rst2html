@@ -174,7 +174,12 @@ def read_conf(naam):
     return dml.read_settings(naam)
 
 def conf2text(conf):
-    return yaml.dump(conf, default_flow_style=False)
+    confdict = {key: value for key, value in conf.items()}
+    confdict['css'] = []
+    for item in conf['css']:
+        if item.startswith(conf['url']):
+            confdict['css'].append(item.replace(confdict['url'], 'url + '))
+    return yaml.dump(confdict, default_flow_style=False)
 
 def save_conf(sitename, text, lang=DFLT_CONF['lang']):
     """convert text (from input area) to settings dict and return it
@@ -207,8 +212,15 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
                 return invalid.format(key)
         elif key == 'lang' and conf[key] not in languages:
             return invalid.format(key)
-        elif key == 'url' and conf[key] != '/rst2html-data/{}'.format(sitename):
-            return get_text('not_the_url', lang)
+        ## elif key == 'url' and conf[key] != '/rst2html-data/{}'.format(sitename):
+            ## return get_text('not_the_url', lang)
+    if not conf['url'].startswith('http'):
+        conf['url'] = 'http://' + conf['url']
+    for ix, item in enumerate(conf['css']):
+        if item.startswith('url + '):
+            conf['css'][ix] = item.replace('url + ', conf['url'])
+        elif not item.startswith('http'):
+            conf['css'][ix] = 'http://' + item
     dml.update_settings(sitename, conf)
     return ''
 
@@ -422,14 +434,18 @@ def complete_header(conf, rstdata):
     if conf.get('starthead', ''):
         split_on = '<head>' # + os.linesep
         start, end = rstdata.split(split_on, 1)
-        ## middle = os.linesep.join(self.conf['starthead'])
-        middle = conf['starthead']
+        if isinstance(conf['starthead'], str):
+            middle = conf['starthead']
+        else:
+            middle = os.linesep.join(self.conf['starthead'])
         rstdata = start + split_on + middle + end
     if conf.get('endhead', ''):
         split_on = '</head>' # + os.linesep
         start, end = rstdata.split(split_on, 1)
-        ## middle = os.linesep.join(self.conf['endhead'])
-        middle = conf['endhead']
+        if isinstance(conf['starthead'], str):
+            middle = conf['endhead']
+        else:
+            middle = os.linesep.join(self.conf['endhead'])
         rstdata = start + middle + split_on + end
     return rstdata
 
@@ -449,7 +465,7 @@ def save_to_mirror(sitename, current, fname):
         return mld
     if not dirname.exists():
         dirname.mkdir(parents=True)
-    mld = save_to(dirname / fname, data)
+    mld = save_to(dirname / (fname + '.html'), data)
     try:
         dml.update_mirror(sitename, fname, directory=current)
         return ''
@@ -495,7 +511,7 @@ def update_files_in_dir(sitename, conf, dirname='', missing=False):
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
             # copy to mirror MITS het file daar bestaat
-            destfile = path / filename
+            destfile = path / (filename + '.html')
             if not destfile.exists() and not missing:
                 msg = 'mirror_missing'
             else:
@@ -610,7 +626,7 @@ class R2hState:
     def __init__(self):
         self.sitename = default_site()
         self.current = self.loaded = ""
-        self.oldtext = self.oldlang = self.oldhtml = ""
+        self.oldtext = self.oldhtml = ""
         self.conf = DFLT_CONF
         self.newconf = False
 
@@ -646,8 +662,11 @@ class R2hState:
         self.rstfile = self.htmlfile = self.newfile = self.rstdata = ""
         mld = self.read_conf(self.sitename)
         if mld == '':
+            self.settings = self.sitename
             self.rstdata = conf2text(self.conf)
             mld = get_text('conf_init', self.conf["lang"]).format(self.sitename)
+            ## msg = "<html><title></title><body><p>{}</p></body></html>"
+            ## self.rstdata = msg.format("<br>".join(self.conf['css']))
         return (self.rstfile, self.htmlfile, self.newfile, mld, self.rstdata,
             self.sitename)
 
@@ -656,6 +675,7 @@ class R2hState:
 
         if "-- new --" specified, create new settings from default (but don't save)
         """
+        rstdata = self.rstdata
         if newfile and newfile != settings:
             settings = newfile
         if settings == get_text('c_newitem', self.conf["lang"]):
@@ -700,12 +720,10 @@ class R2hState:
             self.newconf = False
             self.settings = self.sitename = newsett
             mld = self.read_conf(self.settings)
-            if self.oldlang != self.conf["lang"]:   # doe ik hier nog wat mee?
-                self.oldlang = self.conf["lang"]
-        self.rstdata = rstdata
+            self.rstdata = rstdata = conf2text(self.conf)
         if mld == '':
             mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
-        return mld, self.rstdata, self.settings, self.newfile
+        return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
         # this data actually *does* come from the file system as itś code stored on the server

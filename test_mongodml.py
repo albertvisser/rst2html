@@ -1,12 +1,19 @@
-import sys
+import os, sys
 import pprint
 import datetime
+import shutil
 import docs2mongo as dml
 
 def list_database_contents():
     print('\n--------------- Listing database contents -------------')
     for doc in dml.read_db():
         pprint.pprint(doc)
+
+def clear_database_contents():
+    dml.clear_db()
+    path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
+    shutil.rmtree(path)
+    os.mkdir(path)
 
 def list_site_contents(sitename, filename=''):
     """looks like pprint shows the keys in alphabetic order,
@@ -42,17 +49,19 @@ def list_site_contents(sitename, filename=''):
     ## for setting, value in ordered([(x, y) for x, y in sitedoc["settings"].items()]):
         ## outdata.append(outline.format(
 
-def main():
-    site_name = 'test'
-    ## print(dml.get_all_doc_data(site_name))
-    ## return
+def clear_site_contents(sitename):
+    dml.clear_site_data()
+    path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
+    shutil.rmtree(path)
+    os.mkdir(path)
 
-    dml.clear_db()
+def test_dml():
     test = dml.create_new_site(site_name)
     assert test is ''
     test = dml.create_new_site(site_name)
     assert test == 'Site already exists'
-    assert dml.list_sites() == [site_name]
+    test = dml.list_sites()
+    assert site_name in test
     ## list_database_contents()
     setting = 'unknown_setting'
     value = 'secret value'
@@ -173,11 +182,17 @@ def main():
     assert data == '<p>but not them</p>'
     print('ok')
 
-if __name__ == '__main__':
+def main()
     ## print(dml.list_dirs('blub'))
+    site_name = 'test'
+    clear_site_contents(site_name)
     try:
-        main()
+        test_dml(site_name)
     except AssertionError:
         raise
     finally:
         list_database_contents()
+    clear_site_contents(site_name)
+
+if __name__ == '__main__':
+    main()

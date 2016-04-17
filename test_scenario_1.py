@@ -4,7 +4,8 @@ import pprint
 from bs4 import BeautifulSoup
 from rst2html_mongo import Rst2Html
 import docs2mongo as dml
-from test_mongodml import list_database_contents, list_site_contents
+from test_mongodml import list_database_contents, clear_database_contents
+from test_mongodml import list_site_contents, clear_site_contents
 
 rstdata_1 = """\
 test document
@@ -584,16 +585,16 @@ def main():
 
 if __name__ == "__main__":
     # start from scratch
-    dml.clear_db()
-    ## dml.clear_site_data('testsite')
+    clear_database_contents()
+    ## clear_site_contents('testsite')
     # run the tests
     main()
     # see what we have done
-    sitedoc, data = dml.list_site_data('testsite')
+    sitedoc, data = list_site_contents('testsite')
     pprint.pprint(sitedoc)
     for item in data:
         pprint.pprint(item)
     # remove our traces
-    dml.clear_db()
-    ## dml.clear_site_data('testsite')
+    ## clear_database_contents()
+    ## clear_site_contents('testsite')
 

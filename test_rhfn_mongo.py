@@ -6,29 +6,36 @@ import subprocess as sp
 import pprint
 import yaml
 import rst2html_functions_mongo as rhfn
-from docs2mongo import clear_db as init_db
-from test_mongodml import list_database_contents
+from test_mongodml import list_database_contents, clear_database_contents
 
 def sorted_items(input_dict):
     return [(x, y) for x, y in sorted(input_dict.items())]
 
 confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
-    'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
+    'wid': 100, 'url': 'http:///rst2html-data/test', 'lang': 'en'}
 confdata_text = '\n'.join((
     'css:',
     '- http://www.example.com/test.css',
     'hig: 32',
     'lang: en',
-    'url: /rst2html-data/test',
+    'url: http:///rst2html-data/test',
     'wid: 100\n'
     ))
+confdata_text_2 = '\n'.join((
+    'hig: 32',
+    'lang: en',
+    'url: http:///rst2html-data/test',
+    'wid: 100\n',
+    'css:',
+    '- http://www.example.com/test.css'
+    ))
 other_confdata = {'lang': 'en', 'hig': 32, 'wid': 100,'css': [],
-    'url': '/rst2html-data/blub'}
+    'url': 'http:///rst2html-data/blub'}
 other_confdata_text = '\n'.join((
     'css: []',
     'hig: 32',
     'lang: en',
-    'url: /rst2html-data/blub',
+    'url: http:///rst2html-data/blub',
     'wid: 100\n'
     ))
 newconfdata = {'lang': 'en', 'css': [], 'hig': 32, 'url': '', 'wid': 100}
@@ -74,19 +81,9 @@ converted_txt = """\
 """
 pietersen_txt = 'hallo vriendjes'
 
-def test_functions_setup():
-
-    # clear out test data
-    testsite = 'test'
-    init_db()
-    ## dml.clear_site_data(testsite)
-    mirror = os.path.join('/home', 'albert', 'www', 'cherrypy', 'rst2html',
-        'rst2html-data', testsite)
-    sp.call(['rm', '-R', '{}'.format(mirror)])
-
-def test_new_site():
+def test_new_site(sitename):
     print('creating new site and doing some failure tests on updating...', end=' ')
-    new_site = 'test'
+    new_site = sitename
     mld = rhfn.new_conf(new_site)
     assert mld == ''
     sett = rhfn.read_conf(new_site)
@@ -94,9 +91,9 @@ def test_new_site():
     mld = rhfn.new_conf('test')
     assert mld == 'Site already exists'
     sett = {x:y for x, y in rhfn.DFLT_CONF.items()}
-    sett['url'] = 'something else'
-    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
-    assert mld == 'Please do not modify the url value'
+    ## sett['url'] = 'something else'
+    ## mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    ## assert mld == 'Please do not modify the url value'
     sett['url'] = '/rst2html-data/test'
     sett.pop('css')
     mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
@@ -114,39 +111,39 @@ def test_new_site():
     assert mld == ''
     print('ok')
 
-def test_readwrite_conf():
+def test_readwrite_conf(sitename):
     print('reading and writing conf...', end=' ')
     expected = '<option>test</option>'
     assert rhfn.list_confs() == expected
     expected = '<option selected="selected">test</option>'
     assert rhfn.list_confs('test') == expected
 
-    sitename = rhfn.default_site()
-    assert sitename == 'test'
+    ## sitename = rhfn.default_site()
+    ## assert sitename == 'test'
     conf = rhfn.read_conf('not_test')
     assert conf == None
     conf = rhfn.read_conf(sitename)
-    expected = {'url': '/rst2html-data/test',
+    expected = {'url': 'http:///rst2html-data/test',
         'wid': 100, 'css': [], 'hig': 32, 'lang': 'en'}
-    assert conf == expected
+    assert sorted_items(conf) == sorted_items(expected)
 
     text = rhfn.conf2text(conf)
     expected = "\n".join((
         "css: []",
         "hig: 32",
         "lang: en",
-        "url: /rst2html-data/test",
+        "url: http:///rst2html-data/test",
         "wid: 100\n"))
     assert text == expected
     text = text.replace('[]', "['http://www.example.com/test.css']")
     msg = rhfn.save_conf(sitename, text)
     assert msg == ''
-    expected = {'hig': 32, 'wid': 100, 'url': '/rst2html-data/test',
+    expected = {'hig': 32, 'wid': 100, 'url': 'http:///rst2html-data/test',
         'css': ['http://www.example.com/test.css'], 'lang': 'en'}
     conf = rhfn.read_conf(sitename)
-    assert conf == expected
+    assert sorted_items(conf) == sorted_items(expected)
     print('ok')
-    return sitename, conf
+    return conf
 
 def test_list_files(sitename):
     print('listing dirs and files...', end=' ')
@@ -727,9 +724,12 @@ def test_savextra(state):
 
 
 def main():
-    test_functions_setup()
-    test_new_site()
-    sitename, conf = test_readwrite_conf()
+    testsite = 'test'
+    clear_site_contents(sitename)
+
+    test_functions_setup(sitename)
+    test_new_site(sitename)
+    conf = test_readwrite_conf(sitename)
     current = test_list_files(sitename)
     test_readwrite_docs(sitename, current)
     test_check_formats(sitename, current)
@@ -754,6 +754,10 @@ def main():
     # no need to test these as they are deactivated in the page
     ## state = test_loadxtra(state)
     ## state = test_savextra(state)
+
+    ## list_site_contents(sitename)
+    clear_site_contents(sitename)
+
 
 if __name__ == '__main__':
     main()

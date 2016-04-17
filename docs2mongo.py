@@ -6,13 +6,20 @@ db = cl.rst2html_database
 site_coll = db.site_coll
 stat_keys = ('src', 'dest', 'to_mirror')
 Stats = namedtuple('Stats', stat_keys)
-
+# idee: test of insert_one bestaat, zo nee dan _one varianten herdefinieren zodat de try/excepts
+# uit onderstaande code weg kunnen
 
 def clear_db():
     db.drop_collection(site_coll)
 
 def read_db():
     return site_coll.find()
+
+def add_sitecoll_doc(data):
+    try:
+        site_coll.insert_one(data)
+    except TypeError:
+        site_coll.insert(data)
 
 def create_new_site(site_name):
     """set up the database for managing a new site
