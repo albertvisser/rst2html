@@ -50,12 +50,12 @@ def list_site_contents(sitename, filename=''):
         ## outdata.append(outline.format(
 
 def clear_site_contents(sitename):
-    dml.clear_site_data()
+    dml.clear_site_data(sitename)
     path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
     shutil.rmtree(path)
     os.mkdir(path)
 
-def test_dml():
+def test_dml(sitename):
     test = dml.create_new_site(site_name)
     assert test is ''
     test = dml.create_new_site(site_name)
@@ -182,7 +182,7 @@ def test_dml():
     assert data == '<p>but not them</p>'
     print('ok')
 
-def main()
+def main():
     ## print(dml.list_dirs('blub'))
     site_name = 'test'
     clear_site_contents(site_name)
