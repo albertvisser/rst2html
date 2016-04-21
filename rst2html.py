@@ -24,6 +24,7 @@ class Rst2Html(object):
         self.conffile = 'settings.yml'
         self.current = ""
         self.oldtext = self.oldlang = self.oldhtml = ""
+        self.root = self.source = ''
 
     def currentify(self, where):
         is_not_root = False
@@ -34,13 +35,13 @@ class Rst2Html(object):
 
     def all_source(self, naam):
         """build list of options from rst files"""
-        path, not_root = self.currentify(self.conf['source'])
+        path, not_root = self.currentify(self.source)
         ext = 'rst'
         return rhfn.list_files(path, not_root, naam, ext)
 
     def all_html(self, naam):
         """build list of options from html files"""
-        path, not_root = self.currentify(self.conf['root'])
+        path, not_root = self.currentify(self.root)
         ext = 'html'
         return rhfn.list_files(path, not_root, naam, ext)
 
@@ -48,8 +49,8 @@ class Rst2Html(object):
         """scan alle brondocumenten op RefKey directives en bouw hiermee een
         trefwoordenregister op"""
         mld = ""
-        rstdata = rhfn.build_trefwoordenlijst(self.conf['source'], self.conf["lang"])
-        mld = rhfn.save_to(self.conf['source'] / 'trefwoorden.rst', rstdata)
+        rstdata = rhfn.build_trefwoordenlijst(self.source, self.conf["lang"])
+        mld = rhfn.save_to(self.source / 'trefwoorden.rst', rstdata)
         if mld == "":
             cssfile = str(self.conf['css'])
             newdata = rhfn.rst2html(rstdata, cssfile)
@@ -59,7 +60,7 @@ class Rst2Html(object):
             newcss = '<link rel="stylesheet" href="{0}" type="text/css" />'.format(
                 cssfile)
             newdata = newcss.join((begin, end))
-            mld = rhfn.save_to(self.conf['root'] / "trefwoorden.html", newdata)
+            mld = rhfn.save_to(self.root / "trefwoorden.html", newdata)
             if mld == "":
                 mld = rhfn.save_to(self.conf['mirror'] / "trefwoorden.html",
                     cssfile.join((begin, end)))
@@ -115,8 +116,10 @@ class Rst2Html(object):
     def read_conf(self, settings):
         mld, conf = rhfn.read_conf(settings, self.conf["lang"])
         if mld == '':
+            self.root = conf.pop('root')
+            self.source = conf.pop('source')
             self.conf = conf
-            self.subdirs = rhfn.list_subdirs(self.conf["source"])
+            self.subdirs = rhfn.list_subdirs(self.source)
             self.current = ""
         self.loaded = rhfn.CONF
         return mld
@@ -238,7 +241,7 @@ class Rst2Html(object):
             mld = " "
             htmlfile = rstfile
         if not mld:
-            source = self.currentify(self.conf['source'])[0] / rstfile
+            source = self.currentify(self.source)[0] / rstfile
             mld, data = rhfn.read_data(source)
         if not mld:
             self.loaded = rhfn.RST
@@ -257,7 +260,7 @@ class Rst2Html(object):
         fname = newfile or rstfile
         mld = rhfn.check_if_rst(rstdata, self.loaded, fname, self.conf["lang"])
         if mld == "":
-            where = self.currentify(self.conf['source'])[0]
+            where = self.currentify(self.source)[0]
             newpath = where / fname
             if newpath.suffix != ".rst":
                 newfile += ".rst"
@@ -283,7 +286,7 @@ class Rst2Html(object):
         if mld == "":
             if rstdata != self.oldtext:
                 mld = rhfn.save_to(
-                    self.currentify(self.conf['source'])[0] / pathlib.Path(fname),
+                    self.currentify(self.source)[0] / pathlib.Path(fname),
                     rstdata)
         if mld == "":
             ## previewdata = rhfn.rst2html(rstdata, self.conf['css'])
@@ -318,8 +321,8 @@ class Rst2Html(object):
             newpath = pathlib.Path(fname)
             rstpath = newpath.with_suffix(".rst")
             htmlpath = newpath.with_suffix(".html")
-            rstfile = self.currentify(self.conf['source'])[0] / rstpath
-            htmlfile = self.currentify(self.conf['root'])[0] / htmlpath
+            rstfile = self.currentify(self.source)[0] / rstpath
+            htmlfile = self.currentify(self.root)[0] / htmlpath
             newdata = rhfn.rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext:
                 mld = rhfn.save_to(rstfile, rstdata)
@@ -343,7 +346,7 @@ class Rst2Html(object):
             htmlpath = pathlib.Path(htmlfile)
             rstfile = htmlpath.with_suffix(".rst")
         if mld == "":
-            htmlfile = self.currentify(self.conf['root'])[0] / htmlpath
+            htmlfile = self.currentify(self.root)[0] / htmlpath
             mld, data = rhfn.read_data(htmlfile)
         if not mld:
             self.oldhtml = rstdata = data.replace("&nbsp", "&amp;nbsp")
@@ -374,7 +377,7 @@ class Rst2Html(object):
         """save displayed (edited) html"""
         mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile, self.conf["lang"])
         if mld == "":
-            htmlfile = self.currentify(self.conf['root'])[0] / htmlfile
+            htmlfile = self.currentify(self.root)[0] / htmlfile
             newdata = rstdata # striplines(rstdata)
             mld = rhfn.save_to(htmlfile, newdata)
             rstdata = newdata.replace("&nbsp", "&amp;nbsp")
@@ -393,7 +396,7 @@ class Rst2Html(object):
         mld = rhfn.check_if_html(rstdata, self.loaded, htmlfile, self.conf["lang"])
         if not mld:
             rstdata = self.complete_header(rstdata)
-            target = self.currentify(self.conf['mirror'])[0] / htmlfile
+            target = self.currentify(self.mirror)[0] / htmlfile
             mld = rhfn.save_to(target, rstdata)
             if not mld:
                 x = "/" if self.current else ""
@@ -412,13 +415,13 @@ class Rst2Html(object):
         """
         # step 1: read source tree to determine files to be converted
         results = []
-        pathlist = rhfn.determine_files(self.conf['source'], suffix='.rst')
+        pathlist = rhfn.determine_files(self.source, suffix='.rst')
         mld = ''
         for rstfile in pathlist:
             # bepaal de juiste pad namen
-            htmlfile = rstfile.relative_to(self.conf['source']).with_suffix('.html')
-            destfile = self.conf['mirror'] / htmlfile
-            htmlfile = self.conf['root'] / htmlfile
+            htmlfile = rstfile.relative_to(self.source).with_suffix('.html')
+            destfile = self.mirror / htmlfile
+            htmlfile = self.root / htmlfile
             if not destfile.exists(): #only process files with target counterpart
                 results.append(rhfn.get_text('target_missing').format(str(rstfile)))
                 continue
@@ -452,8 +455,8 @@ class Rst2Html(object):
         mld, rstdata = rhfn.determine_most_recently_updated(settings,
             self.conf['lang'])
         if not mld:
-            return rstdata.format(self.conf['mirror'], self.conf['source'],
-                self.conf['root'], settings)
+            return rstdata.format(self.conf['mirror'], self.source, self.root,
+                settings)
         return self.format_output(rstfile, htmlfile, newfile, mld, rstdata, settings)
 
 if __name__ == "__main__":

@@ -4,21 +4,12 @@
         <title>Rst2Html stand van zaken overzicht</title>
     </head>
     <body>
-        <table><!-- Table layout!? Bad, bad Zoot! -->
-            <tr>
-                <td>Site mirror at: {0}<br/>
-                    Source files at: {1}<br/>
-                    Target files at: {2}
-                </td>
-                <td>
-                     &nbsp;&nbsp;&nbsp;
-                    <form style="display:inline" action="/loadconf" method="post">
-                        <input type="hidden" name="settings" value="{3}"/>
-                        <input type="submit" value="back to editor"/>
-                    </form>
-                </td>
-            </tr>
-        </table>
+        <div>
+            <form style="display:inline" action="/loadconf" method="post">
+                <input type="hidden" name="settings" value="{3}"/>
+                <input type="submit" value="back to editor"/>
+            </form>
+        </div>
         <table summary="overzicht">
             <tr>
                 <th>pagina</th>

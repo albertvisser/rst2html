@@ -45,13 +45,15 @@ standard_directives.update({
 # internals
 #
 HERE = pathlib.Path(__file__).parents[0]
+# unix only for now
+WEBROOT = pathlib.Path(os.environ['HOME']) / 'www'
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
-SETT_KEYS = ('root', 'source', 'mirror', 'mirror_url', 'css', 'wid', 'hig',
-    'lang', 'starthead', 'endhead')
-DFLT_CONF = { 'wid': 100, 'hig': 32,'source': '.', 'root': '.', 'lang': 'en'}
+DFLT_CONF = { 'wid': 100, 'hig': 32, 'mirror': '.', 'mirror_url': '.', 'lang': 'en',
+    'css': []}
+SETT_KEYS = [key for key in DFLT_CONF] + ['starthead', 'endhead']
 # constants for loaded data
 RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
 #
@@ -239,14 +241,13 @@ def read_conf(naam, lang=DFLT_CONF['lang']):
                     conf[sett] = DFLT_CONF[sett]
                 continue
             return get_text('sett_missing', lang).format(sett), {}
-        if sett == 'root':
-            conf[sett] = pathlib.Path(conf[sett])
-            if not conf[sett].exists():
-                return does_not_exist.format('"{}":'.format(sett), conf[sett]), {}
-        elif sett in ('source, mirror'):
-            conf[sett] = make_path(conf['root'], conf[sett])
-            if not conf[sett].exists():
-                return does_not_exist.format('"{}":'.format(sett), conf[sett]), {}
+        if sett == 'mirror':
+            conf[sett] = WEBROOT / conf[sett]
+            if not conf[sett].exists(): conf[sett].mkdir(parents=True)
+            conf['source'] = conf[sett] / 'source'
+            if not conf['source'].exists(): conf['source'].mkdir(parents=True)
+            conf['root'] = conf[sett] / 'target'
+            if not conf['root'].exists(): conf['root'].mkdir(parents=True)
         elif sett == 'mirror_url':
             conf[sett] = make_url(conf[sett], conf['mirror_url'])
         elif sett == 'css':
@@ -292,54 +293,42 @@ def zetom_conf(text, lang=DFLT_CONF['lang']):
         probeer = line.strip().split(': ')
         if len(probeer) > 1:
             sleutel = probeer[0]
-            data[sleutel] = [css_link2file(probeer[1])]
+            data[sleutel] = css_link2file(probeer[1])
+        elif line.endswith(':'):
+            sleutel = line.rstrip(':')
+            data[sleutel] = []
         else:
-            data[sleutel].append(css_link2file(probeer[0]))
-    for key in SETT_KEYS: # process dictionary _data_ in this sequence
+            data[sleutel].append(css_link2file(probeer[0][2:]))
+    for key in SETT_KEYS:
         if key not in data:
             continue
         value = data[key]
-        if key == SETT_KEYS[0]:     # root
-            test = pathlib.Path(value[0])
-            if not test.exists():
-                return does_not_exist.format('"{}":'.format(sett), conf[sett])
-            rootparts = test.parts
-        elif key in SETT_KEYS[1:3]: # ander path
-            test = pathlib.Path(value[0])
-            if not test.exists():
-                return does_not_exist.format('"{}":'.format(sett), conf[sett])
-            textparts = test.parts
-            if textparts[:2] != rootparts[:2]: # skip comparison if toplevels differ
-                continue
-            if len(rootparts) < len(textparts): # get smallest number of subdirs
-                max = len(rootparts)
-            else:
-                max = len(textparts)
-            i = 0
-            while (i < max and textparts[i] == rootparts[i]):
-                i += 1
-            textparts = ['..'] * (len(rootparts) - i) + list(textparts[i:])
-            value = 'root'
-            if textparts:
-                value += ' + ' + '/'.join(textparts)
-            data[key] = [value]
-        elif key == 'css':
-            for ix, item in enumerate(data[key]):
-                if not item.startswith('http'):
-                    return invalid.format(sett)
-                if item.startswith(data['mirror_url'][0]):
-                    item = item.replace(data['mirror_url'][0] + '/', 'mirror_url + ')
-                    data[key][ix] = item
-        elif sett in ('wid', 'hig'):
+        if key == 'mirror':
+            data[key] = WEBROOT / value
+            if not data[key].exists(): data[key].mkdir(parents=True)
+            hlp = data[key] / 'source'
+            if not hlp.exists(): hlp.mkdir(parents=True)
+            hlp = data[key] / 'target'
+            if not hlp.exists(): hlp.mkdir(parents=True)
+            data[key] = value
+        elif key in ('wid', 'hig'):
             try:
-                conf[sett] = int(conf[sett])
-            except ValueError:
-                return invalid.format(sett)
+                data[key] = int(value.strip('"').strip("'"))
+            except ValueError as e:
+                return invalid.format(key)
+    # can't guarantee the sequence of the first keys, so this needs to be done after filling the dict
+    key = 'css'
+    for ix, item in enumerate(data[key]):
+        if item.startswith(data['mirror_url']):
+            item = item.replace(data['mirror_url'] + '/', 'mirror_url + ')
+            data[key][ix] = item
+        ## if not item.startswith('http'):
+            ## return invalid.format(key)
     for key, value in data.items():
-        if key == 'css' or key in rhfn.SETT_KEYS[-2:]:
+        ## if key == 'css' or key in SETT_KEYS[-2:]:
             conf[key] = value
-        else:
-            conf[key] = value[0]
+        ## else:
+            ## conf[key] = value[0]
     return conf
 
 def save_conf(conf, fullname):
