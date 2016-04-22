@@ -1,12 +1,12 @@
 # tests for rst2html_functions
 # only test what we've modified
-# TODO: build test code for R2hState methods
 import os
 import subprocess as sp
 import pprint
 import yaml
 import rst2html_functions_mongo as rhfn
-from test_mongodml import list_database_contents, clear_database_contents
+## import rst2html_functions_all as rhfn
+from test_dml import list_site_contents, clear_site_contents
 
 def sorted_items(input_dict):
     return [(x, y) for x, y in sorted(input_dict.items())]
@@ -761,4 +761,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    ## list_database_contents()

@@ -10,7 +10,16 @@ import yaml
 import datetime
 ## import gettext
 import collections
-import docs2mongo as dml
+
+from app_settings import DML, WEBROOT
+if DML == 'fs':
+    import docs2fs as dml
+elif DML == 'mongo':
+    import docs2mongo as dml
+elif DML == 'postgres':
+    import docs2pg as dml
+from docs2fs import read_data, save_to
+
 #
 # docutils stuff (including directives
 #
@@ -266,26 +275,6 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
         out.append("<option{}>{}</option>".format(s, f))
     return "".join(out)
 
-def read_data(fname):   # to be used for actual file system data
-    """reads data from file <fname>
-
-    on success: returns empty message and data as a string
-    on failure: returns error message and empty string for data
-    """
-    mld = data = ''
-    try:
-        with fname.open(encoding='utf-8') as f_in:
-            data = ''.join(f_in.readlines())
-    except UnicodeDecodeError:
-        try:
-            with fname.open(encoding='iso-8859-1') as f_in:
-                data = ''.join(f_in.readlines())
-        except IOError as e:
-            mld = str(e)
-    except IOError as e:
-        mld = str(e)
-    return mld, data
-
 def _get_data(sitename, current, fname, origin):
     """returns the contents or propagates an exception
     """
@@ -360,21 +349,6 @@ def check_if_html(data, loaded, filename=None):
         ## mld = get_text('html_name_missing', lang)
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
         mld = 'html_name_missing'
-    return mld
-
-def save_to(fullname, data): # to be used for actual file system data
-    """backup file, then write data to file
-
-    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
-    mld = ''
-    if fullname.exists():
-        shutil.copyfile(str(fullname),
-            str(fullname.with_suffix(fullname.suffix + '.bak')))
-    with fullname.open("w", encoding='utf-8') as f_out:
-        try:
-            f_out.write(data)
-        except OSError as err:
-            mld = str(err)
     return mld
 
 def make_new_dir(sitename, fname):
@@ -455,7 +429,10 @@ def save_to_mirror(sitename, current, fname):
     fname, ext = os.path.splitext(fname)
     if ext not in ('', EXTS[1]):
         return 'Not a valid html file name'
-    dirname = HERE /'rst2html-data' / sitename
+    if DML == 'fs':
+        dirname = WEBROOT / sitename
+    else:
+        dirname = HERE /'rst2html-data' / sitename
     if current:
         dirname /= current # = dirname / current)
         mld, data = read_html_data(sitename, current, fname)
@@ -463,16 +440,16 @@ def save_to_mirror(sitename, current, fname):
         mld, data = read_html_data(sitename, '', fname)
     if mld:
         return mld
-    if not dirname.exists():
-        dirname.mkdir(parents=True)
-    mld = save_to(dirname / (fname + '.html'), data)
     try:
         dml.update_mirror(sitename, fname, directory=current)
-        return ''
     except AttributeError as e:
         if 'name' in str(e):
             return 'html_name_missing'
         return str(e)
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
+    mld = save_to(dirname / (fname + '.html'), data)
+    return mld
 
 #-- progress list
 def build_progress_list(sitename):

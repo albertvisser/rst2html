@@ -10,7 +10,7 @@ import cherrypy
 ROOT = os.path.dirname(os.path.abspath(__file__)) # '/home/albert/rst2html'
 os.chdir(ROOT)
 sys.path.insert(0, ROOT)
-from rst2html_mongo import Rst2Html
+from rst2html_all import Rst2Html
 
 
 

@@ -9,7 +9,7 @@ sys.path.append('.')
 import os
 import pathlib
 import datetime
-import rst2html_functions_mongo as rhfn
+import rst2html_functions_all as rhfn
 HERE = pathlib.Path(__file__).parents[0]
 TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
@@ -61,7 +61,7 @@ def format_progress_list(timelist):
     parts of this logic belong in the template, but since I'm not using a
     template engine I'm implementing it here
     """
-    template = HERE / 'stand_dml.html'
+    template = HERE / 'stand.html'
     with template.open() as _in:
         output = _in.read()
     first_part, rest = output.split('{% for row in data %}')

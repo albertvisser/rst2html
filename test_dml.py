@@ -1,19 +1,26 @@
 import os, sys
 import pprint
 import datetime
+import pathlib
 import shutil
-import docs2mongo as dml
+from rst2html_app_settings import DML, WEBROOT
+if DML == 'fs':
+    import docs2fs as dml
+elif DML == 'mongo':
+    import docs2mongo as dml
+elif DML == 'postgres':
+    import docs2pg as dml
 
-def list_database_contents():
-    print('\n--------------- Listing database contents -------------')
-    for doc in dml.read_db():
-        pprint.pprint(doc)
+## def list_database_contents():
+    ## print('\n--------------- Listing database contents -------------')
+    ## for doc in dml.read_db():
+        ## pprint.pprint(doc)
 
-def clear_database_contents():
-    dml.clear_db()
-    path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
-    shutil.rmtree(path)
-    os.mkdir(path)
+## def clear_database_contents():
+    ## dml.clear_db()
+    ## path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
+    ## shutil.rmtree(path)
+    ## os.mkdir(path)
 
 def list_site_contents(sitename, filename=''):
     """looks like pprint shows the keys in alphabetic order,
@@ -26,14 +33,15 @@ def list_site_contents(sitename, filename=''):
         errs = str(e)
         sitedoc, docdata = {}, []
     if not filename:
-        print('\n--------------- Listing contents of site {} -------------'.format(
-            sitename))
+        print('\n--------- Listing contents of site {} ----------'.format(sitename))
         if errs:
             print(errs)
         else:
             pprint.pprint(sitedoc)
+            print("----")
             for doc in docdata:
                 pprint.pprint(doc)
+            print("----")
         return
     with open(filename, 'w') as _out:
         if errs:
@@ -51,11 +59,17 @@ def list_site_contents(sitename, filename=''):
 
 def clear_site_contents(sitename):
     dml.clear_site_data(sitename)
-    path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
-    shutil.rmtree(path)
-    os.mkdir(path)
+    if DML == 'fs':
+        path = WEBROOT / sitename
+    else:
+        path = pathlib.Path(__file__).parent / 'rst2html-data' / sitename
+    try:
+        shutil.rmtree(str(path))
+    except FileNotFoundError:
+        pass
+    path.mkdir()
 
-def test_dml(sitename):
+def test_dml(site_name):
     test = dml.create_new_site(site_name)
     assert test is ''
     test = dml.create_new_site(site_name)
@@ -191,7 +205,7 @@ def main():
     except AssertionError:
         raise
     finally:
-        list_database_contents()
+        list_site_contents(site_name)
     clear_site_contents(site_name)
 
 if __name__ == '__main__':
