@@ -4,19 +4,19 @@
         <title>Rst2Html stand van zaken overzicht</title>
     </head>
     <body>
-        <div>
-            <form style="display:inline" action="/loadconf" method="post">
-                <input type="hidden" name="settings" value="{3}"/>
-                <input type="submit" value="back to editor"/>
-            </form>
-        </div>
+        <form style="display:inline" action="/loadconf?settings={}">
+            <input type="submit" value="Back to editor"/>
+        </form>
         <table summary="overzicht">
+            <thead>
             <tr>
                 <th>pagina</th>
                 <th>source</th>
                 <th>target</th>
                 <th>mirror</th>
             </tr>
+            </thead>
+            <tbody>
             {% for row in data %}
             <tr>
                 <td>{row.0}</td>
@@ -25,6 +25,7 @@
                 <td>{row.3}</td>
             </tr>
             {% endfor %}
+            </tbody>
         </table>
     </body>
 </html>
