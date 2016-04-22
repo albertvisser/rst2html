@@ -9,3 +9,4 @@ static/*
 custom_directives.py
 test/*
 rst2html-data/*
+backups/*
