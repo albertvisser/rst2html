@@ -1,9 +1,9 @@
 # test scenario 1
 
 import pprint
-from rst2html_mongo import Rst2Html
+from rst2html_all import Rst2Html
 ## from rst2html_all import Rst2Html
-from analyze_testdata_mongo.py import get_db_diff, analyze_html_data, \
+from analyze_testdata import sitename, get_db_diff, analyze_html_data, \
     get_html_diff, dump_data_and_compare
 from test_dml import list_site_contents, clear_site_contents
 
@@ -76,10 +76,6 @@ htmldata_2 = """\
 </body>
 </html>
 """
-namelist = []
-dbdatalist = []
-htmldatalist = []
-sitename = 'testsite'
 
 
 
@@ -92,25 +88,25 @@ def main():
     app = Rst2Html()
     dbdata, htmldata = dump_data_and_compare(app.index(), '01_index')
     assert dbdata == ({}, []) # sitedocs index followed by list of site docs
-    assert sorted_items(htmldata) == sorted_items({
-        'settings_name': '',
-        'settings_list': ['-- new --'],
-        'rstfile_name': '',
-        'rstfile_list': ['-- new --'],
-        'htmlfile_name': '',
-        'htmlfile_list': ['-- new --'],
-        'newfile_name': '',
-        'mld_text': ' does not exist',
-        'textdata': ''
-        })
+    #initial html data is not very useful
+    ## assert sorted_items(htmldata) == sorted_items({
+        ## 'settings_name': '',
+        ## 'settings_list': ['-- new --'],
+        ## 'rstfile_name': '',
+        ## 'rstfile_list': ['-- new --'],
+        ## 'htmlfile_name': '',
+        ## 'htmlfile_list': ['-- new --'],
+        ## 'newfile_name': '',
+        ## 'mld_text': ' does not exist',
+        ## 'textdata': ''
+        ## })
 
     # simulate loading new conf
     dbdata, htmldata = dump_data_and_compare(
         app.loadconf('-- new --', '', '', '', ''), '02_loadconf_new')
     assert dbdata == ['site data has not changed']
-    assert htmldata == [
-        'mld_text is "New site will be created on save"',
-        'textdata changed']
+    assert 'mld_text is "New site will be created on save"' in htmldata
+    assert 'textdata changed' in htmldata
 
     # simulate saving new conf - forgetting to change the name
     dbdata, htmldata = dump_data_and_compare(
@@ -125,7 +121,9 @@ def main():
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
             sitename, app.state.rstdata),
         '04_saveconf_new')
-    assert dbdata == ['new site has been added']
+    ## print(dbdata)
+    assert 'new site has been added' in dbdata
+    assert 'site docs have not changed' in dbdata
     assert htmldata == [
         'mld_text is "Settings opgeslagen als testsite"',
         'settings_list: added value "testsite"',
@@ -172,7 +170,8 @@ def main():
         app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
             'testdoc1.rst', rstdata_1),
         '08a_saverst_new')
-    assert dbdata == ['new doc in subdir /: testdoc1']
+    assert dbdata == ['new doc in subdir /: testdoc1',
+        "doc ('testdoc1', 'src') is new"]
     assert htmldata == [
         'mld_text is "Rst source saved as testdoc1.rst"',
         'rstfile_list: added value "testdoc1.rst"',
@@ -184,7 +183,8 @@ def main():
         app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
             'subdir/', rstdata_1),
         '08b_saverst_newdir')
-    assert dbdata == ['new subdir: subdir']
+    assert dbdata == ['site docs have not changed',
+        'new subdir: subdir']
     assert htmldata == [
         'mld_text is "New subdirectory subdir created"',
         'rstfile_list: added value "subdir/"',
@@ -224,7 +224,8 @@ def main():
         app.convert(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
             app.state.newfile, rstdata_1),
         '09a_convert_new')
-    assert dbdata == ['/ testdoc1 src was changed']     # is this ok?
+    assert dbdata == ['/ testdoc1 src was changed',
+        "doc ('testdoc1', 'src') is changed"]           # is this ok?
     assert htmldata == [                                # not very useful
         'htmlfile_list: removed value ".."',            # we're not showing
         'mld_text is "switching to parent directory"',  # the interface here
@@ -261,7 +262,10 @@ def main():
         '11_saveall_w_changes')
     assert sorted(dbdata) == sorted([
         '/ testdoc1 src was changed',
-        'new doctype for doc testdoc1 in /: dest'])
+        'new doctype for doc testdoc1 in /: dest',
+        "doc ('testdoc1', 'dest') is new",
+        "doc ('testdoc1', 'src') is changed"
+        ])
     assert htmldata == [
         'htmlfile_list: added value "testdoc1.html"',
         'htmlfile_name: value was "", is now "testdoc1.html"',
@@ -280,7 +284,8 @@ def main():
         app.saverst(app.state.settings, app.state.rstfile, app.state.htmlfile,
             'testdoc1a.rst', app.state.rstdata),
         '12a_saverst_existing_othername')
-    assert dbdata == ['new doc in subdir /: testdoc1a']
+    assert dbdata == ['new doc in subdir /: testdoc1a',
+        "doc ('testdoc1a', 'src') is new"]
     assert htmldata == [
         'htmlfile_name: value was "testdoc1.html", is now ""',
         'mld_text is "Rst source saved as testdoc1a.rst"',
@@ -349,7 +354,8 @@ def main():
         app.savehtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
             app.state.newfile, htmldata_2),
         '15a_savehtml_modified')
-    assert dbdata == ['/ testdoc1 dest was changed']
+    assert dbdata == ['/ testdoc1 dest was changed',
+        "doc ('testdoc1', 'dest') is changed"]
     assert htmldata == ['mld_text is "Modified HTML saved as testdoc1.html"']
 
     # simulate saving an HTML document under a different name - do we allow this?
@@ -357,7 +363,8 @@ def main():
         app.savehtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
             'testdoc2.html', htmldata_2),
         '15b_savehtml_newname')
-    assert dbdata == ['/ testdoc1 dest was changed']
+    assert dbdata == ['/ testdoc1 dest was changed',
+        "doc ('testdoc1', 'dest') is changed"]
     assert htmldata == []   # is this ok?
     # the system doesn't use the new name (and clears it) - that's how it should be
     # skip this test?
@@ -367,7 +374,9 @@ def main():
         app.copytoroot(app.state.settings, app.state.rstfile, 'testdoc1.html',
             app.state.newfile, htmldata_2),
         '16_copytoroot')
-    assert dbdata == ['new doctype for doc testdoc1 in /: to_mirror']
+    # this looks weird, but is correct: mirror data is not included in the docs comparison
+    assert dbdata == ['site docs have not changed',
+        'new doctype for doc testdoc1 in /: to_mirror']
     assert htmldata == ['mld_text is "Copied to siteroot/testdoc1.html"']
 
     # change some documents by adding references
@@ -389,7 +398,10 @@ def main():
         '/ testdoc1 dest was changed',
         '/ testdoc1 was copied to mirror (again)',
         '/ testdoc1 src was changed',
-        '/ testdoc1a src was changed'])
+        '/ testdoc1a src was changed',
+        "doc ('testdoc1', 'src') is changed",
+        "doc ('testdoc1', 'dest') is changed",
+        "doc ('testdoc1a', 'src') is changed"])
     assert htmldata == [
         'htmlfile_name: value was "testdoc1.html", is now ""',              # ok?
         'mld_text is "Site documents regenerated, messages below"',
@@ -413,7 +425,9 @@ def main():
         app.makerefdoc(app.state.settings, app.state.rstfile, app.state.htmlfile,
             app.state.newfile, app.state.rstdata),
         '19_makerefdoc')
-    assert dbdata == ['new doc in subdir /: reflist']
+    assert sorted(dbdata) == sorted(['new doc in subdir /: reflist',
+        "doc ('reflist', 'src') is new",
+        "doc ('reflist', 'dest') is new"])
     # eigenlijk wil je hier ook zeker weten dat de html gegenereerd is en naar mirror gezet
     assert htmldata == [
         'htmlfile_list: added value "reflist.html"',
@@ -430,10 +444,10 @@ if __name__ == "__main__":
     main()
     # see what we have done
     sitedoc, data = list_site_contents('testsite')
-    pprint.pprint(sitedoc)
-    for item in data:
-        pprint.pprint(item)
+    ## pprint.pprint(sitedoc)
+    ## for item in data:
+        ## pprint.pprint(item)
     # remove our traces
-    clear_database_contents()
+    ## clear_database_contents()
     clear_site_contents('testsite')
 

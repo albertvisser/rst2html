@@ -1,4 +1,9 @@
 from bs4 import BeautifulSoup
+from test_dml import list_site_contents
+namelist = []
+dbdatalist = []
+htmldatalist = []
+sitename = 'testsite'
 
 def analyze_db_data(name):
     "convert text dump to datastructure"
@@ -17,6 +22,7 @@ def get_db_diff(old, new, olddata, newdata):
     if newdocs == olddocs:
         result.append('site docs have not changed')
     ## print(newsite, oldsite)
+    ## print(olddocs, newdocs)
     if oldsite == {}:
         result.append('new site has been added')
         return result
@@ -50,14 +56,35 @@ def get_db_diff(old, new, olddata, newdata):
                         else:
                             result.append('{} {} was copied to mirror (again)'
                                 ''.format(subdir, doc))
-    # document ids are sorted, so what's in newdocs should also be in olddocs
-    for ix, doc in enumerate(newdocs):
-        if ix < len(olddocs):
-            if (doc['current'] != olddocs[ix]['current'] or
-                    doc['previous'] != olddocs[ix]['previous']):
-                result.append('doc {} is changed'.format(doc['_id']))
+    # document ids are sorted, but not necessarily in creation order
+    oldids = [x['_id'] for x in olddocs]
+    newids = [x['_id'] for x in newdocs]
+    allids = set(oldids + newids)
+    for _id in allids:
+        if _id in oldids and _id not in newids:
+            result.append('doc {} is removed'.format(_id))
+        elif _id in newids and _id not in oldids:
+            result.append('doc {} is new'.format(_id))
         else:
-            result.append('doc {} is new'.format(doc['_id']))
+            for doc in olddocs:
+                if doc['_id'] == _id:
+                    olddoc = doc
+                    break
+            for doc in newdocs:
+                if doc['_id'] == _id:
+                    newdoc = doc
+                    break
+            if (newdoc['current'] != olddoc['current'] or
+                    newdoc['previous'] != olddoc['previous']):
+                result.append('doc {} is changed'.format(_id))
+                ## result.append('doc {} is changed'.format(doc['_id']))
+    ## for ix, newdoc in enumerate(newdocs):
+        ## if ix < len(olddocs):
+            ## if (doc['current'] != olddocs[ix]['current'] or
+                    ## doc['previous'] != olddocs[ix]['previous']):
+                ## result.append('doc {} is changed'.format(doc['_id']))
+        ## else:
+            ## result.append('doc {} is new'.format(doc['_id']))
     return result
 
 

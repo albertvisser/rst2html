@@ -32,14 +32,13 @@ def create_new_site(site_name):
     """set up the database for managing a new site
     """
     if site_coll.find_one({'name': site_name}) is not None:
-        return 'Site already exists'
+        raise FileExistsError('Site already exists')
     new_site = {
         'name': site_name,
         'settings': {},
         'docs': {'/': {}}
         }
     site_coll.insert_one(new_site)
-    return ''
 
 def _get_site_id(site_name):
     """returns the id of the document for the site with the given name
@@ -56,14 +55,21 @@ def list_site_data(site_name):
     sitedoc = site_coll.find_one({'name': site_name})
     if sitedoc is None:
         raise FileNotFoundError('Site bestaat niet')
-    id_list = []
+    id_list, id_dict = [], {}
     for dirname, diritem in sitedoc['docs'].items():
         for docname, docitem in diritem.items():
             for locname, locitem in docitem.items():
                 if 'docid' in locitem:
                     id_list.append(locitem['docid'])
-    data = site_coll.find({'_id': {'$in': sorted(id_list)}})
-    return sitedoc, data
+                    id_dict[locitem['docid']] = (docname, locname, dirname)
+    data = []
+    for item in site_coll.find({'_id': {'$in': id_list}}):
+        docname, locname, dirname = id_dict[item['_id']]
+        if dirname != '/':
+            docname = '/'.join((dirname, docname))
+        item['_id'] = (docname, locname)
+        data.append(item)
+    return sitedoc, sorted(data, key=lambda x: x['_id'])
 
 def clear_site_data(site_name):
     sitedoc = site_coll.find_one_and_delete({'name': site_name})
@@ -79,8 +85,9 @@ def clear_site_data(site_name):
 
 def read_settings(site_name):
     sitedoc = site_coll.find_one({'name': site_name})
-    if sitedoc:
-        return sitedoc['settings']
+    if sitedoc is None:
+        raise FileNotFoundError
+    return sitedoc['settings']
 
 def change_setting(site_name, sett_name, value):
     """modify a site setting to the given value
@@ -152,8 +159,7 @@ def remove_dir(site_name, directory): # untested - do I need/want this?
 def list_docs(site_name, doctype='', directory=''):
     """list the documents of a given type in a given directory
 
-    assumes site exists
-    raises FileNotFoundError if directory doesn't exist
+    raises FileNotFoundError if site or directory doesn't exist
     """
     if not directory: directory = '/'
     sitedoc = site_coll.find_one({'name': site_name})
@@ -213,11 +219,6 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     doc_data = site_coll.find_one({'_id': doc_id})
     return doc_data['current']
 
-def remove_doc(site_name, doc_name, directory=''): # untested - do I need/want this?
-    sitedoc = site_coll.find_one({'name': site_name})
-    sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
-    _update_site_docs(site_name, sitedoc['docs'])
-
 def update_rst(site_name, doc_name, contents, directory=''):
     """update a source document in the given directory
 
@@ -275,14 +276,23 @@ def update_mirror(site_name, doc_name, directory=''):
     """administer promoting the converted document in the given directory
     to the mirror site
 
+    raise AttributeError if no name provided
     create a new entry if it's the first time
     """
-    if not doc_name: return 'Geen naam opgegeven'
+    ## print(directory, doc_name)
+    if not doc_name:
+        raise AttributeError('No name provided')
     if not directory: directory = '/'
     sitedoc = site_coll.find_one({'name': site_name})
     dts = datetime.datetime.utcnow()
+    ## print(directory)
     sitedoc['docs'][directory][doc_name]['to_mirror']= {'updated': dts}
     _update_site_doc(site_name, sitedoc['docs'])
+
+def remove_doc(site_name, doc_name, directory=''): # untested - do I need/want this?
+    sitedoc = site_coll.find_one({'name': site_name})
+    sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
+    _update_site_docs(site_name, sitedoc['docs'])
 
 def _get_stats(docinfo):
     stats = []

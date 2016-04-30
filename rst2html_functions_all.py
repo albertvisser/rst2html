@@ -19,7 +19,6 @@ elif DML == 'mongo':
 elif DML == 'postgres':
     import docs2pg as dml
 from docs2fs import read_data, save_to
-
 #
 # docutils stuff (including directives
 #
@@ -164,8 +163,11 @@ def new_conf(sitename):
 
     returns '' on success, message on failure
     """
-    mld = dml.create_new_site(sitename)
-    return mld
+    try:
+        dml.create_new_site(sitename)
+    except FileExistsError as e:
+        return str(e)
+    return ''
 
 def list_confs(sitename='', lang=DFLT_CONF['lang']):
     """build list of options containing all possible site settings
@@ -177,17 +179,23 @@ def list_confs(sitename='', lang=DFLT_CONF['lang']):
         out.append("<option{}>{}</option>".format(s, name))
     return "".join(out)
 
-def read_conf(naam):
+def read_conf(sitename, lang=DFLT_CONF['lang']):
     """read a config file; returns a dictionary of options
     """
-    return dml.read_settings(naam)
+    try:
+        return '', dml.read_settings(sitename)
+    except FileNotFoundError:
+        return 'no_such_sett', None
 
-def conf2text(conf):
+def conf2text(conf, lang=DFLT_CONF['lang']):
+    if 'mirror_url' in conf:
+        # compatibilty with old settings files
+        conf['url'] = conf.pop('mirror_url')
     confdict = {key: value for key, value in conf.items()}
-    confdict['css'] = []
-    for item in conf['css']:
-        if item.startswith(conf['url']):
-            confdict['css'].append(item.replace(confdict['url'], 'url + '))
+    if 'css' in conf: #  and 'url' in conf:
+        for item in conf['css']:
+            if item.startswith(conf['url']):
+                confdict['css'].append(item.replace(confdict['url'], 'url + '))
     return yaml.dump(confdict, default_flow_style=False)
 
 def save_conf(sitename, text, lang=DFLT_CONF['lang']):
@@ -204,7 +212,9 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
     data = {}
     conf = {}
     fout = ''
-    if dml.read_settings(sitename) is None:
+    try:
+        dml.read_settings(sitename)
+    except FileNotFoundError:
         return get_text('no_such_sett', lang).format(sitename)
     # pass data through yaml to parse into a dict
     conf = yaml.safe_load(text) # let's be paranoid
@@ -253,7 +263,7 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
         try:
             items = dml.list_docs(sitename, ext, directory=current)
         except FileNotFoundError:
-            return "Directory `{}` not found".format(current)
+            items = [] # return "Directory `{}` not found".format(current)
     else:
         try:
             items = dml.list_docs(sitename, ext)
@@ -356,8 +366,6 @@ def make_new_dir(sitename, fname):
         dml.create_new_dir(sitename, fname)
     except FileExistsError:
         return 'dir_name_taken'
-    ## # need to fake an rst document to have this show up in the dir list
-    ## dml.create_new_doc(sitename, ' ', fname)
     return ''
 
 def save_src_data(sitename, current, fname, data, new=False):
@@ -373,7 +381,6 @@ def save_src_data(sitename, current, fname, data, new=False):
             pass # already existing is ok
     try:
         if new:
-            ## print('save_src_name: creating new document')
             try:
                 dml.create_new_doc(sitename, fname, directory=current)
             except FileExistsError:
@@ -461,9 +468,14 @@ def build_progress_list(sitename):
             break
     data.sort()
     data.insert(0, rootitem)
+    ## for x in data: print(x)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
-            maxidx = stats.index(max(stats))
+            ## maxidx = stats.index(max(stats))
+            maxval = max(stats)
+            for idx, val in enumerate(stats):
+                if maxval == val:
+                    maxidx = idx
             result.append((dirname, docname, maxidx, stats))
     return result
 
@@ -471,7 +483,10 @@ def build_progress_list(sitename):
 def update_files_in_dir(sitename, conf, dirname='', missing=False):
     errors = []
     items = dml.list_docs(sitename, 'src', directory=dirname)
-    path = HERE /'rst2html-data' / sitename
+    if DML == 'fs':
+        path = WEBROOT / sitename
+    else:
+        path = HERE /'rst2html-data' / sitename
     if dirname: path /= dirname
     for filename in items:
         msg, rstdata = read_src_data(sitename, dirname, filename)
@@ -622,15 +637,15 @@ class R2hState:
             self.loaded = CONF
         else:
             ## print('in readconf:', settings)
-            conf = read_conf(settings)
+            mld, conf = read_conf(settings)
             ## print('in readconf:', conf)
-            if conf is not None:
+            if mld == '':
                 self.conf = conf
                 self.current = ""
                 self.subdirs = list_subdirs(settings, 'src')
                 self.loaded = CONF
             else:
-                mld = get_text('no_such_sett', self.conf["lang"]).format(settings)
+                mld = get_text(mld, self.conf["lang"]).format(settings)
         return mld
 
     def index(self):

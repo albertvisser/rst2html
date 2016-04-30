@@ -1,11 +1,11 @@
 # tests for rst2html_functions
-# only test what we've modified
+# for now only test what we've modified (which is almost everything anyway)
 import os
 import subprocess as sp
 import pprint
 import yaml
-import rst2html_functions_mongo as rhfn
-## import rst2html_functions_all as rhfn
+from app_settings import DML, WEBROOT, SETTFILE
+import rst2html_functions_all as rhfn
 from test_dml import list_site_contents, clear_site_contents
 
 def sorted_items(input_dict):
@@ -49,8 +49,8 @@ newconfdata_text = '\n'.join((
 expected_overview = [
     ('/', 'horrorscenario', 0),
     ('/', 'jansen', 2),
-    ('/', 'monty', 0),
     ('/', 'pietersen', 1),
+    ('/', 'python', 0),
     ('/', 'reflist', 2),
     ('/', 'tilanus', 2),
     ('guichelheil', 'de groot', 2),
@@ -84,9 +84,10 @@ pietersen_txt = 'hallo vriendjes'
 def test_new_site(sitename):
     print('creating new site and doing some failure tests on updating...', end=' ')
     new_site = sitename
-    mld = rhfn.new_conf(new_site)
+    mld = rhfn.new_conf(sitename)
     assert mld == ''
-    sett = rhfn.read_conf(new_site)
+    mld, sett = rhfn.read_conf(sitename)
+    assert mld == ''
     assert sett == {}
     mld = rhfn.new_conf('test')
     assert mld == 'Site already exists'
@@ -95,10 +96,10 @@ def test_new_site(sitename):
     ## mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
     ## assert mld == 'Please do not modify the url value'
     sett['url'] = '/rst2html-data/test'
-    sett.pop('css')
-    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
-    assert mld == "Config: invalid value for css -  does not exist"
-    sett['css'] = []
+    ## sett.pop('css')
+    ## mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    ## assert mld == "Config: invalid value for css -  does not exist"
+    ## sett['css'] = []
     sett['hig'] = 'Too high'
     mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for hig'
@@ -114,15 +115,16 @@ def test_new_site(sitename):
 def test_readwrite_conf(sitename):
     print('reading and writing conf...', end=' ')
     expected = '<option>test</option>'
-    assert rhfn.list_confs() == expected
+    assert expected in rhfn.list_confs()
     expected = '<option selected="selected">test</option>'
-    assert rhfn.list_confs('test') == expected
-
+    assert expected in rhfn.list_confs('test')
     ## sitename = rhfn.default_site()
     ## assert sitename == 'test'
-    conf = rhfn.read_conf('not_test')
+    mld, conf = rhfn.read_conf('not_test')
+    assert mld == 'no_such_sett'
     assert conf == None
-    conf = rhfn.read_conf(sitename)
+    mld, conf = rhfn.read_conf(sitename)
+    assert mld == ''
     expected = {'url': 'http:///rst2html-data/test',
         'wid': 100, 'css': [], 'hig': 32, 'lang': 'en'}
     assert sorted_items(conf) == sorted_items(expected)
@@ -140,7 +142,8 @@ def test_readwrite_conf(sitename):
     assert msg == ''
     expected = {'hig': 32, 'wid': 100, 'url': 'http:///rst2html-data/test',
         'css': ['http://www.example.com/test.css'], 'lang': 'en'}
-    conf = rhfn.read_conf(sitename)
+    mld, conf = rhfn.read_conf(sitename)
+    assert mld == ''
     assert sorted_items(conf) == sorted_items(expected)
     print('ok')
     return conf
@@ -386,10 +389,9 @@ def test_reference_list(sitename, current):
 
 
 def test_state_class():
-    print('Initializing state... ', end = '')
+    print('Testing state class:')
     state = rhfn.R2hState()
-    assert state.sitename == 'test'
-    print('ok')
+    ## assert state.sitename == 'test'
 
     print('testing currentify... ', end='')
     state.current = ''
@@ -415,10 +417,12 @@ def test_state_class():
 def test_index(state):
     print('testing index... ', end='')
 
+    initial_site = state.sitename
     data = state.index()
-    assert data == ('', '', '', 'Settings file is test', confdata_text, 'test')
-    assert sorted_items(state.conf) == sorted_items(confdata)
-    assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
+    assert data[:4] == ('', '', '', 'Settings file is {}'.format(initial_site))
+    assert data[-1] == initial_site
+    ## assert sorted_items(state.conf) == sorted_items(confdata)
+    ## assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
     assert state.current == ''
     assert state.loaded == 'yaml'
 
@@ -436,7 +440,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == '-- new --'
-    assert state.newconf == True
+    assert state.newconf is True
 
     data = state.loadconf('test', '')
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
@@ -445,7 +449,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    assert state.newconf == False
+    assert state.newconf is False
 
     data = state.loadconf('test', 'blub') # other conf - fail
     assert data == ('blub does not exist', confdata_text, 'test', '')
@@ -454,7 +458,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    assert state.newconf == False
+    assert state.newconf is False
 
     data = state.loadconf('blub', 'test')                   # other conf - ok
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
@@ -463,7 +467,7 @@ def test_load_conf(state):
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
-    assert state.newconf == False
+    assert state.newconf is False
 
     print('ok')
     return state
@@ -568,13 +572,14 @@ def test_saverst(state):
     assert data == ('Subdirectory monty already exists',
         'jansen.rst', 'jansen.html', '')
 
-    data = state.saverst('jansen.rst', 'monty', 'my hovercraft is full of eels')
-    assert data == ('Rst source saved as monty.rst', 'monty.rst', 'monty.html', '')
+    data = state.saverst('jansen.rst', 'python', 'my hovercraft is full of eels')
+    assert data == ('Rst source saved as python.rst', 'python.rst', 'python.html',
+        '')
 
     state.loaded = rhfn.CONF
     data = state.saverst('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
-        'monty.rst', 'monty.html', '')
+        'python.rst', 'python.html', '')
 
     print('ok')
     return state
@@ -604,7 +609,7 @@ def test_saveall(state):
     state.loaded = rhfn.HTML
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
-        'monty.rst', 'monty.html', '')
+        'python.rst', 'python.html', '')
     state.loaded = rhfn.RST
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert data == ('Rst converted to html and saved as jansen.html',
@@ -697,7 +702,7 @@ def test_convert_all(state):
     assert mld == 'Site documents regenerated, messages below'
     test = data.split('\n')
     assert sorted(test) == sorted(('pietersen not present at mirror',
-        'monty skipped: not in target directory',
+        'python skipped: not in target directory',
         'horrorscenario skipped: not in target directory'))
     print('ok')
     return state
@@ -707,6 +712,7 @@ def test_overview(state):
     # not much more than receiving the results of the earlier tested build_progress_list
     data = state.overview()
     # this yields time-dependent data so we can't do a simple assert on it:
+    ## print(data)
     assert sorted([item[:3] for item in data]) == sorted(expected_overview)
     print('ok')
     return state
@@ -724,10 +730,11 @@ def test_savextra(state):
 
 
 def main():
-    testsite = 'test'
+    sitename = 'test'
     clear_site_contents(sitename)
+    clear_site_contents('blub')
 
-    test_functions_setup(sitename)
+    ## test_functions_setup(sitename)
     test_new_site(sitename)
     conf = test_readwrite_conf(sitename)
     current = test_list_files(sitename)
@@ -757,6 +764,7 @@ def main():
 
     ## list_site_contents(sitename)
     clear_site_contents(sitename)
+    clear_site_contents('blub')
 
 
 if __name__ == '__main__':
