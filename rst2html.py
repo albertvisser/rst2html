@@ -115,6 +115,7 @@ class Rst2Html(object):
 
     def read_conf(self, settings):
         mld, conf = rhfn.read_conf(settings, self.conf["lang"])
+        print(conf)
         if mld == '':
             self.root = conf.pop('root')
             self.source = conf.pop('source')
@@ -179,7 +180,6 @@ class Rst2Html(object):
                 fullname = fullname.with_suffix(test)
                 settings += test
             rhfn.save_to(fullname, rstdata)
-            settings = newfile
             newfile = ""
             mld = self.read_conf(fullname)
             if mld != '':
