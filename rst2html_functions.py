@@ -46,7 +46,7 @@ standard_directives.update({
 #
 HERE = pathlib.Path(__file__).parents[0]
 # unix only for now
-WEBROOT = pathlib.Path(os.environ['HOME']) / 'www'
+WEBROOT = pathlib.Path('/home/albert') / 'www'
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'

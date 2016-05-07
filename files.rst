@@ -4,6 +4,9 @@ files in this directory
 .hgignore
     hg ignore file
 
+app_settings
+    global settings for the application
+
 custom_directives_template.py
     default source for user-written directives
 
@@ -15,6 +18,12 @@ directives_grid.py
 
 directives_magiokis.py
     directives designed for use on my Magiokis pages
+
+docs2fs.py
+    dml routines for the file system implementation
+
+docs2mongo.py
+    dml routines for the mongodb implementation
 
 dutch.lng
 english.lng
@@ -34,6 +43,9 @@ htmlfrommd.py
 
 readme.rst
     information and usage notes
+
+rst2html.conf
+    cherrypy configuration used by the startup script
 
 rst2html.html
     the web page (template) in which it all happens
@@ -57,38 +69,31 @@ wsgi_handler.py
     another script to start the app as a wsgi server
 
 
-sources/
-    example directory for source files (rest format)
-
-
 static/
     static files for the app to work with; put codemirror javascript library here
 
-static/htmleditor.js
-static/pyeditor.js
-static/rsteditor.js
-static/yamleditor.js
-    syntaxhighlighters for various content in text area
-
-
-target/
-    example directory for converted files (html)
-
-target/style/
-    directory for css files to render converted files with
-
-target/style/960.css
-    styles for grid_960
-
-target/style/html4css1.css
-    styles for rest conversion
-
-target/style/html4css_960.css
-    combination of all styles, used for rendering in preview mode
-
-target/style/reset.css
-    reset stylesheet
-
+    static/htmleditor.js
+    static/pyeditor.js
+    static/rsteditor.js
+    static/yamleditor.js
+        syntaxhighlighters for various content in text area
+    static/rst2html.ico
+        favicon for webapp
+    static/960.css
+    static/html4css1.css
+    static/html4css_960.css
+    static/reset.css
+        css files to be copied to root of new site
+        contain: reset stylesheet, styles for rest conversion, styles for grid_960
+        also an all-in one version previously used for rendering in preview mode
 
 test/
     directory for tests and testscripts - to be filled with proper testing stuff
+    e.g. (these files currently reside in the top level directory)
+    analyze_testdata.py
+    test_dml.py
+    test_rst2html.py
+    test_rst2html_functions.py
+    test_scenario_1.py
+    test_dml_specific.py
+

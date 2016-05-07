@@ -4,7 +4,7 @@ import os
 import subprocess as sp
 import pprint
 import yaml
-from app_settings import DML, WEBROOT, SETTFILE
+from app_settings import DML, WEBROOT, BASIC_CSS
 import rst2html_functions_all as rhfn
 from test_dml import list_site_contents, clear_site_contents
 
@@ -12,30 +12,35 @@ def sorted_items(input_dict):
     return [(x, y) for x, y in sorted(input_dict.items())]
 
 confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
-    'wid': 100, 'url': 'http:///rst2html-data/test', 'lang': 'en'}
+    'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
 confdata_text = '\n'.join((
     'css:',
     '- http://www.example.com/test.css',
     'hig: 32',
     'lang: en',
-    'url: http:///rst2html-data/test',
+    'url: /rst2html-data/test',
     'wid: 100\n'
     ))
 confdata_text_2 = '\n'.join((
     'hig: 32',
     'lang: en',
-    'url: http:///rst2html-data/test',
+    'url: /rst2html-data/test',
     'wid: 100\n',
     'css:',
     '- http://www.example.com/test.css'
     ))
+confdata_extra = {x: y for x, y in confdata.items()}
+confdata_extra.update(
+    {'starthead': '<!-- starthead -->', 'endhead': '<!-- endhead -->'})
 other_confdata = {'lang': 'en', 'hig': 32, 'wid': 100,'css': [],
-    'url': 'http:///rst2html-data/blub'}
+    'url': '/rst2html-data/blub'}
+other_confdata_css = ''.join(
+    ['\n- {}'.format(str(WEBROOT/ 'blub' / x)) for x in BASIC_CSS])
 other_confdata_text = '\n'.join((
-    'css: []',
+    'css:{}'.format(other_confdata_css),
     'hig: 32',
     'lang: en',
-    'url: http:///rst2html-data/blub',
+    'url: /rst2html-data/blub',
     'wid: 100\n'
     ))
 newconfdata = {'lang': 'en', 'css': [], 'hig': 32, 'url': '', 'wid': 100}
@@ -60,6 +65,9 @@ jansen_txt = """bah humbug
 .. refkey:: ref1: here1
 .. refkey:: ref2: here2
 end"""
+csslink = '<link rel="stylesheet" href="{}" type="text/css" />'
+converted_css = '\n'.join([csslink.format(str(WEBROOT / 'blub' / x))
+    for x in BASIC_CSS])
 converted_txt = """\
 <?xml version="1.0" encoding="utf-8" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -68,7 +76,7 @@ converted_txt = """\
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title></title>
-
+{}
 </head>
 <body>
 <div class="document">
@@ -78,12 +86,11 @@ converted_txt = """\
 </div>
 </body>
 </html>
-"""
+""".format(converted_css)
 pietersen_txt = 'hallo vriendjes'
 
 def test_new_site(sitename):
     print('creating new site and doing some failure tests on updating...', end=' ')
-    new_site = sitename
     mld = rhfn.new_conf(sitename)
     assert mld == ''
     mld, sett = rhfn.read_conf(sitename)
@@ -92,24 +99,23 @@ def test_new_site(sitename):
     mld = rhfn.new_conf('test')
     assert mld == 'Site already exists'
     sett = {x:y for x, y in rhfn.DFLT_CONF.items()}
-    ## sett['url'] = 'something else'
-    ## mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
-    ## assert mld == 'Please do not modify the url value'
-    sett['url'] = '/rst2html-data/test'
-    ## sett.pop('css')
-    ## mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
-    ## assert mld == "Config: invalid value for css -  does not exist"
-    ## sett['css'] = []
+    mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     sett['hig'] = 'Too high'
-    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for hig'
     sett['hig'] = 32
     sett['lang'] = 'xx'
-    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for lang'
     sett['lang'] = 'en'
-    mld = rhfn.save_conf(new_site, rhfn.conf2text(sett))
+    mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == ''
+    rhfn.init_css(sitename)
+    mld, conf = rhfn.read_conf(sitename)
+    for item in BASIC_CSS:
+        test = WEBROOT/ sitename / item
+        assert str(test) in conf['css']
+        assert test.exists()
     print('ok')
 
 def test_readwrite_conf(sitename):
@@ -125,26 +131,21 @@ def test_readwrite_conf(sitename):
     assert conf == None
     mld, conf = rhfn.read_conf(sitename)
     assert mld == ''
-    expected = {'url': 'http:///rst2html-data/test',
-        'wid': 100, 'css': [], 'hig': 32, 'lang': 'en'}
+    expected = {'url': '/rst2html-data/test', 'wid': 100, 'hig': 32, 'lang': 'en',
+         'css': [str(WEBROOT/ sitename / x) for x in BASIC_CSS]}
     assert sorted_items(conf) == sorted_items(expected)
 
     text = rhfn.conf2text(conf)
+    css = ''.join(['\n- {}'.format(str(WEBROOT/ sitename / x)) for x in BASIC_CSS])
     expected = "\n".join((
-        "css: []",
+        "css:{}".format(css),
         "hig: 32",
         "lang: en",
-        "url: http:///rst2html-data/test",
+        "url: /rst2html-data/test",
         "wid: 100\n"))
     assert text == expected
-    text = text.replace('[]', "['http://www.example.com/test.css']")
-    msg = rhfn.save_conf(sitename, text)
-    assert msg == ''
-    expected = {'hig': 32, 'wid': 100, 'url': 'http:///rst2html-data/test',
-        'css': ['http://www.example.com/test.css'], 'lang': 'en'}
-    mld, conf = rhfn.read_conf(sitename)
+    mld = rhfn.save_conf(sitename, confdata_text)
     assert mld == ''
-    assert sorted_items(conf) == sorted_items(expected)
     print('ok')
     return conf
 
@@ -178,7 +179,7 @@ def test_list_files(sitename):
     assert data == []
     # nonexistent subdir
     data = rhfn.list_files(sitename, 'blub', '', '', 'en')
-    assert data == 'Directory `blub` not found'
+    assert data == '<option>..</option>' # 'Directory `blub` not found'
 
     expected_0 = '<option>guichelheil/</option>'
     expected_1 = expected_0 + '<option>jansen.rst</option>'
@@ -243,13 +244,13 @@ def test_list_files(sitename):
 
 def test_readwrite_docs(sitename, current):
     print('reading and writing documents...', end = ' ')
-    namen = ('', 'jansen', 'jansen.rst', 'jansen.html')
     expected_msg_1 = ('src_name_missing', '', '', 'rst_filename_error')
     expected_data_1 = ('', 'now creating jansen', 'now creating jansen', '')
     expected_msg_2 = ('html_name_missing', '', 'html_filename_error', '')
     expected_data_2 = ('', '<p>now creating jansen</p>', '',
         '<p>now creating jansen</p>')
     expected_msg_3 = ('html_name_missing', '', 'Not a valid html file name', '')
+    namen = ('', 'jansen', 'jansen.rst', 'jansen.html')
     for ix, naam in enumerate(namen):
         msg, data = rhfn.read_src_data(sitename, '', naam)
         assert msg == expected_msg_1[ix]
@@ -257,7 +258,7 @@ def test_readwrite_docs(sitename, current):
         msg, data = rhfn.read_html_data(sitename, '', naam)
         assert msg == expected_msg_2[ix]
         assert data == expected_data_2[ix]
-        msg = rhfn.save_to_mirror(sitename, '', naam)
+        msg = rhfn.save_to_mirror(sitename, '', naam, confdata_extra)
         ## print(naam, msg)
         assert msg == expected_msg_3[ix]
     namen = ('', 'hendriksen', 'hendriksen.rst', 'hendriksen.html')
@@ -271,7 +272,7 @@ def test_readwrite_docs(sitename, current):
         msg, data = rhfn.read_html_data(sitename, current, naam)
         assert msg == expected_msg_2[ix]
         assert data == expected_data_2[ix]
-        msg = rhfn.save_to_mirror(sitename, current, naam)
+        msg = rhfn.save_to_mirror(sitename, current, naam, confdata_extra)
         assert msg == expected_msg_3[ix]
 
     naam = 'tilanus'
@@ -342,7 +343,7 @@ def test_progress_list(sitename, current, conf):
 
     errors = rhfn.update_all(sitename, conf)
     assert errors == [('tilanus', 'mirror_missing'),
-        ('de groot', 'mirror_missing')]
+        ('guichelheil/de groot', 'mirror_missing')]
     newdata = rhfn.build_progress_list(sitename)
     ## pprint.pprint(newdata)
     # compare newdata with olddata and check for expected differences
@@ -360,7 +361,7 @@ def test_reference_list(sitename, current):
         '.. refkey:: ref2: here2\n'
         'end')
     rhfn.save_html_data(sitename, '', naam, 'updated')
-    rhfn.save_to_mirror(sitename, '', naam)
+    rhfn.save_to_mirror(sitename, '', naam, confdata_extra)
     # 2. add reference s to"tilanus" and save html
     naam = 'tilanus'
     rhfn.save_src_data(sitename, '', naam, 'it`s me Modine\n'
@@ -379,7 +380,7 @@ def test_reference_list(sitename, current):
         '.. refkey:: ref4: here1\n'
         'end')
     rhfn.save_html_data(sitename, dirnaam, naam, 'updated')
-    rhfn.save_to_mirror(sitename, dirnaam, naam)
+    rhfn.save_to_mirror(sitename, dirnaam, naam, confdata_extra)
     result = rhfn.build_trefwoordenlijst(sitename)
     assert result == '\n'.join(['Index', '=====', '', '`R`_ ', '', 'R', '-', '',
         '+   Ref1 `#`__ ', '+   Ref2 `#`__ ', ' ',
@@ -402,9 +403,9 @@ def test_state_class():
     assert state.currentify(fname) == '/'.join((dirname, fname))
     print('ok')
 
-    print('testing read_conf... ', end='')
+    print('testing get_conf... ', end='')
     state.subdirs = None
-    mld = state.read_conf('test')
+    mld = state.get_conf('test')
     assert mld == ''
     assert state.loaded == 'yaml'
     assert sorted_items(state.conf) == sorted_items(confdata)
@@ -433,8 +434,8 @@ def test_load_conf(state):
     print('testing loadconf... ', end='')
 
     data = state.loadconf('-- new --', '')
-    assert data == ('New site will be created on save', newconfdata_text,
-        '-- new --', '')
+    assert data == ("New site will be created on save - don't forget to provide a name "
+        "for it", newconfdata_text, '-- new --', '')
     assert sorted_items(state.conf) == sorted_items(newconfdata)
     assert state.subdirs == []
     assert state.current == ''
@@ -669,11 +670,14 @@ def test_showhtml(state):
 def test_savehtml(state):
     print('testing savehtml... ', end='')
     state.loaded = rhfn.RST
-    data = state.savehtml('jansen.html', converted_txt)
+    data = state.savehtml('jansen.html', '', converted_txt)
     assert data == ('Please load HTML first', converted_txt, '')
     state.loaded = rhfn.HTML
-    data = state.savehtml('jansen.html', converted_txt)
+    data = state.savehtml('jansen.html', '', converted_txt)
     assert data == ('Modified HTML saved as jansen.html', converted_txt, '')
+    data = state.savehtml('jansen.html', 'jansens.html', converted_txt)
+    assert data == ('Not executed: can only save HTML under the same name',
+        converted_txt, '')
     print('ok')
     return state
 

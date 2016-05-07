@@ -64,7 +64,7 @@ c_qref = Quick reStructuredText
 # notifications and such
 
 conf_init = Configuratiebestand is {}
-new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de settings
+new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de settings - vergeet de naam niet
 conf_loaded = Settings geladen van {}
 fname_invalid = Geen geldige bestandsnaam
 supply_text = Tekstveld invullen s.v.p.
@@ -97,6 +97,7 @@ html_name_missing = bestandnaam voor html opgeven of selecteren s.v.p.
 html_filename_error = Niet uitgevoerd: fout(en) in naam voor html bestand
 html_file_missing = Target file bestaat niet
 html_saved = Gewijzigde html opgeslagen als {}
+html_name_wrong = Niet uitgevoerd: kan HTML alleen opslaan onder dezelfde naam
 load_html = Eerst html laden s.v.p.
 copied_to = gekopieerd naar {}
 target_missing = {} overgeslagen: niet in target directory

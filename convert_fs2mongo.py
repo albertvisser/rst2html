@@ -6,130 +6,133 @@ import pprint
 import argparse
 import pathlib
 import shutil
-import rst2html_functions as rhfn
-import rst2html_functions_mongo as rhfnm
-import docs2mongo as dml
+from app_settings import FS_WEBROOT, DB_WEBROOT
+import rst2html_functions_all as rhfn
+import docs2fs as fsys
+import docs2mongo as mongo
 
 def main(args):
 
-    settings = 'settings.yml'
-    if args.input:
-        settings = args.input if args.input.endswith('.yml') else args.input + '.yml'
+    sitename = args.input
+    fromloc = FS_WEBROOT / sitename
+    tomirror = DB_WEBROOT / sitename
+    sourceloc = fromloc / 'source'
+    targetloc = fromloc / 'target'
 
     # read settings so that we know where everything is
-    mld, sett = rhfn.read_conf(settings)
+    try:
+        print('reading settings for {}'.format(sitename))
+        sett = fsys.read_settings(sitename)
+    except FileNotFoundError:
+        print("settings don't exist")
+        return
+    if not sett :
+        print("settings are empty")
+        return
+
     for item in ('starthead', 'endhead'):
         if item in sett and isinstance(sett[item], str):
             sett[item] = sett[item].split('\n')
 
     # init site
-    sitename = sett['mirror_url'][7:].split('.')[0]
-    if args.newname:
-        sitename = args.newname
-    dml.clear_site_data(sitename) # restart
-    dml.create_new_site(sitename)
+    newsite = args.newname or sitename
+    mongo.clear_site_data(newsite) # restart
+    mongo.create_new_site(newsite)
 
     # copy site configuration
-    conf = rhfnm.DFLT_CONF
-    for key in rhfnm.FULL_CONF:
+    conf = rhfn.DFLT_CONF
+    for key in rhfn.FULL_CONF:
         if key in sett:
             conf[key] = sett[key]
-    conf['url'] = "/rst2html-data/{}".format(sitename)
-    dml.update_settings(sitename, conf)
+    ## conf['url'] = "/rst2html-data/{}".format(sitename)
+    mongo.update_settings(sitename, conf)
 
     # transfer docs in source directory
-    srcpath = sett["source"]
-    convpath = sett["root"]
-    mirrpath = sett["mirror"]
-    subdirs = [str(f.relative_to(srcpath)) for f in srcpath.iterdir() if f.is_dir()]
-    newmirrbase = pathlib.Path(__file__).parent / 'rst2html-data' / sitename
+    ## srcpath =  sourceloc
+    ## convpath = targetloc
+    ## mirrpath = fromloc
+    subdirs = fsys.list_dirs(sitename)
+    ## newmirrbase = targetloc
 
     # root files first
-    newmirrpath = newmirrbase
-    files = [str(f.relative_to(srcpath)) for f in srcpath.glob("*.rst")]
-    for item in files:
-        file_to_read = srcpath / item
-        docname = file_to_read.stem
-        dml.create_new_doc(sitename, docname)
-        with file_to_read.open() as _in:
-            data = _in.read()
-        dml.update_rst(sitename, docname, data)
-        convfile = convpath / item.replace('.rst', '.html')
-        if convfile.exists():
-            with convfile.open() as _in:
-                data = _in.read()
-            dml.update_html(sitename, docname, data)
-        mirrfile = mirrpath / item.replace('.rst', '.html')
-        newmirrfile = newmirrpath / item.replace('.rst', '.html')
-        if mirrfile.exists():
-            with mirrfile.open() as _in:
-                data = _in.read()
-            dml.update_mirror(sitename, docname)
-            if not newmirrpath.exists():
-                newmirrpath.mkdir(parents=True)
-            rhfn.save_to(newmirrfile, data)
+    files = fsys.list_docs(sitename, 'src')
+    for docname in files:
+        mongo.create_new_doc(newsite, docname)
+        rstdata = fsys.get_doc_contents(sitename, docname, 'src')
+        mongo.update_rst(newsite, docname, rstdata)
+
+        try:
+            htmldata = fsys.get_doc_contents(sitename, docname, 'dest')
+        except FileNotFoundError:
+            continue
+        mongo.update_html(newsite, docname, htmldata)
+
+        fname = docname + '.html'
+        fromfile = fromloc / fname
+        destfile = tomirror / fname
+        if fromfile.exists():
+            mld, data = fsys.read_data(fromfile)
+            mongo.update_mirror(newsite, docname, data)
+            if not tomirror.exists():
+                tomirror.mkdir(parents=True)
+            fsys.save_to(destfile, data)
 
     for ext in args.extlist:
         spec = "*.{}".format(ext)
-        entries = [str(f.relative_to(mirrpath)) for f in mirrpath.glob(spec)]
+        entries = [str(f.relative_to(fromloc)) for f in fromloc.glob(spec)]
         for entry in entries:
-            mirrfile = mirrpath / entry
-            destfile = newmirrpath / entry
-            shutil.copyfile(str(mirrfile), str(destfile))
+            shutil.copyfile(str(fromloc / entry), str(destloc / entry))
 
     for name in args.dirlist:
-        srcdir = mirrpath / name
-        destdir = newmirrpath / name
+        srcdir = fromloc / name
+        destdir = tomirror / name
         shutil.copytree(str(srcdir), str(destdir))
 
     for dirname in subdirs:
-        dml.create_new_dir(sitename, dirname)
-        dirpath = srcpath / dirname
-        wrkpath = mirrpath / dirname
-        newmirrpath = newmirrbase / dirname
-        files = [str(f.relative_to(dirpath)) for f in dirpath.glob("*.rst")]
-        for item in files:
-            file_to_read = dirpath / item
-            docname = file_to_read.stem
-            dml.create_new_doc(sitename, docname, dirname)
-            with file_to_read.open() as _in:
-                data = _in.read()
-            dml.update_rst(sitename, docname, data, dirname)
-            convfile = convpath / dirname / item.replace('.rst', '.html')
-            if convfile.exists():
-                with convfile.open() as _in:
-                    data = _in.read()
-                dml.update_html(sitename, docname, data, dirname)
-            mirrfile = wrkpath / item.replace('.rst', '.html')
-            if mirrfile.exists():
-                with mirrfile.open() as _in:
-                    data = _in.read()
-                dml.update_mirror(sitename, docname, dirname)
-                newmirrfile = newmirrpath / item.replace('.rst', '.html')
-                if not newmirrpath.exists():
-                    newmirrpath.mkdir(parents=True)
-                rhfn.save_to(newmirrfile, data)
+        print('new dir:', dirname)
+        mongo.create_new_dir(newsite, dirname)
+        frompath = fromloc / dirname
+        destpath = tomirror / dirname
+
+        files = fsys.list_docs(sitename, 'src', dirname)
+        for docname in files:
+            print('new doc:', docname)
+            mongo.create_new_doc(newsite, docname, dirname)
+            rstdata = fsys.get_doc_contents(sitename, docname, 'src', dirname)
+            mongo.update_rst(newsite, docname, rstdata, dirname)
+
+            try:
+                htmldata = fsys.get_doc_contents(sitename, docname, 'dest', dirname)
+            except FileNotFoundError:
+                continue
+            mongo.update_html(newsite, docname, htmldata, dirname)
+
+            fname = docname + '.html'
+            fromfile = frompath / fname
+            destfile = destpath / fname
+            if fromfile.exists():
+                mld, data = fsys.read_data(fromfile)
+                mongo.update_mirror(newsite, docname, data, dirname)
+                if not tomirror.exists():
+                    tomirror.mkdir(parents=True)
+                fsys.save_to(destfile, data)
 
         for ext in args.extlist:
             spec = "*.{}".format(ext)
-            entries = [str(f.relative_to(wrkpath)) for f in wrkpath.glob(spec)]
+            entries = [str(f.relative_to(frompath)) for f in frompath.glob(spec)]
             for entry in entries:
-                mirrfile = wrkpath / entry
-                destfile = newmirrpath / entry
+                mirrfile = frompath / entry
+                destfile = destpath / entry
                 shutil.copyfile(str(mirrfile), str(destfile))
+
     print('ready\n')
 
-    ## # check results so far
-    ## index, docs = dml.list_site_data(sitename)
-    ## pprint.pprint(index)
-    ## for doc in docs:
-        ## pprint.pprint(doc)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Convert a site from text to mongo format")
-    parser.add_argument('-i', '--input', nargs='?',
-        help="specify settings file for site to copy")
+    parser.add_argument('-i', '--input', nargs='?', required=True,
+        help="specify name of site to copy")
     parser.add_argument('-n', '--newname', nargs='?',
         help="enter new name for site")
     parser.add_argument('-d', '--dirlist', nargs='*',

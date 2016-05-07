@@ -3,8 +3,19 @@ import pathlib
 import datetime
 ## import cherrypy
 
-import rst2html_mongo as r2h
-from docs2mongo import Stats
+
+import rst2html_all as r2h
+from app_settings import DML
+if DML == 'fs':
+    print('using file system dml')
+    from docs2fs import Stats
+elif DML == 'mongo':
+    print('using mongodb dml')
+    from docs2mongo import Stats
+elif DML == 'postgres':
+    print('using postgresql dml')
+    from docs2pg import Stats
+
 ## from cptestcase import BaseCherryPyTestCase
 
 def test_unexposed():
@@ -33,6 +44,10 @@ def test_unexposed():
             dest=datetime.datetime(1, 1, 1, 0, 0),
             to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
         ('/', 'jansen', 2, Stats(
+            src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
+            dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
+        ('guichelheil', 'pietersen', 2, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
             dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
             to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),

@@ -105,7 +105,8 @@ def main():
     dbdata, htmldata = dump_data_and_compare(
         app.loadconf('-- new --', '', '', '', ''), '02_loadconf_new')
     assert dbdata == ['site data has not changed']
-    assert 'mld_text is "New site will be created on save"' in htmldata
+    assert ('mld_text is "New site will be created on save - don\'t forget to '
+        'provide a name for it"') in htmldata
     assert 'textdata changed' in htmldata
 
     # simulate saving new conf - forgetting to change the name
@@ -342,7 +343,10 @@ def main():
         app.showhtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
             app.state.newfile, htmldata_2),
         '14b_showhtml_modified')
-    assert dbdata == ['site data has not changed']
+    # earlier it was not saved, now it is:
+    ## assert dbdata == ['site data has not changed']
+    assert dbdata == ['/ testdoc1 dest was changed',
+        "doc ('testdoc1', 'dest') is changed"]
     assert htmldata == [                                        # see previous
         'htmlfile_name: value was "", is now "testdoc1.html"',
         'mld_text is "Target html testdoc1.html loaded"',
@@ -363,9 +367,9 @@ def main():
         app.savehtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
             'testdoc2.html', htmldata_2),
         '15b_savehtml_newname')
-    assert dbdata == ['/ testdoc1 dest was changed',
-        "doc ('testdoc1', 'dest') is changed"]
-    assert htmldata == []   # is this ok?
+    assert dbdata == ['site data has not changed']
+    assert htmldata == ['mld_text is "Not executed: can only save HTML '
+        'under the same name"']
     # the system doesn't use the new name (and clears it) - that's how it should be
     # skip this test?
 

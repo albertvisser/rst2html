@@ -10,7 +10,7 @@ import os
 import pathlib
 import datetime
 import rst2html_functions_all as rhfn
-HERE = pathlib.Path(__file__).parents[0]
+HERE = pathlib.Path(__file__).parent
 TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
     'background-color: #C6E2FF; text-align: center; position: fixed">'
@@ -121,8 +121,12 @@ def format_previewdata(state, previewdata, fname, ftype):
     arg3 = type of this file: `rst` or `html`
     """
     previewdata = resolve_images(previewdata, state.conf['url'], state.current)
-    pos = previewdata.index('>', previewdata.index('<body')) + 1
-    start, end = previewdata[:pos], previewdata[pos:]
+    try:
+        pos = previewdata.index('>', previewdata.index('<body')) + 1
+    except ValueError:
+        start, end = '', previewdata
+    else:
+        start, end = previewdata[:pos], previewdata[pos:]
     loadrst = 'load{0}?{0}file={1}'.format(ftype, fname)
     previewdata = previewbutton.format(loadrst).join((start, end))
     return previewdata
@@ -241,7 +245,7 @@ class Rst2Html(object):
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """save displayed (edited) html"""
-        mld, rstdata, newfile = self.state.savehtml(htmlfile, rstdata)
+        mld, rstdata, newfile = self.state.savehtml(htmlfile, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
             self.state)
 

@@ -3,7 +3,7 @@ import pprint
 import datetime
 import pathlib
 import shutil
-from app_settings import DML, WEBROOT, SETTFILE
+from app_settings import DML, WEBROOT
 if DML == 'fs':
     print('using file system dml')
     import docs2fs as dml
@@ -13,17 +13,6 @@ elif DML == 'mongo':
 elif DML == 'postgres':
     print('using postgresql dml')
     import docs2pg as dml
-
-## def list_database_contents():
-    ## print('\n--------------- Listing database contents -------------')
-    ## for doc in dml.read_db():
-        ## pprint.pprint(doc)
-
-## def clear_database_contents():
-    ## dml.clear_db()
-    ## path = os.path.join(os.path.dirname(__file__), 'rst2html-data')
-    ## shutil.rmtree(path)
-    ## os.mkdir(path)
 
 def list_site_contents(sitename, filename=''):
     """show site contents in a standard structure, independent of the data backend
@@ -61,29 +50,6 @@ def list_site_contents(sitename, filename=''):
 
 def clear_site_contents(sitename):
     dml.clear_site_data(sitename)
-    if DML == 'fs':
-        path = WEBROOT / sitename
-    else:
-        path = pathlib.Path(__file__).parent / 'rst2html-data' / sitename
-    try:
-        shutil.rmtree(str(path))
-    except FileNotFoundError:
-        pass
-    ## path.mkdir()
-
-def full_update_mirror(site_name, docname, directory = ''):
-    dml.update_mirror(site_name, docname, directory)
-    if DML == 'fs': # need to also physically copy to mirror
-        frompath = WEBROOT / site_name / 'target'
-        destpath = WEBROOT / site_name
-        if directory:
-            frompath /= directory
-            destpath /= directory
-            if not destpath.exists():
-                destpath.mkdir(parents=True)
-        frompath /= docname
-        destpath /= docname
-        dml.save_to(destpath, dml.read_data(frompath)[1])
 
 def test_dml(site_name):
 
@@ -152,28 +118,28 @@ def test_dml(site_name):
     assert dml.list_docs(site_name, 'dest') == ['jansen']
     print('ok')
 
-    print('testing administrative move to mirror...', end=' ')
+    print('getting contents of documents in root...', end=' ')
+    dml.update_rst(site_name, rootdoc, 'bah humbug')
+    data = dml.get_doc_contents(site_name, rootdoc, 'src')
+    assert data == 'bah humbug'
+    dml.update_html(site_name, rootdoc, '<p>bah humbug</p>')
+    data = dml.get_doc_contents(site_name, rootdoc, 'dest')
+    assert data == '<p>bah humbug</p>'
+    print('ok')
+
+    print('testing move to mirror...', end=' ')
     is_ok = False
     try:
-        dml.update_mirror(site_name, '')
+        dml.update_mirror(site_name, '', data)
     except AttributeError:
         is_ok = True
     assert is_ok
-    full_update_mirror(site_name, rootdoc)
+    dml.update_mirror(site_name, rootdoc, data)
     stats = dml.get_doc_stats(site_name, rootdoc)
     assert (stats.src != datetime.datetime.min and
             stats.dest != datetime.datetime.min and
             stats.to_mirror != datetime.datetime.min)
-    dml.update_rst(site_name, rootdoc, 'bah humbug')
-    dml.update_html(site_name, rootdoc, '<p>bah humbug</p>')
-    full_update_mirror(site_name, rootdoc)
-    print('ok')
-
-    print('getting contents of documents in root...', end=' ')
-    data = dml.get_doc_contents(site_name, rootdoc, 'src')
-    assert data == 'bah humbug'
-    data = dml.get_doc_contents(site_name, rootdoc, 'dest')
-    assert data == '<p>bah humbug</p>'
+    ## dml.update_mirror(site_name, rootdoc, data)
     print('ok')
 
     newdir = 'guichelheil'
@@ -183,13 +149,7 @@ def test_dml(site_name):
     assert dml.list_dirs(site_name, 'src') == ['guichelheil']
     assert dml.list_dirs(site_name, 'dest') == []
     assert dml.list_docs(site_name, 'src', directory=newdir) == []
-    failed = False
-    try:
-        assert dml.list_docs(site_name, 'dest', directory=newdir) == []
-    except FileNotFoundError:
-        failed = True
-    assert failed
-    # try again to catch error - apparently this doesn't fail
+    assert dml.list_docs(site_name, 'dest', directory=newdir) == []
     failed = False
     try:
         dml.create_new_dir(site_name, newdir)
@@ -204,12 +164,7 @@ def test_dml(site_name):
     assert dml.list_dirs(site_name, 'src') == ['guichelheil']
     assert dml.list_dirs(site_name, 'dest') == []
     assert dml.list_docs(site_name, 'src', directory=newdir) == ['hendriksen']
-    failed = False
-    try:
-        assert dml.list_docs(site_name, 'dest', directory=newdir) == []
-    except FileNotFoundError:
-        failed = True
-    assert failed
+    assert dml.list_docs(site_name, 'dest', directory=newdir) == []
     print('ok')
 
     print('updating html in {}...'.format(newdir), end=' ')
@@ -220,21 +175,20 @@ def test_dml(site_name):
     assert dml.list_docs(site_name, 'dest', directory=newdir) == ['hendriksen']
     print('ok')
 
-    print('testing administrative move to mirror from {}...'.format(newdir),
-        end=' ')
-    full_update_mirror(site_name, otherdoc, directory=newdir)
-    dml.update_rst(site_name, otherdoc, 'but not them', directory=newdir)
-    dml.update_html(site_name, otherdoc, '<p>but not them</p>', directory=newdir)
-    full_update_mirror(site_name, otherdoc, directory=newdir)
-    assert dml.list_docs(site_name, 'src', directory=newdir) == ['hendriksen']
-    assert dml.list_docs(site_name, 'dest', directory=newdir) == ['hendriksen']
-    print('ok')
-
     print('getting contents of documents in {}...'.format(newdir), end=' ')
+    dml.update_rst(site_name, otherdoc, 'but not them', directory=newdir)
     data = dml.get_doc_contents(site_name, otherdoc, 'src', directory=newdir)
     assert data == 'but not them'
+    dml.update_html(site_name, otherdoc, '<p>but not them</p>', directory=newdir)
     data = dml.get_doc_contents(site_name, otherdoc, 'dest', directory=newdir)
     assert data == '<p>but not them</p>'
+    print('ok')
+
+    print('testing move to mirror from {}...'.format(newdir),
+        end=' ')
+    dml.update_mirror(site_name, otherdoc, data, directory=newdir)
+    assert dml.list_docs(site_name, 'src', directory=newdir) == ['hendriksen']
+    assert dml.list_docs(site_name, 'dest', directory=newdir) == ['hendriksen']
     print('ok')
 
 def main():

@@ -6,12 +6,13 @@ import pathlib
 import importlib
 import inspect
 import glob
+import html
 import yaml
 import datetime
 ## import gettext
 import collections
 
-from app_settings import DML, WEBROOT
+from app_settings import DFLT, DML, WEBROOT, EXT2LOC, LOC2EXT, BASIC_CSS
 if DML == 'fs':
     import docs2fs as dml
 elif DML == 'mongo':
@@ -53,7 +54,7 @@ standard_directives.update({
 #
 # internals
 #
-HERE = pathlib.Path(__file__).parents[0]
+HERE = pathlib.Path(__file__).parent
 custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
@@ -64,9 +65,6 @@ FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 # constants for loaded data
 RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
-EXTS, LOCS = ['.rst', '.html'], ['src', 'dest']
-EXT2LOC = dict(zip(EXTS, LOCS))
-LOC2EXT = dict(zip(LOCS, EXTS))
 #
 # Language support : eigengebakken spul, tzt te vervangen door gnu_gettext zaken (of niet)
 #
@@ -155,8 +153,9 @@ def get_custom_directives_filename():
 def default_site():
     """return the first entry in the sites list to provide as default
     """
-    all_sites = dml.list_sites()
-    return all_sites[0] if all_sites else ''
+    ## all_sites = dml.list_sites()
+    ## return all_sites[0] if all_sites else ''
+    return DFLT
 
 def new_conf(sitename):
     """create a new site definition including settings
@@ -168,6 +167,16 @@ def new_conf(sitename):
     except FileExistsError as e:
         return str(e)
     return ''
+
+def init_css(sitename):
+    """copy css files to site root and update config
+    """
+    conf = dml.read_settings(sitename)
+    for cssfile in BASIC_CSS:
+        dest = str(WEBROOT / sitename / cssfile)
+        shutil.copyfile(os.path.join('static', cssfile), dest)
+        conf['css'].append(os.path.abspath(dest))
+    dml.update_settings(sitename, conf)
 
 def list_confs(sitename='', lang=DFLT_CONF['lang']):
     """build list of options containing all possible site settings
@@ -188,14 +197,22 @@ def read_conf(sitename, lang=DFLT_CONF['lang']):
         return 'no_such_sett', None
 
 def conf2text(conf, lang=DFLT_CONF['lang']):
-    if 'mirror_url' in conf:
-        # compatibilty with old settings files
-        conf['url'] = conf.pop('mirror_url')
-    confdict = {key: value for key, value in conf.items()}
-    if 'css' in conf: #  and 'url' in conf:
-        for item in conf['css']:
-            if item.startswith(conf['url']):
-                confdict['css'].append(item.replace(confdict['url'], 'url + '))
+    ## if 'mirror_url' in conf:
+        ## # compatibilty with old settings files
+        ## conf['url'] = conf.pop('mirror_url')
+    confdict = {}
+    for key, value in conf.items():
+        if key == 'css':
+            items = []
+            for item in conf['css']:
+                if item.startswith(conf['url']):
+                    item = item.replace(conf['url'], 'url + ')
+                items.append(item)
+            confdict[key] = items
+        else:
+            confdict[key] = conf[key]
+            ## if item.startswith(conf['mirror_url']):
+                ## confdict['css'][ix] = item.replace(confdict['url'], 'mirror_url + ')
     return yaml.dump(confdict, default_flow_style=False)
 
 def save_conf(sitename, text, lang=DFLT_CONF['lang']):
@@ -212,6 +229,7 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
     data = {}
     conf = {}
     fout = ''
+    dflt_url = '/{}/{}'.format(WEBROOT.stem, sitename)
     try:
         dml.read_settings(sitename)
     except FileNotFoundError:
@@ -229,11 +247,11 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
                 int(conf[key])
             except ValueError:
                 return invalid.format(key)
-        elif key == 'lang' and conf[key] not in languages:
-            return invalid.format(key)
-        ## elif key == 'url' and conf[key] != '/rst2html-data/{}'.format(sitename):
-            ## return get_text('not_the_url', lang)
-    if not conf['url'].startswith('http'):
+    if conf['lang'] not in languages:
+        return invalid.format('lang')
+    if conf['url'] == '':
+        conf['url'] = dflt_url
+    if not conf['url'].startswith('http') and conf['url'] != dflt_url:
         conf['url'] = 'http://' + conf['url']
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
@@ -263,7 +281,7 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
         try:
             items = dml.list_docs(sitename, ext, directory=current)
         except FileNotFoundError:
-            items = [] # return "Directory `{}` not found".format(current)
+            items = []
     else:
         try:
             items = dml.list_docs(sitename, ext)
@@ -272,6 +290,7 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
     if items is None:
         return 'Wrong type: `{}`'.format(ext)
     else:
+        # make sure files have the correct extension
         items = [x + LOC2EXT[ext] for x in items]
     items.sort()
     if current:
@@ -297,7 +316,7 @@ def read_src_data(sitename, current, fname):
     """get source data from wherever it's been stored
     """
     fname, ext = os.path.splitext(fname)
-    if ext not in ('', EXTS[0]):
+    if ext not in ('', '.rst'):
         return 'rst_filename_error', ''
     try:
         return '', _get_data(sitename, current, fname, 'src')
@@ -310,7 +329,7 @@ def read_html_data(sitename, current, fname):
     """get target data from wherever it's been stored
     """
     fname, ext = os.path.splitext(fname)
-    if ext not in ('', EXTS[1]):
+    if ext not in ('', '.html'):
         return 'html_filename_error', ''
     try:
         return '', _get_data(sitename, current, fname, 'dest')
@@ -332,10 +351,6 @@ def check_if_rst(data, loaded, filename=None):
         mld = 'rst_invalid'
     elif filename is None:
         pass
-    ## this is too much since we also cater for a name without extension in the right location
-    ## test = os.path.splitext(filename)
-    ## if test[0] == "" or test[1] != '.rst':
-        ## mld = get_text('src_name_missing', DFLT_CONF['lang'])
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
         mld = 'src_name_missing'
     return mld
@@ -353,10 +368,6 @@ def check_if_html(data, loaded, filename=None):
         mld = 'load_html'
     elif filename is None:
         pass
-    ## this is too much since we also cater for a name without extension in the right location
-    ## test = os.path.splitext(htmlfile)
-    ## if test[0] == "" or test[1] != '.html':
-        ## mld = get_text('html_name_missing', lang)
     elif filename.endswith("/") or filename in ("", "-- new --", ".."):
         mld = 'html_name_missing'
     return mld
@@ -372,7 +383,7 @@ def save_src_data(sitename, current, fname, data, new=False):
     "save the source data on the server"
     ## print('args for save_src_name:', sitename, current, fname, new)
     fname, ext = os.path.splitext(fname)
-    if ext not in ('', EXTS[0]):
+    if ext not in ('', '.rst'):
         return 'rst_filename_error'
     if current and current + '/' not in list_subdirs(sitename):
         try:
@@ -393,13 +404,13 @@ def save_src_data(sitename, current, fname, data, new=False):
         if 'contents' in str(e):
             return 'supply_text'
         return str(e)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         return 'src_file_missing'
 
 def save_html_data(sitename, current, fname, data):
     "save the source data on the server"
     fname, ext = os.path.splitext(fname)
-    if ext not in ('', EXTS[1]):
+    if ext not in ('', '.html'):
         return 'html_filename_error'
     try:
         dml.update_html(sitename, fname, data, directory=current)
@@ -413,33 +424,39 @@ def save_html_data(sitename, current, fname, data):
 
 def complete_header(conf, rstdata):
     if conf.get('starthead', ''):
-        split_on = '<head>' # + os.linesep
-        start, end = rstdata.split(split_on, 1)
+        if '<head>' in rstdata:
+            split_on = '<head>' # + os.linesep
+            start, end = rstdata.split(split_on, 1)
+        else:
+            split_on, start, end = '', '', rstdata
         if isinstance(conf['starthead'], str):
             middle = conf['starthead']
         else:
-            middle = os.linesep.join(self.conf['starthead'])
+            middle = os.linesep.join(conf['starthead'])
         rstdata = start + split_on + middle + end
     if conf.get('endhead', ''):
-        split_on = '</head>' # + os.linesep
-        start, end = rstdata.split(split_on, 1)
-        if isinstance(conf['starthead'], str):
+        if '</head>' in rstdata:
+            split_on = '</head>' # + os.linesep
+            start, end = rstdata.split(split_on, 1)
+        else:
+            split_on, start, end = '', '', rstdata
+        if isinstance(conf['endhead'], str):
             middle = conf['endhead']
         else:
-            middle = os.linesep.join(self.conf['endhead'])
+            middle = os.linesep.join(conf['endhead'])
         rstdata = start + middle + split_on + end
     return rstdata
 
-def save_to_mirror(sitename, current, fname):
+def save_to_mirror(sitename, current, fname, conf):
     """store the actual html on the server
     """
     fname, ext = os.path.splitext(fname)
-    if ext not in ('', EXTS[1]):
+    if ext not in ('', '.html'):
         return 'Not a valid html file name'
-    if DML == 'fs':
-        dirname = WEBROOT / sitename
-    else:
-        dirname = HERE /'rst2html-data' / sitename
+    ## if DML == 'fs':
+    dirname = WEBROOT / sitename
+    ## else:
+        ## dirname = HERE /'rst2html-data' / sitename
     if current:
         dirname /= current # = dirname / current)
         mld, data = read_html_data(sitename, current, fname)
@@ -447,15 +464,19 @@ def save_to_mirror(sitename, current, fname):
         mld, data = read_html_data(sitename, '', fname)
     if mld:
         return mld
+    data = complete_header(conf, data)
     try:
-        dml.update_mirror(sitename, fname, directory=current)
+        dml.update_mirror(sitename, fname, data, directory=current)
     except AttributeError as e:
         if 'name' in str(e):
             return 'html_name_missing'
         return str(e)
-    if not dirname.exists():
-        dirname.mkdir(parents=True)
-    mld = save_to(dirname / (fname + '.html'), data)
+    ## if not dirname.exists():
+        ## dirname.mkdir(parents=True)
+    ## path = dirname / fname
+    ## if path.suffix != '.html':
+        ## path = path.with_suffix('.html')
+    ## mld = save_to(path, data)
     return mld
 
 #-- progress list
@@ -510,9 +531,11 @@ def update_files_in_dir(sitename, conf, dirname='', missing=False):
                 ## newdata = read_html_data(sitename, dirname, filename)
                 ## data = complete_header(conf, newdata)
                 data = complete_header(conf, htmldata)
-                msg = save_to_mirror(sitename, dirname, filename)
+                msg = save_to_mirror(sitename, dirname, filename, conf)
         if msg:
-            errors.append((filename, msg))
+            fname = filename if dirname in ('', '/') else '/'.join((dirname,
+                filename))
+            errors.append((fname, msg))
     return errors
 
 def update_all(sitename, conf, missing=False):
@@ -617,6 +640,7 @@ class R2hState:
 
     def __init__(self):
         self.sitename = default_site()
+        self.rstfile = self.htmlfile = self.newfile = self.rstdata = ""
         self.current = self.loaded = ""
         self.oldtext = self.oldhtml = ""
         self.conf = DFLT_CONF
@@ -627,7 +651,7 @@ class R2hState:
             fname = '/'.join((self.current, fname))
         return fname
 
-    def read_conf(self, settings):
+    def get_conf(self, settings):
         # settings is hier de site naam
         mld = ''
         if self.newconf:
@@ -641,6 +665,7 @@ class R2hState:
             ## print('in readconf:', conf)
             if mld == '':
                 self.conf = conf
+                ## mld = conf
                 self.current = ""
                 self.subdirs = list_subdirs(settings, 'src')
                 self.loaded = CONF
@@ -651,14 +676,11 @@ class R2hState:
     def index(self):
         # config defaults so we can always show the first page
         ## self.conf = DFLT_CONF
-        self.rstfile = self.htmlfile = self.newfile = self.rstdata = ""
-        mld = self.read_conf(self.sitename)
+        mld = self.get_conf(self.sitename)
         if mld == '':
             self.settings = self.sitename
             self.rstdata = conf2text(self.conf)
             mld = get_text('conf_init', self.conf["lang"]).format(self.sitename)
-            ## msg = "<html><title></title><body><p>{}</p></body></html>"
-            ## self.rstdata = msg.format("<br>".join(self.conf['css']))
         return (self.rstfile, self.htmlfile, self.newfile, mld, self.rstdata,
             self.sitename)
 
@@ -676,7 +698,7 @@ class R2hState:
         else:
             self.newconf = False
             okmeld = 'conf_loaded'
-        mld = self.read_conf(settings)
+        mld = self.get_conf(settings)
         if mld == '':
             if newfile:
                 self.newfile = ''
@@ -707,11 +729,13 @@ class R2hState:
                 mld = new_conf(newsett)
         if mld == "":
             mld = save_conf(newsett, rstdata, self.conf["lang"])
+            if mld == '' and self.newconf:
+                init_css(newsett)
         if mld == "":
             self.newfile = ''
             self.newconf = False
             self.settings = self.sitename = newsett
-            mld = self.read_conf(self.settings)
+            mld = self.get_conf(self.settings)
             self.rstdata = rstdata = conf2text(self.conf)
         if mld == '':
             mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
@@ -811,16 +835,18 @@ class R2hState:
         if rstdata == self.oldtext:
             mld = check_if_rst(rstdata, self.loaded) # alleen inhoud controleren
         else:
+            with open('/tmp/rstdata', 'w') as _o: _o.write(rstdata)
+            with open('/tmp/self.oldtext', 'w') as _o: _o.write(self.oldtext)
             mld = check_if_rst(rstdata, self.loaded, fname)
-        if mld == '':
-            if rstdata != self.oldtext: # only if current text type == previous text type
+            if mld == '':
+                # only if current text type == previous text type?
                 mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
             previewdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
-            return mld, previewdata, fname
         else:
             mld = get_text(mld, self.conf["lang"])
-            return mld, '', ''
+            previewdata = fname = ''
+        return mld, previewdata, fname
 
     def saveall(self, rstfile, newfile, rstdata):
         fname = newfile or rstfile
@@ -864,24 +890,35 @@ class R2hState:
             fname, ext = os.path.splitext(htmlfile)
             self.htmlfile = fname + '.html'
             self.rstfile = fname + ".rst"
-            self.oldhtml = self.rstdata = data.replace("&nbsp", "&amp;nbsp")
+            self.oldhtml = data.replace("&nbsp", "&amp;nbsp")
+            self.rstdata = self.oldhtml
             mld = get_text('html_loaded', self.conf["lang"]).format(
                 self.currentify(self.htmlfile))
             self.loaded = HTML
         return mld, self.rstdata, self.rstfile, self.htmlfile
 
     def showhtml(self, rstdata):
-        mld = check_if_html(rstdata, self.loaded)
+        fname = self.htmlfile
+        ## if rstdata.replace('\r\n', '\n') == html.unescape(self.oldhtml):
+        if html.escape(rstdata.replace('\r\n', '\n')) == html.escape(
+                self.oldhtml).replace('&amp;', '&'):
+            mld = check_if_html(rstdata, self.loaded)
+        else:
+            mld = check_if_html(rstdata, self.loaded, fname)
+            if mld == '':
+                mld = save_html_data(self.sitename, self.current, fname, rstdata)
         if mld:
             mld = get_text(mld, self.conf["lang"])
             newdata = fname = ''
         else:
             newdata = rstdata
-            fname = self.htmlfile
         return mld, newdata, fname
 
-    def savehtml(self, htmlfile, rstdata):
-        mld = check_if_html(rstdata, self.loaded, htmlfile)
+    def savehtml(self, htmlfile, newfile, rstdata):
+        if newfile:
+            mld = 'html_name_wrong'
+        else:
+            mld = check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
             mld = get_text(mld, self.conf["lang"])
         else:
@@ -907,7 +944,7 @@ class R2hState:
         if mld:
             mld = get_text(mld, self.conf["lang"])
         else:
-            mld = save_to_mirror(self.sitename, self.current, htmlfile)
+            mld = save_to_mirror(self.sitename, self.current, htmlfile, self.conf)
             if not mld:
                 self.htmlfile = htmlfile
                 mld = get_text('copied_to', self.conf["lang"]).format(
@@ -925,7 +962,8 @@ class R2hState:
             newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
             mld = save_html_data(self.sitename, dirname, docname + '.html', newdata)
             if mld == "":
-                mld = save_to_mirror(self.sitename, dirname, docname + '.html')
+                mld = save_to_mirror(self.sitename, dirname, docname + '.html',
+                    self.conf)
         if not mld:
             mld = get_text('index_built', self.conf["lang"])
         return mld, rstdata

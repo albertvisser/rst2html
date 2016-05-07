@@ -64,7 +64,7 @@ c_qref = Quick reStructuredText
 # notifications and such
 
 conf_init = Settings file is {}
-new_conf_made = New site will be created on save
+new_conf_made = New site will be created on save - don't forget to provide a name for it
 conf_loaded = Settings loaded from {}
 fname_invalid = Not a valid filename
 supply_text = Please provide content for text area
@@ -97,6 +97,7 @@ html_name_missing = Please enter or select a target (.html) filename
 html_filename_error = Not executed: not a valid target file name
 html_file_missing = Target file does not exist
 html_saved = Modified HTML saved as {}
+html_name_wrong = Not executed: can only save HTML under the same name
 load_html = Please load HTML first
 copied_to = Copied to {}
 target_missing = {} skipped: not in target directory

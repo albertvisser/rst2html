@@ -1,35 +1,27 @@
 # rename this file to settings.yml to make it work
 # note that alternative setting files can be defined as settings_<sitename>.yml
+# also note that settings files can (or should) be edited from inside the application
 
 # this file defines the following items:
 
-# root        - location of converted html pages
-root: /home/albert/www/magiokis_vv/target
+# mirror   - a unique name for this particular site
+mirror: magiokis_vv
 
-# source   - location of .rst sources
-# mirror   - location of (mirror) site on local machine
-# source and mirror can be defined relative to root
-source: root + ../sources
-mirror: /home/albert/www/magiokis_vv
-# or
-# mirror: root + ..
+# mirror_url   - http address of the mirror environment on your local machine
+url: http://preview.magiokis.nl
 
-# mirror_url   - http address of (mirror) site
-mirror: http://preview.magiokis.nl
-
-# css           - locations of css files (should be absolute urls, so starting with http(s): )
-# can be defined relative to mirror_url
+# css           - a list of locations of css files (should be absolute urls, so starting with http(s): )
+# these are used in the rst to html conversion, so should be resolvable
 css:
-- /home/albert/www/magiokis_vv/css/reset.css
-# or
-#  - mirror_url + css/reset.css
-- mirror_url + css/960.css
-- mirror_url + css/html4css1.css
+- http://preview.magiokis.nl/css/reset.css
 - http://www.magiokis.nl/css/magiokis.css
 
-# wid, hig - width and height of text area in rst2html.html
+# wid, hig - width and height of text area in the web interface
 wid: 100
 hig: 32
+# lang      - language to be used in the web interface elements (not the contents!)
+# currently en(glish) and nl (dutch) are available
+lang: en
 
 # starthead - text lines to copy directly after the <head> element (to be executed first)
 # endhead  - text lines to copy directly before the </head> element (to be executed last)
@@ -38,3 +30,5 @@ starthead:
 
 endhead:
 
+# these can't be defined using directives because the code these generate goes into the
+# document body

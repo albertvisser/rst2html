@@ -1,13 +1,12 @@
 # import datetime
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 import datetime
 import yaml
 import shutil
 import pathlib
 HERE = pathlib.Path(__file__).parent
-from app_settings import WEBROOT, SETTFILE
-stat_keys = ('src', 'dest', 'to_mirror')
-Stats = namedtuple('Stats', stat_keys)
+SETTFILE = 'settings.yml'
+from app_settings import FS_WEBROOT, EXT2LOC, LOC2EXT, LOCS, Stats
 
 # zelfde API als docs2mongo plus:
 
@@ -39,6 +38,7 @@ def read_data(fname):   # to be used for actual file system data
             mld = str(e)
     except IOError as e:
         mld = str(e)
+    data = data.replace('\r\n', '\n')
     return mld, data
 
 def save_to(fullname, data): # to be used for actual file system data
@@ -59,26 +59,29 @@ def save_to(fullname, data): # to be used for actual file system data
 ## def clear_db(): pass # alle directories onder SITEROOT met source/target erin weggooien?
 ## def read_db(): pass
 def list_sites():
-    """build list of options containing all settings files in current directory"""
-    return [x.stem.replace('settings_', '') for x in HERE.glob('settings*.yml')]
+    ## """build list of options containing all settings files in current directory"""
+    ## return [x.stem.replace('settings_', '') for x in HERE.glob('settings*.yml')]
     ## return [x.name for x in HERE.glob('settings*.yml')]
-    "listen alle directories onder WEBROOT met subdirectories source en target"
-    path = WEBROOT
+    """list all directories under FS_WEBROOT having subdirectories source en target
+    (and a settings file)"""
+    path = FS_WEBROOT
     sitelist = []
     for item in path.iterdir():
         if not item.is_dir():
             continue
         test1 = item / 'source'
         test2 = item / 'target'
-        if test1.exists() and test1.isdir() and test2.exists() and test2.isdir():
-            sitelist.append(item)
+        test3 = item / SETTFILE
+        if (test1.exists() and test1.is_dir() and test2.exists() and test2.is_dir()
+                and test3.exists() and test3.is_file()):
+            sitelist.append(item.stem)
     return sitelist
 
 def create_new_site(sitename):
-    """aanmaken nieuwe directory onder WEBROOT plus subdirectories source en target
+    """aanmaken nieuwe directory onder FS_WEBROOT plus subdirectories source en target
     alsmede initieel settings file
     """
-    path = WEBROOT / sitename
+    path = FS_WEBROOT / sitename
     try:
         path.mkdir()
     except FileExistsError:
@@ -87,7 +90,7 @@ def create_new_site(sitename):
     src.mkdir()
     targ = path / 'target'
     targ.mkdir()
-    path = HERE / SETTFILE.format(sitename)
+    path = path / SETTFILE
     path.touch()
 
 def rename_site(sitename, newname): pass
@@ -102,33 +105,36 @@ def list_site_data(sitename):
         'settings': read_settings(sitename),
         'docs':  _get_sitedoc_data(sitename)}
     fnames, data = [], []
-    for ftype in stat_keys[:2]:
+    for ftype in LOCS[:2]:
         names = list_docs(sitename, ftype)
         fnames.extend([(x, ftype) for x in names])
         for dirname in list_dirs(sitename, ftype):
             names = list_docs(sitename, ftype, dirname)
             fnames.extend([('/'.join((dirname, x)), ftype) for x in names])
-    base = WEBROOT / sitename
+    base = FS_WEBROOT / sitename
     for name, ftype  in sorted(fnames):
         path = base / 'source' if ftype == 'src' else base / 'target'
         path /= name
+        mld1, data1 = read_data(path.with_suffix(LOC2EXT[ftype]))
+        mld2, data2 = read_data(path.with_suffix(LOC2EXT[ftype] + '.bak'))
         data.append({'_id': (name, ftype),
-            'current': read_data(path)[1],
-            'previous': read_data(path.with_suffix('.bak'))[1]})
+            'current': mld1 or data1,
+            'previous': mld2 or data2})
     return sitedoc, data
 
 def clear_site_data(sitename):
-    # remove settings file
-    path = HERE / SETTFILE.format(sitename)
+    """remove site from file system by removing mirror and underlying
+    """
+    path = FS_WEBROOT / sitename
     try:
-        path.unlink()
+        shutil.rmtree(str(path))
     except FileNotFoundError:
         pass
 
 def read_settings(sitename):
     "lezen settings file"
     conf = None
-    path = HERE / SETTFILE.format(sitename)
+    path = FS_WEBROOT / sitename / SETTFILE
     try:
         with path.open(encoding='utf-8') as _in:
             conf = yaml.safe_load(_in) # let's be paranoid
@@ -136,20 +142,11 @@ def read_settings(sitename):
         raise
     if conf is None: conf = {}
     return conf
-
-def change_setting(sitename, sett_name, value):
-    """modify a site setting to the given value
-
-    can also add a new setting
-    """
-    settings = read_settings(sitename)
-    settings[sett_name] = value
-    result = update_settings(sitename, settings)
-    return result
+    ## return 'reading settings from {}'.format(path)
 
 def update_settings(sitename, conf):
     "update (save) settings file"
-    path = HERE / SETTFILE.format(sitename)
+    path = FS_WEBROOT / sitename / SETTFILE
     if path.exists():
         shutil.copyfile(str(path),
             str(path.with_suffix(path.suffix + '.bak')))
@@ -160,15 +157,16 @@ def update_settings(sitename, conf):
 def clear_settings(sitename): pass
 def list_dirs(sitename, ext=''):
     "list subdirs for type"
-    test = WEBROOT / sitename
+    test = FS_WEBROOT / sitename
     if not test.exists():
         raise FileNotFoundError('Site bestaat niet')
     path = _extify(test, ext)
-    return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
+    ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
+    return [f.stem for f in path.iterdir() if f.is_dir()]
 
 def create_new_dir(sitename, dirname):
     "create site subdirectory in source tree"
-    path = WEBROOT / sitename / 'source' / dirname
+    path = FS_WEBROOT / sitename / 'source' / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
 
 def remove_dir(sitename, directory): pass
@@ -177,7 +175,7 @@ def list_docs(sitename, ext, directory=''):
 
     raises FileNotFoundError if site or directory doesn't exist
     """
-    path = WEBROOT / sitename
+    path = FS_WEBROOT / sitename
     if not path.exists():
         raise FileNotFoundError('Site bestaat niet')
     path = _extify(path, ext)
@@ -188,7 +186,8 @@ def list_docs(sitename, ext, directory=''):
             ## return []
     ## return [str(f.relative_to(path)) for f in path.glob("*.{}".format(ext))]
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()]
-    return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()
+    ## return [str(f.relative_to(path).) for f in path.iterdir() if f.is_file()
+    return [f.stem for f in path.iterdir() if f.is_file()
         and f.suffix != '.bak']
 
 def create_new_doc(sitename, docname, directory=''):
@@ -200,12 +199,14 @@ def create_new_doc(sitename, docname, directory=''):
     """
     if not docname:
         raise AttributeError('No name provided')
-    path = _extify(WEBROOT / sitename, 'src')
+    path = _extify(FS_WEBROOT / sitename, 'src')
     if directory:
         path = path / directory
     if not path.exists():
         raise FileNotFoundError('Subdirectory bestaat niet')
     path = path / docname
+    if path.suffix != '.rst':
+        path = path.with_suffix('.rst')
     path.touch(exist_ok=False)        # FileExistsError will be handled in the caller
 
 def get_doc_contents(sitename, docname, doctype='', directory=''):
@@ -216,10 +217,14 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     """
     if not docname:
         raise AttributeError('No name provided')
-    path = WEBROOT / sitename
+    path = FS_WEBROOT / sitename
     path = _extify(path, doctype)
     if directory: path /= directory
-    mld, doc_data = read_data(path / docname)
+    path = path / docname
+    ext = LOC2EXT[doctype]
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    mld, doc_data = read_data(path)
     if mld:
         raise FileNotFoundError(mld)
     return doc_data
@@ -236,10 +241,14 @@ def update_rst(sitename, doc_name, contents, directory=''):
     if not contents:
         raise AttributeError('No contents provided')
     if doc_name not in list_docs(sitename, 'src', directory):
-        raise FileNotFoundError("Document doesn't exist")
-    path = WEBROOT / sitename / 'source'
+        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+    path = FS_WEBROOT / sitename / 'source'
     if directory: path /= directory
-    save_to(path / doc_name, contents)
+    path = path / doc_name
+    ext = LOC2EXT['src']
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    save_to(path, contents)
 
 def update_html(sitename, doc_name, contents, directory=''):
     """update a converted document in the given directory
@@ -252,38 +261,53 @@ def update_html(sitename, doc_name, contents, directory=''):
         raise AttributeError('No name provided')
     if not contents:
         raise AttributeError('No contents provided')
-    if doc_name not in list_docs(sitename, 'src', directory):
+    if doc_name not in [x.replace('.rst', '.html') for x in list_docs(
+            sitename, 'src', directory)]:
         raise FileNotFoundError("Document doesn't exist")
-    path = WEBROOT / sitename / 'target'
+    path = FS_WEBROOT / sitename / 'target'
     if directory: path /= directory
     if not path.exists():
         path.mkdir()
-    save_to(path / doc_name, contents)
+    path = path / doc_name
+    ext = LOC2EXT['dest']
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    save_to(path, contents)
 
-def update_mirror(sitename, doc_name, directory=''):
+def update_mirror(sitename, doc_name, data, directory=''):
     """administer promoting the converted document in the given directory
     to the mirror site
+    some additions are only saved in the mirror html hence the data argument
+    otherwise we could get it from the target location
 
     raise AttributeError if no name provided
     create a new entry if it's the first time
     """
     if not doc_name:
         raise AttributeError('No name provided')
-    ## path = WEBROOT / sitename
-    ## if directory: path /= directory
-    ## if not path.exists():
-        ## path.mkdir()
-    # this does nothing more - the rest is done in the caller
+    path = FS_WEBROOT / sitename
+    if directory:
+        path /= directory
+        if not path.exists():
+            path.mkdir(parents=True)
+    path /= doc_name
+    ext = LOC2EXT['dest']
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    save_to(path, data)
 
 def remove_doc(sitename, docname, directory=''): pass
 def get_doc_stats(sitename, docname, dirname=''):
     mtimes = [datetime.datetime.min, datetime.datetime.min, datetime.datetime.min]
-    for ix, ftype in enumerate(stat_keys):
-        path = _extify(WEBROOT / sitename, ftype)
+    for ix, ftype in enumerate(LOCS):
+        path = _extify(FS_WEBROOT / sitename, ftype)
         path = path / dirname if dirname else path
         path /= docname
-        if ftype == stat_keys[2] and not path.suffix:
-            path = path.with_suffix('.html')
+        ext = LOC2EXT[ftype]
+        if path.suffix != ext:
+            path = path.with_suffix(ext)
+        ## if ftype == LOCS[2] and not path.suffix:
+            ## path = path.with_suffix('.html')
         if path.exists():
             mtimes[ix] = datetime.datetime.fromtimestamp(path.stat().st_mtime)
     return Stats(*mtimes)
@@ -296,7 +320,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     else:
         return
     result = []
-    path = _extify(WEBROOT / sitename, ftype)
+    path = _extify(FS_WEBROOT / sitename, ftype)
     if dirname:
         path = path / dirname
     if path.exists():
@@ -310,7 +334,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
 def _get_dir_stats(site_name, dirname=''):
     result = defaultdict(lambda : [datetime.datetime.min, datetime.datetime.min,
         datetime.datetime.min])
-    for ix, ftype in enumerate(stat_keys):
+    for ix, ftype in enumerate(LOCS):
         statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
         for name, mtime in statslist:
             result[name][ix] = datetime.datetime.fromtimestamp(mtime)
@@ -325,8 +349,8 @@ def get_all_doc_stats(sitename):
 def _get_dir_stats_for_docitem(site_name, dirname=''):
     docid = 0
     result_dict = defaultdict(lambda : {x: {'updated': datetime.datetime.min}
-        for x in stat_keys})
-    for ftype in stat_keys:
+        for x in LOCS})
+    for ftype in LOCS:
         statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
         for name, mtime in statslist:
             if ftype != 'to_mirror': # for comparability with other backends
