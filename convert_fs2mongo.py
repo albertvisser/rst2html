@@ -73,9 +73,6 @@ def main(args):
         if fromfile.exists():
             mld, data = fsys.read_data(fromfile)
             mongo.update_mirror(newsite, docname, data)
-            if not tomirror.exists():
-                tomirror.mkdir(parents=True)
-            fsys.save_to(destfile, data)
 
     for ext in args.extlist:
         spec = "*.{}".format(ext)
@@ -113,9 +110,6 @@ def main(args):
             if fromfile.exists():
                 mld, data = fsys.read_data(fromfile)
                 mongo.update_mirror(newsite, docname, data, dirname)
-                if not tomirror.exists():
-                    tomirror.mkdir(parents=True)
-                fsys.save_to(destfile, data)
 
         for ext in args.extlist:
             spec = "*.{}".format(ext)
