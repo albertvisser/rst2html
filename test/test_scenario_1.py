@@ -1,6 +1,8 @@
 # test scenario 1
 
 import pprint
+sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from rst2html_all import Rst2Html
 ## from rst2html_all import Rst2Html
 from analyze_testdata import sitename, get_db_diff, analyze_html_data, \

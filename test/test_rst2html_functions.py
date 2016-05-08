@@ -4,6 +4,8 @@ import os
 import subprocess as sp
 import pprint
 import yaml
+sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app_settings import DML, WEBROOT, BASIC_CSS
 import rst2html_functions_all as rhfn
 from test_dml import list_site_contents, clear_site_contents
