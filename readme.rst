@@ -20,12 +20,28 @@ As another small bonus to myself, I added a javascript library to provide code h
 It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
 
 
+The latest addition is the possibility to easily plug in a different data storage mechanism. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB database.
+
+
 How to use
 ----------
 
-Use ``cherryd`` or similar (these days I use ``gunicorn``) to run ``start_rst2html.py`` with the .conf file in this directory.
+1. setting up a site on your local webserver
+
+When starting a new site, choose what kind of implementation (file system or MongDB) to use, start up the application and choose "load settings", then enter a nice name and choose "save settings". This will create a destination site in a standard location as well as define locations for keeping the intermediary results. You can then map the location to a url for your local webserver so that you can view the result in all its glory.
+
+When using an existing site, you can use the existing site configuration and map FS_WEBROOT in `app_settings.py` to the physical directory.
+For a file system implementation, create a `settings.yml` file and a `source` and `target` directory tree in it and you're good to go.
+A MongoDB implementation has all this stuff stored in a database, I'm going to write a script to set this up, as that's easier than explaining how to do it yourself.
+
+2. setting up the application
+
+Use ``cherryd`` or similar to run ``start_rst2html.py`` with the .conf file in this directory.
+
 In this configuration define the output to go to a specific port on localhost.
+
 Configure your local webserver to pick up the output from the port and assign it to a virtual domain. Have your hosts file translate the virtual domain to localhost.
+
 Of course you can also pick up the output directly in the web browser by specifying localhost:port.
 
 
@@ -38,3 +54,4 @@ Requirements
 - yaml for the config parsing stuff
 - PyQt for the gui version
 - CodeMirror for the syntax highlighting (you can do without it I think)
+- MongoDB if you choose that backend for your data storage
