@@ -1,5 +1,5 @@
-# test scenario 1
-
+import os
+import sys
 import pprint
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))

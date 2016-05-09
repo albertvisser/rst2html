@@ -68,12 +68,11 @@ def test_dml(site_name):
     assert not ok
     test = dml.list_sites()
     assert site_name in test
-    setting = 'unknown_setting'
-    value = 'secret value'
-    dml.change_setting(site_name, setting, value)
-    setting = 'url'
-    value = '/rst2html-data/test'
-    dml.change_setting(site_name, setting, value)
+    data = dml.read_settings(site_name)
+    assert data == {}
+    data['unknown_setting'] = 'secret value'
+    data['url'] = '/rst2html-data/test'
+    dml.update_settings(site_name, data)
     rootdoc = 'jansen'
     print('ok')
 

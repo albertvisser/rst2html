@@ -1,6 +1,7 @@
 # tests for rst2html_functions
 # for now only test what we've modified (which is almost everything anyway)
 import os
+import sys
 import subprocess as sp
 import pprint
 import yaml
