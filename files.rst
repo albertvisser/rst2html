@@ -20,10 +20,10 @@ directives_magiokis.py
     directives designed for use on my Magiokis pages
 
 docs2fs.py
-    dml routines for the file system implementation
+    routines for the file system implementation (data manipulation layer)
 
 docs2mongo.py
-    dml routines for the mongodb implementation
+    routines for the mongodb implementation (data manipulation layer)
 
 dutch.lng
 english.lng
@@ -54,9 +54,9 @@ rst2html.py
     the program in which it all happens (presentation layer)
 
 rst2html_functions.py
-    functions and stuff to be used bu the webapp (application layer)
+    functions and stuff to be used by the webapp (application layer)
 
-sample_settings.yml
+sample_settings.yml         - to be removed
     configuration example
 
 stand.html
@@ -88,12 +88,18 @@ static/
         also an all-in one version previously used for rendering in preview mode
 
 test/
-    directory for tests and testscripts - to be filled with proper testing stuff
-    e.g. (these files currently reside in the top level directory)
+    directory for tests and testscripts
+
     analyze_testdata.py
+        functions that help in comparing database and html output, used by test_scenario_1
     test_dml.py
+        testscript for the data manipulation layer
     test_rst2html.py
+        testscript for unexposed functions in the presentation layer
     test_rst2html_functions.py
+        testscript for the application logic layer
     test_scenario_1.py
+        testscript for the web views in the presentation layer
     test_dml_specific.py
+        testscript for non-api functions in the data manipulation layer
 
