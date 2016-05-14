@@ -466,7 +466,10 @@ def save_to_mirror(sitename, current, fname, conf):
         return mld
     data = complete_header(conf, data)
     try:
-        dml.update_mirror(sitename, fname, data, directory=current)
+        if "mirror" in conf:
+            dml.update_mirror(conf["mirror"], fname, data, directory=current)
+        else:
+            dml.update_mirror(sitename, fname, data, directory=current)
     except AttributeError as e:
         if 'name' in str(e):
             return 'html_name_missing'

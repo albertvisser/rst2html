@@ -10,10 +10,10 @@ from app_settings import FS_WEBROOT, EXT2LOC, LOC2EXT, LOCS, Stats
 
 # zelfde API als docs2mongo plus:
 
-def _extify(path, ext=''):
-    if ext in ('', 'src'):
+def _locify(path, loc=''):
+    if loc in ('', 'src'):
         path /= 'source'
-    elif ext == 'dest':
+    elif loc == 'dest':
         path /= 'target'
     ## elif path != 'to_mirror':
         ## return 'invalid type', ''
@@ -155,12 +155,12 @@ def update_settings(sitename, conf):
     return 'ok'
 
 def clear_settings(sitename): pass
-def list_dirs(sitename, ext=''):
+def list_dirs(sitename, loc=''):
     "list subdirs for type"
     test = FS_WEBROOT / sitename
     if not test.exists():
         raise FileNotFoundError('Site bestaat niet')
-    path = _extify(test, ext)
+    path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
     return [f.stem for f in path.iterdir() if f.is_dir()]
 
@@ -170,7 +170,7 @@ def create_new_dir(sitename, dirname):
     path.mkdir()    # can raise FileExistsError - is caught in caller
 
 def remove_dir(sitename, directory): pass
-def list_docs(sitename, ext, directory=''):
+def list_docs(sitename, loc, directory=''):
     """list the documents of a given type in a given directory
 
     raises FileNotFoundError if site or directory doesn't exist
@@ -178,7 +178,7 @@ def list_docs(sitename, ext, directory=''):
     path = FS_WEBROOT / sitename
     if not path.exists():
         raise FileNotFoundError('Site bestaat niet')
-    path = _extify(path, ext)
+    path = _locify(path, loc)
     if directory:
         path /= directory
         if not path.exists():
@@ -188,7 +188,8 @@ def list_docs(sitename, ext, directory=''):
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()]
     ## return [str(f.relative_to(path).) for f in path.iterdir() if f.is_file()
     return [f.stem for f in path.iterdir() if f.is_file()
-        and f.suffix != '.bak']
+        ## and f.suffix != '.bak']
+        and f.suffix == LOC2EXT[loc]]
 
 def create_new_doc(sitename, docname, directory=''):
     """add a new (source) document to the given directory
@@ -199,7 +200,7 @@ def create_new_doc(sitename, docname, directory=''):
     """
     if not docname:
         raise AttributeError('No name provided')
-    path = _extify(FS_WEBROOT / sitename, 'src')
+    path = _locify(FS_WEBROOT / sitename, 'src')
     if directory:
         path = path / directory
     if not path.exists():
@@ -218,7 +219,7 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     if not docname:
         raise AttributeError('No name provided')
     path = FS_WEBROOT / sitename
-    path = _extify(path, doctype)
+    path = _locify(path, doctype)
     if directory: path /= directory
     path = path / docname
     ext = LOC2EXT[doctype]
@@ -300,7 +301,7 @@ def remove_doc(sitename, docname, directory=''): pass
 def get_doc_stats(sitename, docname, dirname=''):
     mtimes = [datetime.datetime.min, datetime.datetime.min, datetime.datetime.min]
     for ix, ftype in enumerate(LOCS):
-        path = _extify(FS_WEBROOT / sitename, ftype)
+        path = _locify(FS_WEBROOT / sitename, ftype)
         path = path / dirname if dirname else path
         path /= docname
         ext = LOC2EXT[ftype]
@@ -320,7 +321,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     else:
         return
     result = []
-    path = _extify(FS_WEBROOT / sitename, ftype)
+    path = _locify(FS_WEBROOT / sitename, ftype)
     if dirname:
         path = path / dirname
     if path.exists():
