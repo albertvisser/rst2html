@@ -10,14 +10,6 @@ cl = MongoClient()
 db = cl.rst2html_database
 site_coll = db.site_coll
 # support for older pymongo versions
-## try:
-    ## test = site_coll.insert_one
-## except TypeError:
-    ## site_coll.insert_one = site_coll.insert
-    ## site_coll.update_one = site_coll.update
-    ## site_coll.replace_one = site_coll.update
-    ## # site_coll.find_one_and_delete = site_coll.remove
-    ## site_coll.delete_many = site_coll.remove
 try:
     test = Collection.update_one
 except AttributeError:
