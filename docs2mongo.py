@@ -92,6 +92,7 @@ def list_site_data(site_name):
 def clear_site_data(site_name):
     """remove site from database, also delete mirror site files from file system
     """
+    path = DB_WEBROOT / site_name
     try:
         sitedoc = site_coll.find_one_and_delete({'name': site_name})            #@
     except TypeError:
@@ -99,7 +100,13 @@ def clear_site_data(site_name):
         site_coll.remove({'name': site_name})                                   #@
 
     if sitedoc is None:
-        return
+        if path.exists():
+            raise RuntimeError("data inconstent: mirror without database site")
+        else:
+            return
+    else:
+        if not path.exists():
+            raise RuntimeError("data inconstent: database without mirror site")
 
     id_list = []
     for dirname, diritem in sitedoc['docs'].items():
@@ -112,7 +119,6 @@ def clear_site_data(site_name):
     ## except TypeError:
         ## site_coll.remove({'_id': {'$in': sorted(id_list)}})                     #@
 
-    path = DB_WEBROOT / site_name
     try:
         shutil.rmtree(str(path))
     except FileNotFoundError:
