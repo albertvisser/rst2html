@@ -70,12 +70,21 @@ def test_dml(site_name):
     assert site_name in test
     data = dml.read_settings(site_name)
     assert data == {}
-    data['unknown_setting'] = 'secret value'
-    data['url'] = '/rst2html-data/test'
-    dml.update_settings(site_name, data)
-    rootdoc = 'jansen'
+    olddata = {'unknown_setting': 'secret value', 'url': 'fish-slapping-dance'}
+    dml.update_settings(site_name, olddata)
+    data = dml.read_settings(site_name)
+    assert data == olddata
+    olddata = {'url': 'fish-slapping-dance'}
+    dml.update_settings(site_name, olddata)
+    data = dml.read_settings(site_name)
+    assert data == olddata
+    olddata = {'url': '/rst2html-data/test'}
+    dml.update_settings(site_name, olddata)
+    data = dml.read_settings(site_name)
+    assert data == olddata
     print('ok')
 
+    rootdoc = 'jansen'
     print('getting contents of nonexistent document...', end=' ')
     try:
         data = dml.get_doc_contents(site_name, rootdoc, 'src')
