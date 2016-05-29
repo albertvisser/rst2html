@@ -112,7 +112,7 @@ def clear_site_data(site_name):
     ## except TypeError:
         ## site_coll.remove({'_id': {'$in': sorted(id_list)}})                     #@
 
-    path = pathlib.Path(__file__).parent / 'rst2html-data' / site_name
+    path = DB_WEBROOT / site_name
     try:
         shutil.rmtree(str(path))
     except FileNotFoundError:
