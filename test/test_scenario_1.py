@@ -3,7 +3,7 @@ import sys
 import pprint
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from rst2html_all import Rst2Html
+from rst2html import Rst2Html
 ## from rst2html_all import Rst2Html
 from analyze_testdata import sitename, get_db_diff, analyze_html_data, \
     get_html_diff, dump_data_and_compare
@@ -124,11 +124,11 @@ def main():
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
             sitename, app.state.rstdata),
         '04_saveconf_new')
-    ## print(dbdata)
     assert 'new site has been added' in dbdata
     assert 'site docs have not changed' in dbdata
     assert htmldata == [
-        'mld_text is "Settings opgeslagen als testsite"',
+        'mld_text is "Settings opgeslagen als testsite; '
+            'note that previews won\'t work with empty url setting"',
         'settings_list: added value "testsite"',
         'settings_name: value was "", is now "testsite"',
         'textdata changed']
@@ -228,7 +228,7 @@ def main():
             app.state.newfile, rstdata_1),
         '09a_convert_new')
     assert dbdata == ['/ testdoc1 src was changed',
-        "doc ('testdoc1', 'src') is changed"]           # is this ok?
+        "doc ('testdoc1', 'src') is changed"]           # is this ok? yes, unconditional save
     assert htmldata == [                                # not very useful
         'htmlfile_list: removed value ".."',            # we're not showing
         'mld_text is "switching to parent directory"',  # the interface here
@@ -239,13 +239,17 @@ def main():
     ## return
     # simulate viewing the (slightly changed) document
     dbdata, htmldata = dump_data_and_compare(
-        app.convert(app.state.settings, app.state.rstfile, app.state.htmlfile,
+        app.convert(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
             app.state.newfile, rstdata_2),
         '09b_convert_new_changed')
-    assert dbdata == ['site data has not changed']      # is this ok? (and the rest)
-    assert htmldata == [
-        'mld_text is "Please enter or select a source (.rst) file name"',
-        'textdata changed']
+    assert dbdata == ['/ testdoc1 src was changed',
+        "doc ('testdoc1', 'src') is changed"]
+    assert htmldata == [                                # not very useful
+        'htmlfile_list: removed value ".."',            # we're not showing
+        'mld_text is "switching to parent directory"',  # the interface here
+        'rstfile_list: added value "subdir/"',
+        'rstfile_list: added value "testdoc1.rst"',
+        'rstfile_list: removed value ".."']
 
     # simulate loading an existing source document
     dbdata, htmldata = dump_data_and_compare(

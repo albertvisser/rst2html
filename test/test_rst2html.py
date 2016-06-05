@@ -6,7 +6,7 @@ import datetime
 ## import cherrypy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-import rst2html_all as r2h
+import rst2html as r2h
 from app_settings import DML
 if DML == 'fs':
     print('using file system dml')

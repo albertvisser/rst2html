@@ -7,7 +7,7 @@ import importlib
 import inspect
 import glob
 import html
-import urllib
+import urllib.request, urllib.error
 import yaml
 import datetime
 ## import gettext
@@ -176,7 +176,7 @@ def init_css(sitename):
     for cssfile in BASIC_CSS:
         dest = str(WEBROOT / sitename / cssfile)
         shutil.copyfile(os.path.join('static', cssfile), dest)
-        conf['css'].append(os.path.abspath(dest))
+        conf['css'].append('url + ' + cssfile)
     dml.update_settings(sitename, conf)
 
 def list_confs(sitename='', lang=DFLT_CONF['lang']):
@@ -207,7 +207,7 @@ def conf2text(conf, lang=DFLT_CONF['lang']):
             items = []
             for item in conf['css']:
                 if item.startswith(conf['url']):
-                    item = item.replace(conf['url'], 'url + ')
+                    item = item.replace(conf['url'] + '/', 'url + ')
                 items.append(item)
             confdict[key] = items
         else:
@@ -239,12 +239,14 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
     for key in DFLT_CONF: # check if obligatory keys are present
         if key not in conf:
             return does_not_exist.format(key, '')
-    for key, value in FULL_CONF.items(): # check value for each key
+    ## for key, value in FULL_CONF.items(): # check value for each key
+    for key in FULL_CONF: # check value for each key
         if key not in conf:
             continue
+        value = conf[key]
         if key in ('wid', 'hig'): #  and isinstance(value, int):
             try:
-                int(conf[key])
+                int(value)
             except ValueError:
                 return invalid.format(key)
         elif key == 'lang' and value not in languages:
@@ -259,7 +261,7 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
                     return invalid.format('url')
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
-            conf['css'][ix] = item.replace('url + ', conf['url'])
+            conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
         elif not item.startswith('http'):
             conf['css'][ix] = 'http://' + item
     dml.update_settings(sitename, conf)
@@ -731,8 +733,8 @@ class R2hState:
             if newsett == get_text('c_newitem', self.conf["lang"]):
                 mld = get_text('fname_invalid', self.conf["lang"])
             elif self.newconf:
-                rstdata = rstdata.replace("url: ''",
-                    "url: /rst2html-data/{}".format(newsett))
+                ## rstdata = rstdata.replace("url: ''",
+                    ## "url: /rst2html-data/{}".format(newsett))
                 mld = new_conf(newsett)
         if mld == "":
             mld = save_conf(newsett, rstdata, self.conf["lang"])
@@ -748,7 +750,7 @@ class R2hState:
             mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
             if self.conf['url'] == '':
                 mld += "; note that previews won't work with empty url setting"
-            return mld, rstdata, self.settings, self.newfile
+        return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
         # this data actually *does* come from the file system as itś code stored on the server

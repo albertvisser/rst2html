@@ -93,7 +93,9 @@ def create_new_site(sitename):
     path = path / SETTFILE
     path.touch()
 
-def rename_site(sitename, newname): pass
+def rename_site(sitename, newname):
+    raise NotImplementedError
+
 # deze twee worden niet gebruikt door de applicatie, maar wel door de testroutines
 def list_site_data(sitename):
     # caveat: we can't 100% derive the settings file name from the site name
@@ -154,7 +156,9 @@ def update_settings(sitename, conf):
         yaml.dump(conf, _out, default_flow_style=False)
     return 'ok'
 
-def clear_settings(sitename): pass
+def clear_settings(sitename):
+    raise NotImplementedError
+
 def list_dirs(sitename, loc=''):
     "list subdirs for type"
     test = FS_WEBROOT / sitename
@@ -169,7 +173,9 @@ def create_new_dir(sitename, dirname):
     path = FS_WEBROOT / sitename / 'source' / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
 
-def remove_dir(sitename, directory): pass
+def remove_dir(sitename, directory):
+    raise NotImplementedError
+
 def list_docs(sitename, loc, directory=''):
     """list the documents of a given type in a given directory
 
@@ -182,8 +188,8 @@ def list_docs(sitename, loc, directory=''):
     if directory:
         path /= directory
         if not path.exists():
-            raise FileNotFoundError('Subdirectory bestaat niet')
-            ## return []
+            ## raise FileNotFoundError('Subdirectory bestaat niet')
+            return []
     ## return [str(f.relative_to(path)) for f in path.glob("*.{}".format(ext))]
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()]
     ## return [str(f.relative_to(path).) for f in path.iterdir() if f.is_file()
@@ -297,7 +303,9 @@ def update_mirror(sitename, doc_name, data, directory=''):
         path = path.with_suffix(ext)
     save_to(path, data)
 
-def remove_doc(sitename, docname, directory=''): pass
+def remove_doc(sitename, docname, directory=''):
+    raise NotImplementedError
+
 def get_doc_stats(sitename, docname, dirname=''):
     mtimes = [datetime.datetime.min, datetime.datetime.min, datetime.datetime.min]
     for ix, ftype in enumerate(LOCS):

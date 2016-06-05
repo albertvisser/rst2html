@@ -37,7 +37,7 @@ def _get_site_id(site_name):
     return site_coll.find_one({'name': site_name})['_id']                   #@
 
 def _get_site_doc(site_name):
-    """returns the id of the document for the site with the given name
+    """returns the stats document for the site with the given name
     """
     return site_coll.find_one({'name': site_name})                          #@
 
@@ -99,25 +99,26 @@ def clear_site_data(site_name):
         sitedoc = site_coll.find_one({'name': site_name})                       #@
         site_coll.remove({'name': site_name})                                   #@
 
-    if sitedoc is None:
-        if path.exists():
-            raise RuntimeError("data inconstent: mirror without database site")
-        else:
-            return
-    else:
-        if not path.exists():
-            raise RuntimeError("data inconstent: database without mirror site")
+    ## if sitedoc is None:
+        ## if path.exists():
+            ## raise RuntimeError("data inconstent: mirror without database site")
+        ## else:
+            ## return
+    ## else:
+        ## if not path.exists():
+            ## raise RuntimeError("data inconstent: database without mirror site")
 
-    id_list = []
-    for dirname, diritem in sitedoc['docs'].items():
-        for docname, docitem in diritem.items():
-            for locname, locitem in docitem.items():
-                if 'docid' in locitem:
-                    id_list.append(locitem['docid'])
-    ## try:
-    site_coll.delete_many({'_id': {'$in': sorted(id_list)}})                    #@
-    ## except TypeError:
-        ## site_coll.remove({'_id': {'$in': sorted(id_list)}})                     #@
+    if sitedoc:
+        id_list = []
+        for dirname, diritem in sitedoc['docs'].items():
+            for docname, docitem in diritem.items():
+                for locname, locitem in docitem.items():
+                    if 'docid' in locitem:
+                        id_list.append(locitem['docid'])
+        ## try:
+        site_coll.delete_many({'_id': {'$in': sorted(id_list)}})                    #@
+        ## except TypeError:
+            ## site_coll.remove({'_id': {'$in': sorted(id_list)}})                     #@
 
     try:
         shutil.rmtree(str(path))
@@ -271,6 +272,9 @@ def update_rst(site_name, doc_name, contents, directory=''):
         raise FileNotFoundError("Document doesn't exist")
     doc_id = sitedoc['docs'][directory][doc_name]['src']['docid']
     rstdoc = site_coll.find({'_id': doc_id})[0]
+    ## if contents == rstdoc['current']:
+        ## return 'text has not changed'
+
     rstdoc['previous'] = rstdoc['current']
     rstdoc['current'] = contents
     _update_doc(doc_id, rstdoc)

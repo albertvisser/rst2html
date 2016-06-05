@@ -193,11 +193,15 @@ def test_dml(site_name):
     assert data == '<p>but not them</p>'
     print('ok')
 
-    print('testing move to mirror from {}...'.format(newdir),
-        end=' ')
+    print('testing move to mirror from {}...'.format(newdir), end=' ')
     dml.update_mirror(site_name, otherdoc, data, directory=newdir)
     assert dml.list_docs(site_name, 'src', directory=newdir) == ['hendriksen']
     assert dml.list_docs(site_name, 'dest', directory=newdir) == ['hendriksen']
+    print('ok')
+
+    print('test retrieving site statistics:'.format(newdir))
+    data = dml.get_all_doc_stats(site_name)
+    pprint.pprint(data) # date/time dependent, no use comparing output
     print('ok')
 
 def main():

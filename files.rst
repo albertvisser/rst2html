@@ -25,6 +25,9 @@ docs2fs.py
 docs2mongo.py
     routines for the mongodb implementation (data manipulation layer)
 
+docs2pg.py
+    routines for the postgres implementation (data manipulation layer)
+
 dutch.lng
 english.lng
     data for homebrew language support
@@ -58,6 +61,9 @@ rst2html_functions.py
 
 sample_settings.yml         - to be removed
     configuration example
+
+setup_database.sql
+    SQL satatements for building the database tables
 
 stand.html
     template for displaying the site overview

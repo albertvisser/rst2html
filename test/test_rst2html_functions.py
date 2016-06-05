@@ -8,20 +8,28 @@ import yaml
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app_settings import DML, WEBROOT, BASIC_CSS
-import rst2html_functions_all as rhfn
+import rst2html_functions as rhfn
 from test_dml import list_site_contents, clear_site_contents
 
 def sorted_items(input_dict):
     return [(x, y) for x, y in sorted(input_dict.items())]
 
 confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
-    'wid': 100, 'url': '/rst2html-data/test', 'lang': 'en'}
-confdata_text = '\n'.join((
+    'wid': 100, 'url': 'http://www.example.com', 'lang': 'en'}
+confdata_text_init = '\n'.join((
     'css:',
     '- http://www.example.com/test.css',
     'hig: 32',
     'lang: en',
-    'url: /rst2html-data/test',
+    'url: http://www.example.com',
+    'wid: 100\n'
+    ))
+confdata_text = '\n'.join((
+    'css:',
+    '- url + test.css',
+    'hig: 32',
+    'lang: en',
+    'url: http://www.example.com',
     'wid: 100\n'
     ))
 confdata_text_2 = '\n'.join((
@@ -36,14 +44,12 @@ confdata_extra = {x: y for x, y in confdata.items()}
 confdata_extra.update(
     {'starthead': '<!-- starthead -->', 'endhead': '<!-- endhead -->'})
 other_confdata = {'lang': 'en', 'hig': 32, 'wid': 100,'css': [],
-    'url': '/rst2html-data/blub'}
-other_confdata_css = ''.join(
-    ['\n- {}'.format(str(WEBROOT/ 'blub' / x)) for x in BASIC_CSS])
+    'url': ''}
 other_confdata_text = '\n'.join((
-    'css:{}'.format(other_confdata_css),
+    'css:' + ''.join(['\n- url + {}'.format(x) for x in BASIC_CSS]),
     'hig: 32',
     'lang: en',
-    'url: /rst2html-data/blub',
+    "url: ''",
     'wid: 100\n'
     ))
 newconfdata = {'lang': 'en', 'css': [], 'hig': 32, 'url': '', 'wid': 100}
@@ -69,8 +75,7 @@ jansen_txt = """bah humbug
 .. refkey:: ref2: here2
 end"""
 csslink = '<link rel="stylesheet" href="{}" type="text/css" />'
-converted_css = '\n'.join([csslink.format(str(WEBROOT / 'blub' / x))
-    for x in BASIC_CSS])
+converted_css = '\n'.join([csslink.format('url + ' + x) for x in BASIC_CSS])
 converted_txt = """\
 <?xml version="1.0" encoding="utf-8" ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -103,6 +108,8 @@ def test_new_site(sitename):
     assert mld == 'Site already exists'
     sett = {x:y for x, y in rhfn.DFLT_CONF.items()}
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
+    mld, sett = rhfn.read_conf(sitename)
+
     sett['hig'] = 'Too high'
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for hig'
@@ -111,13 +118,14 @@ def test_new_site(sitename):
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == 'Config: invalid value for lang'
     sett['lang'] = 'en'
+    sett['url'] = 'http://www.example.com'
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     assert mld == ''
     rhfn.init_css(sitename)
     mld, conf = rhfn.read_conf(sitename)
     for item in BASIC_CSS:
         test = WEBROOT/ sitename / item
-        assert str(test) in conf['css']
+        assert 'url + ' + item in conf['css']
         assert test.exists()
     print('ok')
 
@@ -134,17 +142,17 @@ def test_readwrite_conf(sitename):
     assert conf == None
     mld, conf = rhfn.read_conf(sitename)
     assert mld == ''
-    expected = {'url': '/rst2html-data/test', 'wid': 100, 'hig': 32, 'lang': 'en',
-         'css': [str(WEBROOT/ sitename / x) for x in BASIC_CSS]}
+    expected = {'url': 'http://www.example.com', 'wid': 100, 'hig': 32, 'lang': 'en',
+         'css': ['url + {}'.format(x) for x in BASIC_CSS]}
     assert sorted_items(conf) == sorted_items(expected)
 
     text = rhfn.conf2text(conf)
-    css = ''.join(['\n- {}'.format(str(WEBROOT/ sitename / x)) for x in BASIC_CSS])
+    css = ''.join(['\n- url + {}'.format(x) for x in BASIC_CSS])
     expected = "\n".join((
         "css:{}".format(css),
         "hig: 32",
         "lang: en",
-        "url: /rst2html-data/test",
+        "url: http://www.example.com",
         "wid: 100\n"))
     assert text == expected
     mld = rhfn.save_conf(sitename, confdata_text)
@@ -423,7 +431,9 @@ def test_index(state):
 
     initial_site = state.sitename
     data = state.index()
-    assert data[:4] == ('', '', '', 'Settings file is {}'.format(initial_site))
+    # skip this check for now as we haven't converted bitbucket to postgres yet
+    if DML != 'postgres':
+        assert data[:4] == ('', '', '', 'Settings file is {}'.format(initial_site))
     assert data[-1] == initial_site
     ## assert sorted_items(state.conf) == sorted_items(confdata)
     ## assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
@@ -501,7 +511,8 @@ def test_save_conf(state):
 
     state.newconf = True
     data = state.saveconf('test', 'blub', newconfdata_text)
-    assert data == ('Settings opgeslagen als blub', other_confdata_text, 'blub', '')
+    assert data == ("Settings opgeslagen als blub; note that previews won't work "
+        "with empty url setting", other_confdata_text, 'blub', '')
 
     print('ok')
     return state
