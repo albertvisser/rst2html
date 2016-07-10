@@ -32,7 +32,8 @@ When starting a new site, choose what kind of implementation (file system or Mon
 
 When using an existing site, you can use the existing site configuration and map FS_WEBROOT in `app_settings.py` to the physical directory.
 For a file system implementation, create a `settings.yml` file and a `source` and `target` directory tree in it and you're good to go.
-A MongoDB implementation has all this stuff stored in a database, I'm going to write a script to set this up, as that's easier than explaining how to do it yourself.
+A MongoDB implementation has all this stuff stored in a database, for this the pertaining database layer takes care of all the setup details. In the same vein there's the possibility to use a Postgres SQL database.
+What backend to use is also defined in `app_settings.py`.
 
 2. setting up the application
 
