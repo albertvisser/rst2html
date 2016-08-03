@@ -10,6 +10,7 @@ from docs2fs import save_to
 conn = pg.connect(database="rst2html", user=user, password=password)
 TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents')
 
+# originally I had the idea to factor out database boilerplate code using a decorator
 class dbwrapper:
     """boilerplate code for doing work on the database
 
