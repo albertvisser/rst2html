@@ -3,8 +3,8 @@ import pathlib
 import collections
 
 # specify which data backend to use
-## DML = 'fs'        # file system
-DML = 'mongo'     # NoSQL
+DML = 'fs'        # file system
+## DML = 'mongo'     # NoSQL
 ## DML = 'postgres'  # SQL
 # default site to start the application with
 DFLT ='bitbucket'
