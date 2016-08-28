@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import datetime
+import json
 # Import Docutils document tree nodes module.
 from docutils import nodes
 # Import ``directives`` module (contains conversion functions).
@@ -18,26 +19,9 @@ wat moet ik maken
 -             p class date met inhoud = 'written on ...'
 """
 header_text = "" # "Albert Visser's programmer's blog"
-navlinks = (('/', "Home"),
-            ('/about/', 'About me'),
-            ('/site/', 'About this site'),
-            ('', 'My projects')
-            )
-projlinks = (("/actiereg/", 'ActieReg'),
-            ("/albums/", 'Albums'),
-            ("/apropos/", 'A Propos'),
-            ("/htmledit/", 'HTML Editor'),
-            ("/cssedit/", 'CSS Editor'),
-            ("/xmledit/", 'XML Editor'),
-            ("/doctree/", 'DocTree'),
-            ("/filefindr/", 'FileFindR'),
-            ("/hotkeys/", 'Hotkeys'),
-            ("/logviewer/", 'LogViewer'),
-            ("/myprojects/", 'MyProjects'),
-            ("/notetree/", 'NoteTree'),
-            ("/probreg/", 'ProbReg'),
-            ("/rst2html/", 'Rst2HTML'),
-            )
+
+with open('/home/albert/www/bitbucket/directives_info.json') as f_in:
+    sitestuff = json.load(f_in)
 
 def align(argument):
     """Conversion function for the "align" option."""
@@ -67,13 +51,13 @@ class NavLinks(Directive):
     def run(self):
         "genereer de html"
         text = ['<div id="navigation"><ul>',]
-        for link, linktext in navlinks:
+        for link, linktext in sitestuff['navlinks']:
             if linktext != 'My projects':
                 text.append('<li class="menu"><a href="{}">{}</a></li>'.format(link,
                     linktext))
                 continue
             text.append('<li class="menu">{}<ul>'.format(linktext))
-            for link, linktext in projlinks:
+            for link, linktext in sitestuff['projlinks']:
                 text.append('<li><a href="{}">{}</a></li>'.format(link, linktext))
             text.append('</ul></li>')
         text.append('</ul></div>')
