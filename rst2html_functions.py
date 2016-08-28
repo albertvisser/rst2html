@@ -278,7 +278,7 @@ def list_subdirs(sitename, ext=''):
         test = dml.list_dirs(sitename, ext)
     except FileNotFoundError:
         return []
-    return [x + '/' for x in test]
+    return [x + '/' for x in sorted(test)]
 
 def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
     """build list of options from filenames, with `naam` selected"""
