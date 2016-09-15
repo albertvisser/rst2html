@@ -82,7 +82,7 @@ converted_txt = """\
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title></title>
 {}
 </head>
@@ -432,7 +432,7 @@ def test_index(state):
     initial_site = state.sitename
     data = state.index()
     # skip this check for now as we haven't converted bitbucket to postgres yet
-    if DML != 'postgres':
+    if DML not in ('mongo', 'postgres'):
         assert data[:4] == ('', '', '', 'Settings file is {}'.format(initial_site))
     assert data[-1] == initial_site
     ## assert sorted_items(state.conf) == sorted_items(confdata)
