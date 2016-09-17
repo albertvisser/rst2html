@@ -10,10 +10,10 @@ DML = 'mongo'     # NoSQL
 user = '<username>'
 password = '<password>'
 # default site to start the application with
-DFLT ='bitbucket'
+DFLT ='<sitename>'
 # physical path for mirror root
 # note: home works from Python 3.5 onwards. If your Python is older, simply use the full path
-FS_WEBROOT = pathlib.Path.home() / 'www'  # as configured in web server
+FS_WEBROOT = pathlib.Path.('<webroot>')  # as configured in web server
 DB_WEBROOT = pathlib.Path(__file__).parent / 'rst2html-data'    # database versions
 # css files that are always needed, will be copied to every new site
 BASIC_CSS = ['reset.css', 'html4css1.css', '960.css']
