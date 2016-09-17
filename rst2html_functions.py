@@ -451,6 +451,9 @@ def complete_header(conf, rstdata):
         else:
             middle = os.linesep.join(conf['endhead'])
         rstdata = start + middle + split_on + end
+    # replace references to local domain
+    rstdata = rstdata.replace(conf['url'] + '/', '/')
+    rstdata = rstdata.replace(conf['url'], '/')
     return rstdata
 
 def save_to_mirror(sitename, current, fname, conf):
@@ -459,10 +462,7 @@ def save_to_mirror(sitename, current, fname, conf):
     fname, ext = os.path.splitext(fname)
     if ext not in ('', '.html'):
         return 'Not a valid html file name'
-    ## if DML == 'fs':
     dirname = WEBROOT / sitename
-    ## else:
-        ## dirname = HERE /'rst2html-data' / sitename
     if current:
         dirname /= current # = dirname / current)
         mld, data = read_html_data(sitename, current, fname)
@@ -480,12 +480,6 @@ def save_to_mirror(sitename, current, fname, conf):
         if 'name' in str(e):
             return 'html_name_missing'
         return str(e)
-    ## if not dirname.exists():
-        ## dirname.mkdir(parents=True)
-    ## path = dirname / fname
-    ## if path.suffix != '.html':
-        ## path = path.with_suffix('.html')
-    ## mld = save_to(path, data)
     return mld
 
 #-- progress list
