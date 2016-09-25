@@ -49,10 +49,10 @@ Of course you can also pick up the output directly in the web browser by specify
 Requirements
 ------------
 
-- Python
+- Python(3)
 - Docutils for the restsructured text stuff
 - CherryPy for the web application
 - yaml for the config parsing stuff
-- PyQt for the gui version
+- PyQt(5) for the gui version
 - CodeMirror for the syntax highlighting (you can do without it I think)
 - MongoDB if you choose that backend for your data storage
