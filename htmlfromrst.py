@@ -31,22 +31,25 @@ class MainFrame(gui.QMainWindow):
 
     def __init__(self, parent, input):
         self.parent = parent
+        self.input = input
         gui.QMainWindow.__init__(self) #, parent, _id,
         self.resize(1000,600)
         self.html = webkit.QWebView(self) # , -1,
         self.setCentralWidget(self.html)
         self.setWindowTitle('{} via htmlfromrst.py'.format(input if input else
             "unnamed file"))
-        data = str(zetom(input)) if sys.version < '3' else str(zetom(input),
+        self.refresh_display()
+
+    def refresh_display(self):
+        data = str(zetom(self.input)) if sys.version < '3' else str(zetom(self.input),
             encoding='utf-8')
         self.html.setHtml(data)
-        ## action = gui.QAction('close', self)
-        ## action.setShortcut(core.Qt.Key_Escape)
-        ## action.triggered.connect(self.close)
 
     def keyPressEvent(self, e):
         if e.key() == core.Qt.Key_Escape:
             self.close()
+        elif e.key() == core.Qt.Key_F5:
+            self.refresh_display()
         gui.QMainWindow.keyPressEvent(self, e)
 
 def main(input):
