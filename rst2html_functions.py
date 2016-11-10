@@ -154,9 +154,12 @@ def get_custom_directives_filename():
 def default_site():
     """return the first entry in the sites list to provide as default
     """
-    ## all_sites = dml.list_sites()
-    ## return all_sites[0] if all_sites else ''
-    return DFLT
+    try:
+        result = DFLT
+    except NameError:
+        all_sites = dml.list_sites()
+        result = all_sites[0] if all_sites else ''
+    return result
 
 def new_conf(sitename):
     """create a new site definition including settings
@@ -174,8 +177,9 @@ def init_css(sitename):
     """
     conf = dml.read_settings(sitename)
     for cssfile in BASIC_CSS:
+        src = str(HERE / 'static' / cssfile)
         dest = str(WEBROOT / sitename / cssfile)
-        shutil.copyfile(os.path.join('static', cssfile), dest)
+        shutil.copyfile(src, dest)
         conf['css'].append('url + ' + cssfile)
     dml.update_settings(sitename, conf)
 
@@ -648,6 +652,7 @@ class R2hState:
         self.oldtext = self.oldhtml = ""
         self.conf = DFLT_CONF
         self.newconf = False
+        self.loaded = RST
 
     def currentify(self, fname):
         if self.current:
