@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 """
 appje om teksten in ReST formaat om te zetten naar HTML documenten
 """
 import os
 import sys
 from docutils.core import publish_string
-import PyQt4.QtGui as gui
-import PyQt4.QtCore as core
-import PyQt4.QtWebKit as webkit
+import PyQt5.QtWidgets as qtw
+import PyQt5.QtGui as gui
+import PyQt5.QtCore as core
+import PyQt5.QtWebKitWidgets as webkit
 usage = "usage: python(3) htmlfromrst.py <filename>"
 
 def zetom(input):
@@ -26,13 +26,13 @@ def zetom(input):
         settings_overrides=overrides,
         )
 
-class MainFrame(gui.QMainWindow):
+class MainFrame(qtw.QMainWindow):
     "Main GUI"
 
     def __init__(self, parent, input):
         self.parent = parent
         self.input = input
-        gui.QMainWindow.__init__(self) #, parent, _id,
+        super().__init__() #, parent, _id,
         self.resize(1000,600)
         self.html = webkit.QWebView(self) # , -1,
         self.setCentralWidget(self.html)
@@ -41,19 +41,17 @@ class MainFrame(gui.QMainWindow):
         self.refresh_display()
 
     def refresh_display(self):
-        data = str(zetom(self.input)) if sys.version < '3' else str(zetom(self.input),
-            encoding='utf-8')
-        self.html.setHtml(data)
+        self.html.setHtml(str(zetom(self.input), encoding='utf-8'))
 
     def keyPressEvent(self, e):
         if e.key() == core.Qt.Key_Escape:
             self.close()
         elif e.key() == core.Qt.Key_F5:
             self.refresh_display()
-        gui.QMainWindow.keyPressEvent(self, e)
+        super().keyPressEvent(e)
 
 def main(input):
-    app = gui.QApplication(sys.argv)
+    app = qtw.QApplication(sys.argv)
     if not input:
         print(usage)
         return
@@ -63,5 +61,3 @@ def main(input):
     app.restoreOverrideCursor()
     sys.exit(app.exec_())
 
-if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else '')
