@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+"""Old starter program currently not in use and not maintained?
+"""
 import sys
 import os
 sys.stdout = sys.stderr

@@ -1,13 +1,17 @@
+"""helper program for Rst2HTML tests: interpreting differences
+"""
 from bs4 import BeautifulSoup
 from test_dml import list_site_contents
-namelist = []
-dbdatalist = []
-htmldatalist = []
+## namelist = []
+## dbdatalist = []
+## htmldatalist = []
 sitename = 'testsite'
+
 
 def analyze_db_data(name):
     "convert text dump to datastructure"
     # let's use the original stuff instead
+
 
 def get_db_diff(old, new, olddata, newdata):
     """compare site data dumps
@@ -31,8 +35,8 @@ def get_db_diff(old, new, olddata, newdata):
             result.append('new setting: {} {}'.format(setting, newsite['settings']))
             continue
         if newsite['settings'] != oldsite['settings']:
-            result.append('setting {} changed from {} to {}'.format(setting,
-                oldsite['settings'], newsite['settings']))
+            result.append('setting {} changed from {} to {}'.format(
+                setting, oldsite['settings'], newsite['settings']))
     for subdir in list(newsite['docs']):
         if subdir not in oldsite['docs']:
             result.append('new subdir: {}'.format(subdir))
@@ -45,17 +49,17 @@ def get_db_diff(old, new, olddata, newdata):
             olddoc = olddir[doc]
             for doctype in newsite['docs'][subdir][doc]:
                 if doctype not in olddoc:
-                    result.append('new doctype for doc {} in {}: {}'.format(doc,
-                        subdir, doctype))
+                    result.append('new doctype for doc {} in {}: {}'.format(
+                        doc, subdir, doctype))
                 else:
-                    if (newsite['docs'][subdir][doc][doctype]['updated'] !=
-                            olddoc[doctype]['updated']):
+                    test = newsite['docs'][subdir][doc][doctype]['updated']
+                    if test != olddoc[doctype]['updated']:
                         if doctype != 'to_mirror':
-                            result.append('{} {} {} was changed'.format(subdir,
-                                doc, doctype))
+                            result.append('{} {} {} was changed'.format(
+                                subdir, doc, doctype))
                         else:
                             result.append('{} {} was copied to mirror (again)'
-                                ''.format(subdir, doc))
+                                          ''.format(subdir, doc))
     # document ids are sorted, but not necessarily in creation order
     oldids = [x['_id'] for x in olddocs]
     newids = [x['_id'] for x in newdocs]
@@ -89,6 +93,7 @@ def get_db_diff(old, new, olddata, newdata):
 
 
 def analyze_html_data(name):
+    "convert HTML to datastructure"
     result = {}
     with open(name) as _in:
         soup = BeautifulSoup(_in)
@@ -117,10 +122,11 @@ def analyze_html_data(name):
             result["newfile_name"] = inp["value"]
             break
     else:
-        newfile_name = ''
+        result['newfile_name'] = ''
     result["mld_text"] = soup.find('strong').string
     result["textdata"] = soup.find('textarea').string or ''
     return result
+
 
 def get_html_diff(old, new, olddata, newdata):
     "compare html output"
@@ -144,12 +150,15 @@ def get_html_diff(old, new, olddata, newdata):
             elif key == 'mld_text':
                 diff.append('{} is "{}"'.format(key, newdata[key]))
             else:
-                diff.append('{}: value was "{}", is now "{}"'.format(key,
-                    olddata[key], newdata[key]))
+                diff.append('{}: value was "{}", is now "{}"'.format(
+                    key, olddata[key], newdata[key]))
     return diff
 
+
 def dump_data_and_compare(data, name):
-    global namelist, dbdatalist, htmldatalist
+    """main processing"""
+    ## global namelist, dbdatalist, htmldatalist
+    namelist, dbdatalist, htmldatalist = [], [], []
 
     print("---- {} ----".format(name))
     fname = '/tmp/{}.html'.format(name)
@@ -181,8 +190,8 @@ def dump_data_and_compare(data, name):
                 ## print('  {}: {}'.format(new, newdata))
             ## htmlresult.append((hname, old, olddata, new, newdata))
     else:
-        dbresult = db_data # []
-        htmlresult = htmldata # []
+        dbresult = db_data  # []
+        htmlresult = htmldata  # []
     namelist.append(name)
     dbdatalist.append(db_data)
     if htmldata:

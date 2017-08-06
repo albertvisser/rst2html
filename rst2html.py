@@ -1,39 +1,37 @@
-# -*- coding: utf-8 -*-
+"""webapp om teksten in ReST formaat om te zetten naar HTML documenten
 
+presentation layer
 """
-webapp om teksten in ReST formaat om te zetten naar HTML documenten
-"""
-import cherrypy
-import sys
-sys.path.append('.')
+## import sys
 import os
 import pathlib
 import datetime
+import cherrypy
+## sys.path.append('.')
 import rst2html_functions as rhfn
 HERE = pathlib.Path(__file__).parent
 TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
-    'background-color: #C6E2FF; text-align: center; position: fixed">'
-    '<a href={}><button>Back to editor</button></a></div>')
+                 'background-color: #C6E2FF; text-align: center; position: fixed">'
+                 '<a href={}><button>Back to editor</button></a></div>')
 scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
-scriptdict = {
-    'yaml': ('yaml/yaml',),
-    'html': ('xml/xml', 'javascript/javascript', 'css/css',
-        'htmlmixed/htmlmixed'),
-    'py': ('python/python', '../addon/edit/matchbrackets'),
-    'rst': ('rst/rst', '../addon/mode/overlay'),
-        }
+scriptdict = {'yaml': ('yaml/yaml',),
+              'html': ('xml/xml', 'javascript/javascript', 'css/css',
+                       'htmlmixed/htmlmixed'),
+              'py': ('python/python', '../addon/edit/matchbrackets'),
+              'rst': ('rst/rst', '../addon/mode/overlay')}
+
 
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
     if state.newfile:
-        all_source , all_html = [], []
+        all_source, all_html = [], []
     else:
         all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
-            state.conf["lang"])
+                                     state.conf["lang"])
         all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
-            state.conf["lang"])
+                                   state.conf["lang"])
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []
@@ -51,8 +49,9 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     else:
         txtlang = '\n'.join(
             scriptspec.format(x) for x in scriptdict[state.loaded])
-    return output.format(all_source, all_html, newfile, mld, rstdata,
-        state.conf['wid'], state.conf['hig'], conflist, state.loaded, txtlang)
+    return output.format(all_source, all_html, newfile, mld, rstdata, state.conf['wid'],
+                         state.conf['hig'], conflist, state.loaded, txtlang)
+
 
 def format_progress_list(timelist):
     """output the site inventory to html, accentuating the most recently updated
@@ -87,6 +86,7 @@ def format_progress_list(timelist):
     output.append(last_part)
     return ''.join(output)
 
+
 def resolve_images(rstdata, url, loc):
     """fix the urls in image links so that preview html points to the right place
     """
@@ -107,10 +107,11 @@ def resolve_images(rstdata, url, loc):
             pos = 0
         pos = rstdata.find('<img', pos)
     data.append(rstdata)
-    url = url.rstrip('/') + '/' # make sure url ends with one and only one /
+    url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
     if loc:
-        url = url + loc.strip('/') + '/' # if present add loc with no double //'s
+        url = url + loc.strip('/') + '/'  # if present add loc with no double //'s
     return url.join(data)
+
 
 def format_previewdata(state, previewdata, fname, ftype):
     """
@@ -131,6 +132,7 @@ def format_previewdata(state, previewdata, fname, ftype):
     previewdata = previewbutton.format(loadrst).join((start, end))
     return previewdata
 
+
 class Rst2Html(object):
     "the actual webapp"
 
@@ -144,7 +146,7 @@ class Rst2Html(object):
         """show page with empty fields (and selectable filenames)"""
         rstfile, htmlfile, newfile, mld, rstdata, settings = self.state.index()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -154,7 +156,7 @@ class Rst2Html(object):
         """
         mld, rstdata, settings, newfile = self.state.loadconf(settings, newfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -162,11 +164,11 @@ class Rst2Html(object):
 
         if new name specified, use that"""
         mld, rstdata, settings, newfile = self.state.saveconf(settings, newfile,
-            rstdata)
+                                                              rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
- #   @cherrypy.expose    # nog testen
+    # @cherrypy.expose    # nog testen
     def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """load directives file for editing
 
@@ -174,15 +176,15 @@ class Rst2Html(object):
         """
         mld, rstdata = self.state.loadxtra()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
- #   @cherrypy.expose    # nog testen
+    # @cherrypy.expose    # nog testen
     def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """(re)save directives file
         """
         mld, rstdata = self.state.savextra(rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -191,7 +193,7 @@ class Rst2Html(object):
         pre-builds save-filename by changing extension from rst to html"""
         mld, rstdata, htmlfile, newfile = self.state.loadrst(rstfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -200,12 +202,12 @@ class Rst2Html(object):
         if new name specified, use that (extension must be .rst)
         """
         mld, rstfile, htmlfile, newfile = self.state.saverst(rstfile, newfile,
-            rstdata)
+                                                             rstdata)
         # bij aanmaken nieuwe directory wordt deze niet getoond laat staan geselecteerd -
-            # dat komt doordat er dan nog geen rst document in zit
-            # dus eigenlijk moet de rst lijst gewoon alle subdirs tonen?
+        # dat komt doordat er dan nog geen rst document in zit
+        # dus eigenlijk moet de rst lijst gewoon alle subdirs tonen?
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -215,7 +217,7 @@ class Rst2Html(object):
         if mld == '':
             return format_previewdata(self.state, previewdata, fname, 'rst')
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -223,31 +225,32 @@ class Rst2Html(object):
         using selected names
         """
         mld, rstfile, htmlfile, newfile = self.state.saveall(rstfile, newfile,
-            rstdata)
+                                                             rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """load html file and show code"""
         mld, rstdata, rstfile, htmlfile = self.state.loadhtml(htmlfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+        """preview the loaded HTML"""
         mld, previewdata, fname = self.state.showhtml(rstdata)
         if mld == '':
             return format_previewdata(self.state, previewdata, fname, 'html')
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         """save displayed (edited) html"""
         mld, rstdata, newfile = self.state.savehtml(htmlfile, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -255,14 +258,14 @@ class Rst2Html(object):
         """
         mld = self.state.copytoroot(htmlfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
         "build references document"
         mld, rstdata = self.state.makerefdoc()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -270,7 +273,7 @@ class Rst2Html(object):
         """
         mld, rstdata = self.state.convert_all()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            self.state)
+                             self.state)
 
     @cherrypy.expose
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
@@ -288,16 +291,8 @@ if __name__ == "__main__":
     ## domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
     ## cherrypy.quickstart(Rst2Html())
     cherrypy.quickstart(Rst2Html(), config={
-        "global": {
-            # 'server.socket_host': 'rst2html.{0}.nl'.format(domain),
-            'server.socket_host': '127.0.0.1',
-            'server.socket_port': 8099,
-            },
-        "/": {
-            'tools.staticdir.root': os.path.abspath(os.getcwd()),
-            },
-        "/static": {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': "./static",
-            },
-        })
+        "global": {'server.socket_host': '127.0.0.1',
+                   'server.socket_port': 8099},
+        "/": {'tools.staticdir.root': os.path.abspath(os.getcwd())},
+        "/static": {'tools.staticdir.on': True,
+                    'tools.staticdir.dir': "./static"}})

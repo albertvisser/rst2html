@@ -1,14 +1,14 @@
+"""appje om teksten in ReST of markdown formaat om te zetten naar HTML documenten
+
+PyQt5 versie
 """
-appje om teksten in ReST of markdown formaat om te zetten naar HTML documenten
-"""
-import os
 import sys
-from docutils.core import publish_string
-import markdown
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as gui
 import PyQt5.QtCore as core
 import PyQt5.QtWebKitWidgets as webkit
+from docutils.core import publish_string
+import markdown
 
 
 def zetom_rest(input):
@@ -19,12 +19,11 @@ def zetom_rest(input):
     overrides = {
         "embed_stylesheet": True,
         "stylesheet_path": '/usr/share/docutils/writers/html4css1/html4css1.css',
-        "report_level": 3,
-        }
+        "report_level": 3}
     return str(publish_string(source=data,
-        destination_path="/tmp/omgezet.html",
-        writer_name='html',
-        settings_overrides=overrides), encoding='utf-8')
+                              destination_path="/tmp/omgezet.html",
+                              writer_name='html',
+                              settings_overrides=overrides), encoding='utf-8')
 
 
 def zetom_markdown(input):
@@ -40,7 +39,6 @@ zetom = {'rst': zetom_rest, 'md': zetom_markdown}
 
 class MainFrame(qtw.QMainWindow):
     "Main GUI"
-
     def __init__(self, parent, input, mode):
         if mode not in zetom:
             raise ValueError('Unknown mode')
@@ -48,9 +46,9 @@ class MainFrame(qtw.QMainWindow):
         self.parent = parent
         self.input = input
         self.mode = mode
-        super().__init__() #, parent, _id,
-        self.resize(1000,600)
-        self.html = webkit.QWebView(self) # , -1,
+        super().__init__()
+        self.resize(1000, 600)
+        self.html = webkit.QWebView(self)
         self.setCentralWidget(self.html)
         title = '{} via htmlfrom{}.py'.format(input, mode)
         self.setWindowTitle(title)
@@ -59,15 +57,15 @@ class MainFrame(qtw.QMainWindow):
         sys.exit(self.app.exec_())
 
     def refresh_display(self):
+        """(re)show the converted input"""
         self.app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
         self.html.setHtml(zetom[self.mode](self.input))
         self.app.restoreOverrideCursor()
 
-    def keyPressEvent(self, e):
-        if e.key() == core.Qt.Key_Escape:
+    def keyPressEvent(self, event):
+        """reimplementation of event handler"""
+        if event.key() == core.Qt.Key_Escape:
             self.close()
-        elif e.key() == core.Qt.Key_F5:
+        elif event.key() == core.Qt.Key_F5:
             self.refresh_display()
-        super().keyPressEvent(e)
-
-
+        super().keyPressEvent(event)

@@ -1,23 +1,25 @@
 """Convert text documents to Mongo format
 """
-import os.path
-import sys
-import pprint
+## import os.path
+## import sys
+## import pprint
 import argparse
-import pathlib
+## import pathlib
 import shutil
 from app_settings import FS_WEBROOT, DB_WEBROOT
 import rst2html_functions_all as rhfn
 import docs2fs as fsys
 import docs2mongo as mongo
 
-def main(args):
 
+def main(args):
+    """do the conversion
+    """
     sitename = args.input
     fromloc = FS_WEBROOT / sitename
     tomirror = DB_WEBROOT / sitename
-    sourceloc = fromloc / 'source'
-    targetloc = fromloc / 'target'
+    ## sourceloc = fromloc / 'source'
+    ## targetloc = fromloc / 'target'
 
     # read settings so that we know where everything is
     try:
@@ -26,7 +28,7 @@ def main(args):
     except FileNotFoundError:
         print("settings don't exist")
         return
-    if not sett :
+    if not sett:
         print("settings are empty")
         return
 
@@ -36,7 +38,7 @@ def main(args):
 
     # init site
     newsite = args.newname or sitename
-    mongo.clear_site_data(newsite) # restart
+    mongo.clear_site_data(newsite)  # restart
     mongo.create_new_site(newsite)
 
     # copy site configuration
@@ -78,7 +80,8 @@ def main(args):
         spec = "*.{}".format(ext)
         entries = [str(f.relative_to(fromloc)) for f in fromloc.glob(spec)]
         for entry in entries:
-            shutil.copyfile(str(fromloc / entry), str(destloc / entry))
+            ## shutil.copyfile(str(fromloc / entry), str(destloc / entry))
+            shutil.copyfile(str(fromloc / entry), str(tomirror / entry))
 
     for name in args.dirlist:
         srcdir = fromloc / name
@@ -123,15 +126,14 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="Convert a site from text to mongo format")
+    parser = argparse.ArgumentParser(description="Convert a site from text to mongo format")
     parser.add_argument('-i', '--input', nargs='?', required=True,
-        help="specify name of site to copy")
+                        help="specify name of site to copy")
     parser.add_argument('-n', '--newname', nargs='?',
-        help="enter new name for site")
+                        help="enter new name for site")
     parser.add_argument('-d', '--dirlist', nargs='*',
-        help="also copy files within these directories")
+                        help="also copy files within these directories")
     parser.add_argument('-e', '--extlist', nargs='*',
-        help="also copy files with these extensions")
+                        help="also copy files with these extensions")
     args = parser.parse_args()
     main(args)

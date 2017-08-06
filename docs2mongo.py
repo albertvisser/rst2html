@@ -1,7 +1,9 @@
+"""Data processing routines for MongoDB version
+"""
 import os.path
 import datetime
 import shutil
-import pathlib
+## import pathlib
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from app_settings import DB_WEBROOT, LOC2EXT, LOCS, Stats
@@ -19,27 +21,39 @@ except AttributeError:
     ## # Collection.find_one_and_delete = Collection.remove
     Collection.delete_many = Collection.remove
 
+
 def clear_db():
+    """remove all data from the database
+    """
     db.drop_collection(site_coll)
 
+
 def read_db():
+    """read and return all data from the database
+    """
     return site_coll.find()
 
 ## def _add_sitecoll_doc(data):
     ## site_coll.insert_one(data)
 
+
 def list_sites():
-    return [doc['name'] for doc in site_coll.find() if 'name' in doc]       #@
+    """list all sites registered in the database
+    """
+    return [doc['name'] for doc in site_coll.find() if 'name' in doc]
+
 
 def _get_site_id(site_name):
     """returns the id of the document for the site with the given name
     """
-    return site_coll.find_one({'name': site_name})['_id']                   #@
+    return site_coll.find_one({'name': site_name})['_id']
+
 
 def _get_site_doc(site_name):
     """returns the stats document for the site with the given name
     """
-    return site_coll.find_one({'name': site_name})                          #@
+    return site_coll.find_one({'name': site_name})
+
 
 def create_new_site(site_name):
     """set up the database and file system for managing a new site
@@ -49,15 +63,11 @@ def create_new_site(site_name):
         raise FileExistsError('Site already exists')
 
     # create sitedoc
-    new_site = {
-        'name': site_name,
-        'settings': {},
-        'docs': {'/': {}}
-        }
+    new_site = {'name': site_name, 'settings': {}, 'docs': {'/': {}}}
     try:
-        site_coll.insert_one(new_site)                                      #@
+        site_coll.insert_one(new_site)
     except TypeError:
-        site_coll.insert(new_site)                                          #@
+        site_coll.insert(new_site)
 
     # create the physical destination (mirror) so that css and images can be moved there
     path.mkdir(parents=True)
@@ -67,81 +77,35 @@ def rename_site(site_name, newname):
     """change the site's name unconditionally
     """
     site_id = _get_site_id(site_name)
-    site_coll.update_one({'_id': site_id}, {'$set': {'name': site_name}})   #@
+    site_coll.update_one({'_id': site_id}, {'$set': {'name': site_name}})
 
-def list_site_data(site_name):
-    sitedoc = _get_site_doc(site_name)
-    if sitedoc is None:
-        raise FileNotFoundError('Site bestaat niet')
-    id_list, id_dict = [], {}
-    for dirname, diritem in sitedoc['docs'].items():
-        for docname, docitem in diritem.items():
-            for locname, locitem in docitem.items():
-                if 'docid' in locitem:
-                    id_list.append(locitem['docid'])
-                    id_dict[locitem['docid']] = (docname, locname, dirname)
-    data = []
-    for item in site_coll.find({'_id': {'$in': id_list}}):
-        docname, locname, dirname = id_dict[item['_id']]
-        if dirname != '/':
-            docname = '/'.join((dirname, docname))
-        item['_id'] = (docname, locname)
-        data.append(item)
-    return sitedoc, sorted(data, key=lambda x: x['_id'])
-
-def clear_site_data(site_name):
-    """remove site from database, also delete mirror site files from file system
-    """
-    path = DB_WEBROOT / site_name
-    try:
-        sitedoc = site_coll.find_one_and_delete({'name': site_name})            #@
-    except TypeError:
-        sitedoc = site_coll.find_one({'name': site_name})                       #@
-        site_coll.remove({'name': site_name})                                   #@
-
-    ## if sitedoc is None:
-        ## if path.exists():
-            ## raise RuntimeError("data inconstent: mirror without database site")
-        ## else:
-            ## return
-    ## else:
-        ## if not path.exists():
-            ## raise RuntimeError("data inconstent: database without mirror site")
-
-    if sitedoc:
-        id_list = []
-        for dirname, diritem in sitedoc['docs'].items():
-            for docname, docitem in diritem.items():
-                for locname, locitem in docitem.items():
-                    if 'docid' in locitem:
-                        id_list.append(locitem['docid'])
-        ## try:
-        site_coll.delete_many({'_id': {'$in': sorted(id_list)}})                    #@
-        ## except TypeError:
-            ## site_coll.remove({'_id': {'$in': sorted(id_list)}})                     #@
-
-    try:
-        shutil.rmtree(str(path))
-    except FileNotFoundError:
-        pass
 
 def read_settings(site_name):
+    """returns a dictionary containg the site settings
+    """
     sitedoc = _get_site_doc(site_name)
     if sitedoc is None:
         raise FileNotFoundError
     return sitedoc['settings']
 
+
 def update_settings(site_name, settings_dict):
     """replace all settings at once
     """
-    return site_coll.update({'name': site_name},                            #@
-        {'$set': {'settings': settings_dict}})
+    return site_coll.update({'name': site_name}, {'$set': {'settings': settings_dict}})
 
-def clear_settings(site_name): # untested - do I need/want this?
+
+def clear_settings(site_name):  # untested - do I need/want this?
+    """update settings to empty dict instead of initialized)
+    """
     return update_settings(site_name, {})
 
+
 def _update_site_doc(site_name, site_docs):
-    site_coll.update_one({'name': site_name}, {'$set': {'docs': site_docs}}) #@
+    """(re)save the document containing the site data
+    """
+    site_coll.update_one({'name': site_name}, {'$set': {'docs': site_docs}})
+
 
 def list_dirs(site_name, doctype=''):
     """list subdirs with documents of a given type in a given site
@@ -166,7 +130,8 @@ def list_dirs(site_name, doctype=''):
                 dirlist.append(dirname)
         if found:
             continue
-    return dirlist # returns all dirs that have documents of the given type
+    return dirlist  # returns all dirs that have documents of the given type
+
 
 def create_new_dir(site_name, directory):
     """make it possible to add files in a separate section
@@ -180,17 +145,22 @@ def create_new_dir(site_name, directory):
     sitedoc['docs'][directory] = {}
     _update_site_doc(site_name, sitedoc['docs'])
 
-def remove_dir(site_name, directory): # untested - do I need/want this?
+
+def remove_dir(site_name, directory):  # untested - do I need/want this?
+    """remove site directory and all documents in it
+    """
     sitedoc = _get_site_doc(site_name)
     sitedoc['docs'].pop('directory')
     _update_site_doc(site_name, sitedoc['docs'])
+
 
 def list_docs(site_name, doctype='', directory=''):
     """list the documents of a given type in a given directory
 
     raises FileNotFoundError if site or directory doesn't exist
     """
-    if not directory: directory = '/'
+    if not directory:
+        directory = '/'
     sitedoc = _get_site_doc(site_name)
     if sitedoc is None:
         raise FileNotFoundError('Site bestaat niet')
@@ -198,18 +168,26 @@ def list_docs(site_name, doctype='', directory=''):
         raise FileNotFoundError('Subdirectory bestaat niet')
     doclist = []
     for docname, typelist in sitedoc['docs'][directory].items():
-        if doctype in typelist: doclist.append(docname)
-    return doclist # returns all documents of the given type
+        if doctype in typelist:
+            doclist.append(docname)
+    return doclist  # returns all documents of the given type
+
 
 def _add_doc(doc):
+    """create new document in the site document
+    """
     try:
-        id_ = site_coll.insert_one(doc).inserted_id                        #@
+        id_ = site_coll.insert_one(doc).inserted_id
     except TypeError:
-        id_ = site_coll.insert(doc)                                        #@
+        id_ = site_coll.insert(doc)
     return id_
 
+
 def _update_doc(docid, doc):
+    """change a document in the site document
+    """
     site_coll.update({'_id': docid}, doc)
+
 
 def create_new_doc(site_name, doc_name, directory=''):
     """add a new (source) document to the given directory
@@ -230,10 +208,9 @@ def create_new_doc(site_name, doc_name, directory=''):
     new_doc = {'current': '', 'previous': ''}
     new_doc_id = _add_doc(new_doc)
     dts = datetime.datetime.utcnow()
-    sitedoc['docs'][directory][doc_name] = {
-        'src': {'docid': new_doc_id, 'updated': dts }
-        }
+    sitedoc['docs'][directory][doc_name] = {'src': {'docid': new_doc_id, 'updated': dts}}
     _update_site_doc(site_name, sitedoc['docs'])
+
 
 def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     """ retrieve a document of a given type in the given directory
@@ -243,16 +220,18 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     """
     if not doc_name:
         raise AttributeError('No name provided')
-    if not directory: directory = '/'
+    if not directory:
+        directory = '/'
     doc_name = os.path.splitext(doc_name)[0]
     sitedoc = _get_site_doc(site_name)
     try:
         doc_id = sitedoc['docs'][directory][doc_name][doctype]['docid']
-        #throws TypeError when doc_name doesn't exist, KeyError on nonexisting docid
-    except (TypeError, KeyError) as e:
+        # throws TypeError when doc_name doesn't exist, KeyError on nonexisting docid
+    except (TypeError, KeyError):
         raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
     doc_data = site_coll.find({'_id': doc_id})[0]
     return doc_data['current']
+
 
 def update_rst(site_name, doc_name, contents, directory=''):
     """update a source document in the given directory
@@ -265,7 +244,8 @@ def update_rst(site_name, doc_name, contents, directory=''):
         raise AttributeError('No name provided')
     if not contents:
         raise AttributeError('No contents provided')
-    if not directory: directory = '/'
+    if not directory:
+        directory = '/'
     doc_name = os.path.splitext(doc_name)[0]
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
@@ -282,6 +262,7 @@ def update_rst(site_name, doc_name, contents, directory=''):
     sitedoc['docs'][directory][doc_name]['src']['updated'] = dts
     _update_site_doc(site_name, sitedoc['docs'])
 
+
 def update_html(site_name, doc_name, contents, directory=''):
     """update a converted document in the given directory
 
@@ -293,7 +274,8 @@ def update_html(site_name, doc_name, contents, directory=''):
         raise AttributeError('No name provided')
     if not contents:
         raise AttributeError('No contents provided')
-    if not directory: directory = '/'
+    if not directory:
+        directory = '/'
     doc_name = os.path.splitext(doc_name)[0]
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
@@ -312,6 +294,7 @@ def update_html(site_name, doc_name, contents, directory=''):
     sitedoc['docs'][directory][doc_name]['dest']['updated'] = dts
     _update_site_doc(site_name, sitedoc['docs'])
 
+
 def update_mirror(site_name, doc_name, data, directory=''):
     """administer promoting the converted document in the given directory
     to the mirror site
@@ -324,12 +307,13 @@ def update_mirror(site_name, doc_name, data, directory=''):
     ## print(directory, doc_name)
     if not doc_name:
         raise AttributeError('No name provided')
-    if not directory: directory = '/'
+    if not directory:
+        directory = '/'
     ## doc_name = os.path.splitext(doc_name)[0] # supposedly doc_name comes without extension
     sitedoc = _get_site_doc(site_name)
     dts = datetime.datetime.utcnow()
     ## print(directory)
-    sitedoc['docs'][directory][doc_name]['to_mirror']= {'updated': dts}
+    sitedoc['docs'][directory][doc_name]['to_mirror'] = {'updated': dts}
     _update_site_doc(site_name, sitedoc['docs'])
 
     path = DB_WEBROOT / site_name
@@ -345,12 +329,16 @@ def update_mirror(site_name, doc_name, data, directory=''):
         path.touch()
     save_to(path, data)
 
-def remove_doc(site_name, doc_name, directory=''): # untested - do I need/want this?
+
+def remove_doc(site_name, doc_name, directory=''):  # untested - do I need/want this?
+    """delete document from site"""
     sitedoc = _get_site_doc(site_name)
     sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
-    _update_site_docs(site_name, sitedoc['docs'])
+    _update_site_doc(site_name, sitedoc['docs'])
+
 
 def _get_stats(docinfo):
+    """retrieve site stats from database"""
     stats = []
     for key in LOCS:
         if key in docinfo and 'updated' in docinfo[key]:
@@ -359,7 +347,9 @@ def _get_stats(docinfo):
             stats.append(datetime.datetime.min)
     return Stats(*stats)
 
+
 def get_doc_stats(site_name, docname, dirname=''):
+    """get statistics for all documents in a site subdirectory"""
     sitedoc = _get_site_doc(site_name)
     if dirname:
         docinfo = sitedoc['docs'][dirname][docname]
@@ -367,7 +357,9 @@ def get_doc_stats(site_name, docname, dirname=''):
         docinfo = sitedoc['docs']['/'][docname]
     return _get_stats(docinfo)
 
+
 def get_all_doc_stats(site_name):
+    """get statistics for all site subdirectories"""
     sitedoc = _get_site_doc(site_name)
     filelist = []
     for dirname, doclist in sitedoc['docs'].items():
@@ -376,3 +368,66 @@ def get_all_doc_stats(site_name):
             docs.append((docname, _get_stats(docinfo)))
         filelist.append((dirname, docs))
     return filelist
+
+
+# deze worden niet gebruikt door de applicatie, maar wel door de testroutines
+def list_site_data(site_name):
+    """list all data on the site in a readable form
+
+    for testing purposes and such
+    """
+    sitedoc = _get_site_doc(site_name)
+    if sitedoc is None:
+        raise FileNotFoundError('Site bestaat niet')
+    id_list, id_dict = [], {}
+    for dirname, diritem in sitedoc['docs'].items():
+        for docname, docitem in diritem.items():
+            for locname, locitem in docitem.items():
+                if 'docid' in locitem:
+                    id_list.append(locitem['docid'])
+                    id_dict[locitem['docid']] = (docname, locname, dirname)
+    data = []
+    for item in site_coll.find({'_id': {'$in': id_list}}):
+        docname, locname, dirname = id_dict[item['_id']]
+        if dirname != '/':
+            docname = '/'.join((dirname, docname))
+        item['_id'] = (docname, locname)
+        data.append(item)
+    return sitedoc, sorted(data, key=lambda x: x['_id'])
+
+
+def clear_site_data(site_name):
+    """remove site from database, also delete mirror site files from file system
+    """
+    path = DB_WEBROOT / site_name
+    try:
+        sitedoc = site_coll.find_one_and_delete({'name': site_name})
+    except TypeError:
+        sitedoc = site_coll.find_one({'name': site_name})
+        site_coll.remove({'name': site_name})
+
+    ## if sitedoc is None:
+        ## if path.exists():
+            ## raise RuntimeError("data inconstent: mirror without database site")
+        ## else:
+            ## return
+    ## else:
+        ## if not path.exists():
+            ## raise RuntimeError("data inconstent: database without mirror site")
+
+    if sitedoc:
+        id_list = []
+        for dirname, diritem in sitedoc['docs'].items():
+            for docname, docitem in diritem.items():
+                for locname, locitem in docitem.items():
+                    if 'docid' in locitem:
+                        id_list.append(locitem['docid'])
+        ## try:
+        site_coll.delete_many({'_id': {'$in': sorted(id_list)}})
+        ## except TypeError:
+            ## site_coll.remove({'_id': {'$in': sorted(id_list)}})
+
+    try:
+        shutil.rmtree(str(path))
+    except FileNotFoundError:
+        pass

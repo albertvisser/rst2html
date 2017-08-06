@@ -1,16 +1,18 @@
-# testing non-api functions of dml modules
-
-import os, sys
-import pprint
-import datetime
+"""Rst2HTML: testing non-api functions of dml modules
+"""
+import os
+import sys
+## import pprint
+## import datetime
 import pathlib
-import shutil
+## import shutil
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app_settings import FS_WEBROOT, LOCS
 
 
 def test_fs_extra():
-    print('testing extra routines for file system dml...')
+    """testing extra routines for file system dml"""
+    print(__doc__ + '...')
     import docs2fs as dml
     print('testing _locify...', end=' ')
     path = pathlib.Path(FS_WEBROOT / 'test')
@@ -38,9 +40,11 @@ def test_fs_extra():
     # _get_sitedoc_data(sitename)
     print('ok')
 
+
 def test_mongo_extra():
-    print('testing extra routines for mongodb dml...', end='')
-    import docs2mongo as dml
+    """testing extra routines for mongodb dml"""
+    print(__doc__ + '...')
+    # import docs2mongo as dml
     # _get_site_id(site_name)
     # _get_site_doc(site_name)
     # _add_sitecoll_doc(data) (uitgesterd)
@@ -51,9 +55,11 @@ def test_mongo_extra():
     # we might test _get_stats here, the rest is merely passing through mongodb query results
     print('ok')
 
+
 def test_pgsql_extra():
-    print('testing extra routines for postgresql dml...', end='')
-    import docs2pg as dml
+    """testing extra routines for postgresql dml"""
+    print(__doc__ + '...')
+    # import docs2pg as dml
     # id = _get_site_id(site_name):
     # id = _get_dir_id(site_id, dirname):
     # id_list = _get_all_dir_ids(site_id):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-appje om teksten in ReST formaat om te zetten naar HTML documenten
+"""appje om teksten in ReST formaat om te zetten naar HTML documenten
+
+PyQt4 versie - niet meer in onderhoud
 """
 import os
 import sys

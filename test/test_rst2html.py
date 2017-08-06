@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
+"""unit tests for functions in rst2html.py
+"""
 import os
 import sys
-import pathlib
+## import pathlib
 import datetime
 ## import cherrypy
 
@@ -20,6 +21,7 @@ elif DML == 'postgres':
 
 ## from cptestcase import BaseCherryPyTestCase
 
+
 def test_unexposed():
     """just testing the two presentation functions should be enough as there's
     hardly any logic in the webapp class, just passing data from the processing
@@ -36,10 +38,11 @@ def test_unexposed():
         _out.write(r2h.format_output('', '', '', '', '', '', state))
     with open('/tmp/test_jansen.html', 'w') as _out:
         _out.write(r2h.format_output('jansen.rst', 'jansen.html', 'newjansen.rst',
-        'this is a message', 'this is data!', 'test', state))
+                                     'this is a message', 'this is data!', 'test',
+                                     state))
     print('ok')
 
-    print('testing format_overview... ', end ='')
+    print('testing format_overview... ', end='')
     data = r2h.format_progress_list([
         ('/', 'horrorscenario', 0, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 96000),
@@ -52,15 +55,15 @@ def test_unexposed():
         ('guichelheil', 'pietersen', 2, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
             dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
-        ])
+            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000)))])
     with open('/tmp/progress_list.html', 'w') as _out:
         _out.write(data.format(sitename))
     ## sp.Popen(['/home/albert/bin/viewhtml', '/tmp/test2.html'])
     print('ok')
 
     print('testing resolve_images... ', end='')
-    testdata = ''.join(('begin',
+    testdata = ''.join((
+        'begin',
         '<img />',
         '<img src="here.img"/>'
         '<img src="/here.img"/>'
@@ -68,14 +71,16 @@ def test_unexposed():
         '<img src="/somewhere/here.img"/>'
         '<img src="http://somewhere.com/here.img"/>'
         'einde'))
-    testoutput_1 = ''.join(('begin<img />',
+    testoutput_1 = ''.join((
+        'begin<img />',
         '<img src="http://www.example.com/here.img"/>',
         '<img src="http://www.example.com/here.img"/>',
         '<img src="http://www.example.com/somewhere/here.img"/>',
         '<img src="http://www.example.com/somewhere/here.img"/>',
         '<img src="http://somewhere.com/here.img"/>',
         'einde'))
-    testoutput_2 = ''.join(('begin<img />',
+    testoutput_2 = ''.join((
+        'begin<img />',
         '<img src="http://www.example.com/hell/here.img"/>',
         '<img src="http://www.example.com/hell/here.img"/>',
         '<img src="http://www.example.com/hell/somewhere/here.img"/>',

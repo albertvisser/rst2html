@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+"""Directives for Magiokis site
+"""
 # Import Docutils document tree nodes module.
 from docutils import nodes
 # Import ``directives`` module (contains conversion functions).
@@ -7,9 +8,11 @@ from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
 
+
 def align(argument):
     """Conversion function for the "align" option."""
     return directives.choice(argument, ('left', 'center', 'right'))
+
 
 class Bottom(Directive):
     """genereert de page footer eventueel inclusief gridlayout
@@ -23,8 +26,7 @@ class Bottom(Directive):
     final_argument_whitespace = True
     option_spec = {'grid': directives.nonnegative_int,
                    'next': directives.unchanged,
-                   'ltext': directives.unchanged,
-                   }
+                   'ltext': directives.unchanged}
     has_content = False
 
     def run(self):
@@ -44,25 +46,23 @@ class Bottom(Directive):
         if nxt.startswith("../"):
             about = ""
         else:
-            about = '<a class="reference external" href="about.html">terug naar de indexpagina</a> '
+            about = ''.join('<a class="reference external" href="about.html">',
+                            'terug naar de indexpagina</a> ')
         if wid:
-            start = '' if wid == '-1' else '<div class="grid_{0}">'.format(wid)
-            next = '' if nxt == 'None' else '<a class="reference external" ' \
-                'href="{0}">{1}</a>'.format(nxt,ltext)
-            start = ''.join((start,
-                '<div style="text-align: center">',
-                about,
-                next,
-                ))
-            end = '' if wid == '-1' else ''.join(('</div><div class="clear">&nbsp;</div>',
-                '<div class="grid_{0} spacer">&nbsp;</div>'.format(wid),
-                '<div class="clear">&nbsp;</div>'))
+            start = '' if wid == '-1' else '<div class="grid_{}">'.format(wid)
+            next = '' if nxt == 'None' else ''.join(
+                '<a class="reference external" ',
+                'href="{0}">{1}</a>').format(nxt, ltext)
+            start = ''.join((start, '<div style="text-align: center">', about, next))
+            end = '' if wid == '-1' else ''.join(
+                '</div><div class="clear">&nbsp;</div><div class="grid_{} spacer">'
+                '&nbsp;</div><div class="clear">&nbsp;</div>').format(wid)
             end = '</div>' + end
-        text_node = nodes.raw('',''.join((start,
-            '<div class="madeby">content and layout created 2010 by Albert Visser',
-            ' <a href="mailto:info@magiokis.nl">contact me</a></div>',
-            end)), format='html')
+        text_node = nodes.raw('', '<div class="madeby">content and layout created 2010 '
+                              'by Albert Visser <a href="mailto:info@magiokis.nl">'
+                              'contact me</a></div>'.join((start, end)), format='html')
         return [text_node]
+
 
 class RefKey(Directive):
     """Trefwoorden voor document met verwijzingen"""
@@ -70,8 +70,7 @@ class RefKey(Directive):
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
-    option_spec = {'trefwoord(en)': directives.unchanged,
-                   }
+    option_spec = {'trefwoord(en)': directives.unchanged}
     has_content = False
 
     def run(self):

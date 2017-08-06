@@ -1,3 +1,5 @@
+"""Not the current startup file, not currently maintained
+"""
 import sys
 sys.stdout = sys.stderr
 import os

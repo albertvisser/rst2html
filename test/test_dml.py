@@ -1,8 +1,13 @@
-import os, sys
+"""Rst@HTML unit tests for dml modules: same tests apply for all variants
+
+can be configured which module to use via app_settings
+"""
+import os
+import sys
 import pprint
 import datetime
-import pathlib
-import shutil
+## import pathlib
+## import shutil
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app_settings import DML, WEBROOT
 if DML == 'fs':
@@ -14,6 +19,7 @@ elif DML == 'mongo':
 elif DML == 'postgres':
     print('using postgresql dml')
     import docs2pg as dml
+
 
 def list_site_contents(sitename, filename=''):
     """show site contents in a standard structure, independent of the data backend
@@ -49,11 +55,14 @@ def list_site_contents(sitename, filename=''):
     ## for setting, value in ordered([(x, y) for x, y in sitedoc["settings"].items()]):
         ## outdata.append(outline.format(
 
+
 def clear_site_contents(sitename):
+    "remove site"
     dml.clear_site_data(sitename)
 
-def test_dml(site_name):
 
+def test_dml(site_name):
+    """execute all the tests"""
     print('test creation of site and settings...', end=' ')
     ok = True
     try:
@@ -167,7 +176,7 @@ def test_dml(site_name):
     assert failed
     print('ok')
 
-    mld = dml.create_new_doc(site_name, otherdoc, directory=newdir)
+    dml.create_new_doc(site_name, otherdoc, directory=newdir)
     print('updating rst in {}...'.format(newdir), end=' ')
     dml.update_rst(site_name, otherdoc, 'zoinks', directory=newdir)
     assert dml.list_dirs(site_name, 'src') == ['guichelheil']
@@ -199,12 +208,15 @@ def test_dml(site_name):
     assert dml.list_docs(site_name, 'dest', directory=newdir) == ['hendriksen']
     print('ok')
 
-    print('test retrieving site statistics:'.format(newdir))
+    print('test retrieving site statistics:')  # .format(newdir))
     data = dml.get_all_doc_stats(site_name)
-    pprint.pprint(data) # date/time dependent, no use comparing output
+    pprint.pprint(data)  # date/time dependent, no use comparing output
     print('ok')
 
+
 def main():
+    """define a test site, buid it and clean up after use
+    """
     ## print(dml.list_dirs('blub'))
     site_name = 'test'
     clear_site_contents(site_name)

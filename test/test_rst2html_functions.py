@@ -1,75 +1,61 @@
-# tests for rst2html_functions
+"""unit tests for functions in rst2html_functions.py
+"""
 # for now only test what we've modified (which is almost everything anyway)
 import os
 import sys
-import subprocess as sp
-import pprint
-import yaml
+## import subprocess as sp
+## import pprint
+## import yaml
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app_settings import DML, WEBROOT, BASIC_CSS
 import rst2html_functions as rhfn
 from test_dml import list_site_contents, clear_site_contents
 
-def sorted_items(input_dict):
-    return [(x, y) for x, y in sorted(input_dict.items())]
-
 confdata = {'hig': 32, 'css': ['http://www.example.com/test.css'],
-    'wid': 100, 'url': 'http://www.example.com', 'lang': 'en'}
-confdata_text_init = '\n'.join((
-    'css:',
-    '- http://www.example.com/test.css',
-    'hig: 32',
-    'lang: en',
-    'url: http://www.example.com',
-    'wid: 100\n'
-    ))
-confdata_text = '\n'.join((
-    'css:',
-    '- url + test.css',
-    'hig: 32',
-    'lang: en',
-    'url: http://www.example.com',
-    'wid: 100\n'
-    ))
-confdata_text_2 = '\n'.join((
-    'hig: 32',
-    'lang: en',
-    'url: /rst2html-data/test',
-    'wid: 100\n',
-    'css:',
-    '- http://www.example.com/test.css'
-    ))
+            'wid': 100, 'url': 'http://www.example.com', 'lang': 'en'}
+confdata_text_init = '\n'.join(('css:',
+                                '- http://www.example.com/test.css',
+                                'hig: 32',
+                                'lang: en',
+                                'url: http://www.example.com',
+                                'wid: 100\n'))
+confdata_text = '\n'.join(('css:',
+                           '- url + test.css',
+                           'hig: 32',
+                           'lang: en',
+                           'url: http://www.example.com',
+                           'wid: 100\n'))
+confdata_text_2 = '\n'.join(('hig: 32',
+                             'lang: en',
+                             'url: /rst2html-data/test',
+                             'wid: 100\n',
+                             'css:',
+                             '- http://www.example.com/test.css'))
 confdata_extra = {x: y for x, y in confdata.items()}
 confdata_extra.update(
     {'starthead': '<!-- starthead -->', 'endhead': '<!-- endhead -->'})
-other_confdata = {'lang': 'en', 'hig': 32, 'wid': 100,'css': [],
-    'url': ''}
+other_confdata = {'lang': 'en', 'hig': 32, 'wid': 100, 'css': [], 'url': ''}
 other_confdata_text = '\n'.join((
     'css:' + ''.join(['\n- url + {}'.format(x) for x in BASIC_CSS]),
     'hig: 32',
     'lang: en',
     "url: ''",
-    'wid: 100\n'
-    ))
+    'wid: 100\n'))
 newconfdata = {'lang': 'en', 'css': [], 'hig': 32, 'url': '', 'wid': 100}
-newconfdata_text = '\n'.join((
-    'css: []',
-    'hig: 32',
-    'lang: en',
-    "url: ''",
-    'wid: 100\n'
-    ))
-expected_overview = [
-    ('/', 'horrorscenario', 0),
-    ('/', 'jansen', 2),
-    ('/', 'pietersen', 1),
-    ('/', 'python', 0),
-    ('/', 'reflist', 2),
-    ('/', 'tilanus', 2),
-    ('guichelheil', 'de groot', 2),
-    ('guichelheil', 'hendriksen', 2)
-    ]
+newconfdata_text = '\n'.join(('css: []',
+                              'hig: 32',
+                              'lang: en',
+                              "url: ''",
+                              'wid: 100\n'))
+expected_overview = [('/', 'horrorscenario', 0),
+                     ('/', 'jansen', 2),
+                     ('/', 'pietersen', 1),
+                     ('/', 'python', 0),
+                     ('/', 'reflist', 2),
+                     ('/', 'tilanus', 2),
+                     ('guichelheil', 'de groot', 2),
+                     ('guichelheil', 'hendriksen', 2)]
 jansen_txt = """bah humbug
 .. refkey:: ref1: here1
 .. refkey:: ref2: here2
@@ -97,8 +83,15 @@ converted_txt = """\
 """.format(converted_css)
 pietersen_txt = 'hallo vriendjes'
 
+
+def sorted_items(input_dict):
+    """sort data for easier comparison"""
+    return [(x, y) for x, y in sorted(input_dict.items())]
+
+
 def test_new_site(sitename):
-    print('creating new site and doing some failure tests on updating...', end=' ')
+    """creating new site and doing some failure tests on updating"""
+    print(__doc__ + '...', end=' ')
     mld = rhfn.new_conf(sitename)
     assert mld == ''
     mld, sett = rhfn.read_conf(sitename)
@@ -106,7 +99,7 @@ def test_new_site(sitename):
     assert sett == {}
     mld = rhfn.new_conf('test')
     assert mld == 'Site already exists'
-    sett = {x:y for x, y in rhfn.DFLT_CONF.items()}
+    sett = {x: y for x, y in rhfn.DFLT_CONF.items()}
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     mld, sett = rhfn.read_conf(sitename)
 
@@ -124,13 +117,15 @@ def test_new_site(sitename):
     rhfn.init_css(sitename)
     mld, conf = rhfn.read_conf(sitename)
     for item in BASIC_CSS:
-        test = WEBROOT/ sitename / item
+        test = WEBROOT / sitename / item
         assert 'url + ' + item in conf['css']
         assert test.exists()
     print('ok')
 
+
 def test_readwrite_conf(sitename):
-    print('reading and writing conf...', end=' ')
+    """reading and writing conf"""
+    print(__doc__ + '...', end=' ')
     expected = '<option>test</option>'
     assert expected in rhfn.list_confs()
     expected = '<option selected="selected">test</option>'
@@ -139,45 +134,46 @@ def test_readwrite_conf(sitename):
     ## assert sitename == 'test'
     mld, conf = rhfn.read_conf('not_test')
     assert mld == 'no_such_sett'
-    assert conf == None
+    assert conf is None
     mld, conf = rhfn.read_conf(sitename)
     assert mld == ''
-    expected = {'url': 'http://www.example.com', 'wid': 100, 'hig': 32, 'lang': 'en',
-         'css': ['url + {}'.format(x) for x in BASIC_CSS]}
+    expected = {'url': 'http://www.example.com', 'wid': 100, 'hig': 32,
+                'lang': 'en', 'css': ['url + {}'.format(x) for x in BASIC_CSS]}
     assert sorted_items(conf) == sorted_items(expected)
 
     text = rhfn.conf2text(conf)
     css = ''.join(['\n- url + {}'.format(x) for x in BASIC_CSS])
-    expected = "\n".join((
-        "css:{}".format(css),
-        "hig: 32",
-        "lang: en",
-        "url: http://www.example.com",
-        "wid: 100\n"))
+    expected = "\n".join(("css:{}".format(css),
+                          "hig: 32",
+                          "lang: en",
+                          "url: http://www.example.com",
+                          "wid: 100\n"))
     assert text == expected
     mld = rhfn.save_conf(sitename, confdata_text)
     assert mld == ''
     print('ok')
     return conf
 
+
 def test_list_files(sitename):
-    print('listing dirs and files...', end=' ')
+    """listing dirs and files"""
+    print(__doc__ + '...', end=' ')
     naam = 'jansen'
     msg = rhfn.save_src_data(sitename, '', naam,
-        'now creating {}'.format(naam), True)
+                             'now creating {}'.format(naam), True)
     assert msg == ''
     naam = 'hendriksen'
     msg = rhfn.save_src_data(sitename, 'guichelheil', naam,
-        'now creating {}'.format(naam), True)
+                             'now creating {}'.format(naam), True)
     assert msg == ''
 
     naam = 'jansen'
     msg = rhfn.save_html_data(sitename, '', naam,
-        '<p>now creating {}</p>'.format(naam))
+                              '<p>now creating {}</p>'.format(naam))
     assert msg == ''
     naam = 'hendriksen'
     msg = rhfn.save_html_data(sitename, 'guichelheil', naam,
-        '<p>now creating {}</p>'.format(naam))
+                              '<p>now creating {}</p>'.format(naam))
     assert msg == ''
     expected = ['guichelheil/']
     assert rhfn.list_subdirs(sitename) == expected
@@ -190,7 +186,7 @@ def test_list_files(sitename):
     assert data == []
     # nonexistent subdir
     data = rhfn.list_files(sitename, 'blub', '', '', 'en')
-    assert data == '<option>..</option>' # 'Directory `blub` not found'
+    assert data == '<option>..</option>'  # 'Directory `blub` not found'
 
     expected_0 = '<option>guichelheil/</option>'
     expected_1 = expected_0 + '<option>jansen.rst</option>'
@@ -231,11 +227,11 @@ def test_list_files(sitename):
     assert rhfn.list_files(sitename, current, ext='dest') == expected_3
     naam = ''
     assert rhfn.list_files(sitename, current, naam) == expected_1
-    assert rhfn.list_files(sitename, current, naam, ext='src' ) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='src') == expected_1
     assert rhfn.list_files(sitename, current, naam, ext='dest') == expected_3
     naam = 'jansen'
     assert rhfn.list_files(sitename, current, naam) == expected_1
-    assert rhfn.list_files(sitename, current, naam, ext='src' ) == expected_1
+    assert rhfn.list_files(sitename, current, naam, ext='src') == expected_1
     assert rhfn.list_files(sitename, current, naam, ext='dest') == expected_3
     naam = 'hendriksen.rst'
     assert rhfn.list_files(sitename, current, naam) == expected_2
@@ -253,13 +249,15 @@ def test_list_files(sitename):
     print('ok')
     return current
 
+
 def test_readwrite_docs(sitename, current):
-    print('reading and writing documents...', end = ' ')
+    """reading and writing documents"""
+    print(__doc__ + '...', end=' ')
     expected_msg_1 = ('src_name_missing', '', '', 'rst_filename_error')
     expected_data_1 = ('', 'now creating jansen', 'now creating jansen', '')
     expected_msg_2 = ('html_name_missing', '', 'html_filename_error', '')
     expected_data_2 = ('', '<p>now creating jansen</p>', '',
-        '<p>now creating jansen</p>')
+                       '<p>now creating jansen</p>')
     expected_msg_3 = ('html_name_missing', '', 'Not a valid html file name', '')
     namen = ('', 'jansen', 'jansen.rst', 'jansen.html')
     for ix, naam in enumerate(namen):
@@ -275,7 +273,7 @@ def test_readwrite_docs(sitename, current):
     namen = ('', 'hendriksen', 'hendriksen.rst', 'hendriksen.html')
     expected_data_1 = ('', 'now creating hendriksen', 'now creating hendriksen', '')
     expected_data_2 = ('', '<p>now creating hendriksen</p>', '',
-        '<p>now creating hendriksen</p>')
+                       '<p>now creating hendriksen</p>')
     for ix, naam in enumerate(namen):
         msg, data = rhfn.read_src_data(sitename, current, naam)
         assert msg == expected_msg_1[ix]
@@ -288,32 +286,34 @@ def test_readwrite_docs(sitename, current):
 
     naam = 'tilanus'
     msg = rhfn.save_src_data(sitename, '', naam,
-        'now creating {}'.format(naam), True)
+                             'now creating {}'.format(naam), True)
     assert msg == ''
     namen = ('', 'tilanus', 'tilanus.rst', 'tilanus.html')
     for ix, naam in enumerate(namen):
         msg = rhfn.save_src_data(sitename, '', naam,
-            'now writing {}'.format(naam), False)
+                                 'now writing {}'.format(naam), False)
         assert msg == expected_msg_1[ix]
         msg = rhfn.save_html_data(sitename, '', naam,
-            'now writing <p>{}</p>'.format(naam))
+                                  'now writing <p>{}</p>'.format(naam))
         assert msg == expected_msg_2[ix]
     naam = 'de groot'
     msg = rhfn.save_src_data(sitename, current, naam,
-            'now creating {}'.format(naam), True)
+                             'now creating {}'.format(naam), True)
     assert msg == ''
     namen = ('', 'de groot', 'de groot.rst', 'de groot.html')
     for ix, naam in enumerate(namen):
         msg = rhfn.save_src_data(sitename, current, naam,
-                'now writing {}'.format(naam), False)
+                                 'now writing {}'.format(naam), False)
         assert msg == expected_msg_1[ix]
         msg = rhfn.save_html_data(sitename, current, naam,
-                'now writing <p>{}</p>'.format(naam))
+                                  'now writing <p>{}</p>'.format(naam))
         assert msg == expected_msg_2[ix]
     print('ok')
 
+
 def test_check_formats(sitename, current):
-    print("check_if_rst in various situations...", end=" ")
+    """check_if_rst in various situations"""
+    print(__doc__ + '...', end=' ')
     msg1 = "supply_text"
     msg2 = "rst_invalid"
     msg3 = "src_name_missing"
@@ -343,8 +343,10 @@ def test_check_formats(sitename, current):
     assert rhfn.check_if_html("some text", rhfn.HTML, filename="-- new --") == msg3
     print('ok')
 
+
 def test_progress_list(sitename, current, conf):
-    print('building progress list and updating all documents...', end=' ')
+    """building progress list and updating all documents"""
+    print(__doc__ + '...', end=' ')
     # hard to assert-test because it uses actual date-time stamps
     # maybe I should create a separate demo site for this
     # but then the update-all would still be untestable this way
@@ -354,7 +356,7 @@ def test_progress_list(sitename, current, conf):
 
     errors = rhfn.update_all(sitename, conf)
     assert errors == [('tilanus', 'mirror_missing'),
-        ('guichelheil/de groot', 'mirror_missing')]
+                      ('guichelheil/de groot', 'mirror_missing')]
     newdata = rhfn.build_progress_list(sitename)
     ## pprint.pprint(newdata)
     # compare newdata with olddata and check for expected differences
@@ -363,20 +365,22 @@ def test_progress_list(sitename, current, conf):
     assert errors == []
     print('ok')
 
+
 def test_reference_list(sitename, current):
-    print('building reference document...', end=' ')
+    """building reference document"""
+    print(__doc__ + '...', end=' ')
     # 1. add references to "jansen", save html and promote to mirror
     naam = 'jansen'
     rhfn.save_src_data(sitename, '', naam, 'bah humbug\n'
-        '.. refkey:: ref1: here1\n'
-        '.. refkey:: ref2: here2\n'
-        'end')
+                       '.. refkey:: ref1: here1\n'
+                       '.. refkey:: ref2: here2\n'
+                       'end')
     rhfn.save_html_data(sitename, '', naam, 'updated')
     rhfn.save_to_mirror(sitename, '', naam, confdata_extra)
     # 2. add reference s to"tilanus" and save html
     naam = 'tilanus'
     rhfn.save_src_data(sitename, '', naam, 'it`s me Modine\n'
-        '.. refkey:: ref3: here3\n')
+                       '.. refkey:: ref3: here3\n')
     rhfn.save_html_data(sitename, '', naam, 'updated')
     # 3. add new document with references
     naam = 'horrorscenario'
@@ -388,20 +392,22 @@ def test_reference_list(sitename, current):
     dirnaam = 'guichelheil'
     naam = 'hendriksen'
     rhfn.save_src_data(sitename, dirnaam, naam, 'later krokodil\n'
-        '.. refkey:: ref4: here1\n'
-        'end')
+                       '.. refkey:: ref4: here1\n'
+                       'end')
     rhfn.save_html_data(sitename, dirnaam, naam, 'updated')
     rhfn.save_to_mirror(sitename, dirnaam, naam, confdata_extra)
     result = rhfn.build_trefwoordenlijst(sitename)
     assert result == '\n'.join(['Index', '=====', '', '`R`_ ', '', 'R', '-', '',
-        '+   Ref1 `#`__ ', '+   Ref2 `#`__ ', ' ',
-        '..  _R1: jansen.html#here1', '..  _R2: jansen.html#here2', ' ',
-        '__ R1_', '__ R2_', ' '])
+                                '+   Ref1 `#`__ ', '+   Ref2 `#`__ ', ' ',
+                                '..  _R1: jansen.html#here1',
+                                '..  _R2: jansen.html#here2', ' ',
+                                '__ R1_', '__ R2_', ' '])
     print('ok')
 
 
 def test_state_class():
-    print('Testing state class:')
+    """Testing state class"""
+    print(__doc__ + ":")
     state = rhfn.R2hState()
     ## assert state.sitename == 'test'
 
@@ -426,8 +432,10 @@ def test_state_class():
 
     return state
 
+
 def test_index(state):
-    print('testing index... ', end='')
+    """testing index"""
+    print(__doc__ + '...', end=' ')
 
     initial_site = state.sitename
     data = state.index()
@@ -443,19 +451,19 @@ def test_index(state):
     print('ok')
     return state
 
-def test_load_conf(state):
-    print('testing loadconf... ', end='')
 
+def test_load_conf(state):
+    """testing loadconf"""
+    print(__doc__ + '...', end=' ')
     data = state.loadconf('-- new --', '')
-    assert data == ("New site will be created on save - don't forget to provide a name "
-        "for it", newconfdata_text, '-- new --', '')
+    assert data == ("New site will be created on save - don't forget to provide "
+                    "a name for it", newconfdata_text, '-- new --', '')
     assert sorted_items(state.conf) == sorted_items(newconfdata)
     assert state.subdirs == []
     assert state.current == ''
     assert state.loaded == 'yaml'
     assert state.sitename == '-- new --'
     assert state.newconf is True
-
     data = state.loadconf('test', '')
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
@@ -464,8 +472,7 @@ def test_load_conf(state):
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
     assert state.newconf is False
-
-    data = state.loadconf('test', 'blub') # other conf - fail
+    data = state.loadconf('test', 'blub')                   # other conf - fail
     assert data == ('blub does not exist', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
     assert sorted(state.subdirs) == sorted(['guichelheil/', 'moerasspiraea/'])
@@ -473,7 +480,6 @@ def test_load_conf(state):
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
     assert state.newconf is False
-
     data = state.loadconf('blub', 'test')                   # other conf - ok
     assert data == ('Settings loaded from test', confdata_text, 'test', '')
     assert sorted_items(state.conf) == sorted_items(confdata)
@@ -482,129 +488,114 @@ def test_load_conf(state):
     assert state.loaded == 'yaml'
     assert state.sitename == 'test'
     assert state.newconf is False
-
     print('ok')
     return state
 
-def test_save_conf(state):
-    print('testing saveconf... ', end='')
-    last_sett = state.sitename
 
+def test_save_conf(state):
+    """testing saveconf"""
+    print(__doc__ + '...', end=' ')
+    last_sett = state.sitename
     data = state.saveconf('test', '', '')
     assert data == ('Please provide content for text area', '', last_sett, '')
-
     state.loaded = rhfn.RST
     data = state.saveconf('test', '', 'config text')
     assert data == ("Not executed: text area doesn't contain settings data",
-        'config text', last_sett, '')
-
+                    'config text', last_sett, '')
     state.loaded = rhfn.CONF
     data = state.saveconf('test', '', 'config text')
     assert 'Config: invalid value for' in data[0]
     assert data[1:] == ('config text', 'test', '')
-
     data = state.saveconf('test', '', confdata_text)
     assert data == ('Settings opgeslagen als test', confdata_text, 'test', '')
-
     data = state.saveconf('blub', '', confdata_text)
     assert data == ('blub does not exist', confdata_text, 'test', '')
-
     state.newconf = True
     data = state.saveconf('test', 'blub', newconfdata_text)
     assert data == ("Settings opgeslagen als blub; note that previews won't work "
-        "with empty url setting", other_confdata_text, 'blub', '')
-
+                    "with empty url setting", other_confdata_text, 'blub', '')
     print('ok')
     return state
 
-def test_loadrst(state):
-    print('testing loadrst... ', end='')
 
+def test_loadrst(state):
+    """testing loadrst"""
+    print(__doc__ + '...', end=' ')
     state.sitename = 'test'
     data = state.loadrst('')
     assert data == ('Oops! Page was probably open on closing the browser',
-        other_confdata_text, '', '')
+                    other_confdata_text, '', '')
     assert state.current == ''
     assert state.loaded == rhfn.CONF
     assert state.oldtext == other_confdata_text
-
     data = state.loadrst('-- new --')
     assert data == ("Don't forget to supply a new filename on saving", '', '', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
     assert state.oldtext == ''
-
     data = state.loadrst('guichelheil/')
     assert data == ('switching to directory guichelheil', '', '', '')
     assert state.current == 'guichelheil'
     assert state.loaded == rhfn.RST
     assert state.oldtext == ''
-
     data = state.loadrst('..')
     assert data == ('switching to parent directory', '', '', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
     assert state.oldtext == ''
-
     data = state.loadrst('jansen.rst')
     assert data == ('Source file jansen.rst loaded', jansen_txt, 'jansen.html', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
     assert state.oldtext == jansen_txt
-
     data = state.loadrst('jansen')
     assert data == ('Source file jansen loaded', jansen_txt, 'jansen.html', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
     assert state.oldtext == jansen_txt
-
     data = state.loadrst('jansen.html')
     assert data == ('Not executed: not a valid source file name', jansen_txt,
-        'jansen.html', '')
+                    'jansen.html', '')
     assert state.current == ''
     assert state.loaded == rhfn.RST
     assert state.oldtext == jansen_txt
-
     print('ok')
     return state
 
-def test_saverst(state):
-    print('testing saverst... ', end='')
 
+def test_saverst(state):
+    """testing saverst"""
+    print(__doc__ + '...', end=' ')
     data = state.saverst('jansen.rst', '', 'hallo vriendjes')
     assert data == ('Rst source saved as jansen.rst',
-        'jansen.rst', 'jansen.html', '')
-
+                    'jansen.rst', 'jansen.html', '')
     data = state.saverst('jansen', '', 'hallo vriendjes')
     assert data == ('Rst source saved as jansen.rst',
-        'jansen.rst', 'jansen.html', '')
-
+                    'jansen.rst', 'jansen.html', '')
     data = state.saverst('jansen.rst', 'monty/', 'my hovercraft is full of eels')
     assert data == ('New subdirectory monty created', 'monty/', 'jansen.html', '')
-
     state.rstfile = 'jansen.rst'
     data = state.saverst('monty/', '', 'my hovercraft is full of eels')
     assert data == ('Subdirectory monty already exists',
-        'jansen.rst', 'jansen.html', '')
-
+                    'jansen.rst', 'jansen.html', '')
     data = state.saverst('jansen.rst', 'python', 'my hovercraft is full of eels')
     assert data == ('Rst source saved as python.rst', 'python.rst', 'python.html',
-        '')
-
+                    '')
     state.loaded = rhfn.CONF
     data = state.saverst('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
-        'python.rst', 'python.html', '')
-
+                    'python.rst', 'python.html', '')
     print('ok')
     return state
 
+
 def test_convert(state):
-    print('testing convert... ', end='')
+    """testing convert"""
+    print(__doc__ + '...', end=' ')
     state.oldtext = 'hallo vriendjes'
     data = state.convert('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
-        '', '')
+                    '', '')
     state.loaded = rhfn.RST
     data = state.convert('jansen.rst', '', 'hallo vriendjes')
     assert data == ('', converted_txt, 'jansen.rst')
@@ -618,59 +609,65 @@ def test_convert(state):
     print('ok')
     return state
 
+
 def test_saveall(state):
-    print('testing saveall... ', end='')
+    """testing saveall"""
+    print(__doc__ + '...', end=' ')
     state.oldtext = 'hallo vriendjes'
     state.loaded = rhfn.HTML
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
-        'python.rst', 'python.html', '')
+                    'python.rst', 'python.html', '')
     state.loaded = rhfn.RST
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert data == ('Rst converted to html and saved as jansen.html',
-        'jansen.rst', 'jansen.html', '')
+                    'jansen.rst', 'jansen.html', '')
     data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
     assert data == ('Rst converted to html and saved as pietersen.html',
-        'pietersen.rst', 'pietersen.html', '')
+                    'pietersen.rst', 'pietersen.html', '')
     state.oldtext = 'something else'
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert data == ('Rst converted to html and saved as jansen.html',
-        'jansen.rst', 'jansen.html', '')
+                    'jansen.rst', 'jansen.html', '')
     data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
     assert data == ('Source file already exists', 'pietersen.rst',
-        'pietersen.html', '')   # is this ok? It is meant to be a safeguard against using an
-        # existing name in a "save as" operation
+                    'pietersen.html', '')   # is this ok? It is meant to be a safeguard
+                    # against using an existing name in a "save as" operation
     print('ok')
     return state
+
 
 def test_loadhtml(state):
-    print('testing loadhtml... ', end='')
+    """testing loadhtml"""
+    print(__doc__ + '...', end=' ')
     data = state.loadhtml('')
     assert data == ('Please enter or select a target (.html) filename',
-        pietersen_txt, 'pietersen.rst', 'pietersen.html')
+                    pietersen_txt, 'pietersen.rst', 'pietersen.html')
     data = state.loadhtml('..')
     assert data == ('Please enter or select a target (.html) filename',
-        pietersen_txt, 'pietersen.rst', 'pietersen.html')
+                    pietersen_txt, 'pietersen.rst', 'pietersen.html')
     data = state.loadhtml('guichelheil/')
     assert data == ('Please enter or select a target (.html) filename',
-        pietersen_txt, 'pietersen.rst', 'pietersen.html')
+                    pietersen_txt, 'pietersen.rst', 'pietersen.html')
     data = state.loadhtml('-- new --')
     assert data == ('Please enter or select a target (.html) filename',
-        pietersen_txt, 'pietersen.rst', 'pietersen.html')
+                    pietersen_txt, 'pietersen.rst', 'pietersen.html')
     data = state.loadhtml('jansen')
     assert data == ('Target html jansen.html loaded', converted_txt, 'jansen.rst',
-        'jansen.html')
+                    'jansen.html')
     data = state.loadhtml('jansen.html')
     assert data == ('Target html jansen.html loaded', converted_txt, 'jansen.rst',
-        'jansen.html')
+                    'jansen.html')
     data = state.loadhtml('jansen.rst')
     assert data == ('Not executed: not a valid target file name', converted_txt,
-        'jansen.rst', 'jansen.html')
+                    'jansen.rst', 'jansen.html')
     print('ok')
     return state
 
+
 def test_showhtml(state):
-    print('testing showhtml... ', end='')
+    """testing showhtml"""
+    print(__doc__ + '...', end=' ')
     state.htmlfile = 'jansen.html'
     state.loaded = rhfn.RST
     data = state.showhtml(converted_txt)
@@ -681,8 +678,10 @@ def test_showhtml(state):
     print('ok')
     return state
 
+
 def test_savehtml(state):
-    print('testing savehtml... ', end='')
+    """testing savehtml"""
+    print(__doc__ + '...', end=' ')
     state.loaded = rhfn.RST
     data = state.savehtml('jansen.html', '', converted_txt)
     assert data == ('Please load HTML first', converted_txt, '')
@@ -691,12 +690,14 @@ def test_savehtml(state):
     assert data == ('Modified HTML saved as jansen.html', converted_txt, '')
     data = state.savehtml('jansen.html', 'jansens.html', converted_txt)
     assert data == ('Not executed: can only save HTML under the same name',
-        converted_txt, '')
+                    converted_txt, '')
     print('ok')
     return state
 
+
 def test_copytoroot(state):
-    print('testing copytoroot... ', end='')
+    """print('testing copytoroot"""
+    print(__doc__ + '...', end=' ')
     state.loaded = rhfn.RST
     data = state.copytoroot('jansen.html', converted_txt)
     assert data == 'Please load HTML first'
@@ -706,27 +707,33 @@ def test_copytoroot(state):
     print('ok')
     return state
 
+
 def test_makerefdoc(state):
-    print('testing makerefdoc... ', end='')
+    """testing makerefdoc"""
+    print(__doc__ + '...', end=' ')
     data = state.makerefdoc()
     assert data == ('Index created as reflist.html', 'Index\n=====\n\n')
     print('ok')
     return state
 
+
 def test_convert_all(state):
     # not much more than receiving the results of the earlier tested update_all
-    print('testing convert_all... ', end='')
+    """testing convert_all"""
+    print(__doc__ + '...', end=' ')
     mld, data = state.convert_all()
     assert mld == 'Site documents regenerated, messages below'
     test = data.split('\n')
     assert sorted(test) == sorted(('pietersen not present at mirror',
-        'python skipped: not in target directory',
-        'horrorscenario skipped: not in target directory'))
+                                   'python skipped: not in target directory',
+                                   'horrorscenario skipped: not in target directory'))
     print('ok')
     return state
 
+
 def test_overview(state):
-    print('testing overview... ', end='')
+    """testing overview"""
+    print(__doc__ + '...', end=' ')
     # not much more than receiving the results of the earlier tested build_progress_list
     data = state.overview()
     # this yields time-dependent data so we can't do a simple assert on it:
@@ -735,19 +742,26 @@ def test_overview(state):
     print('ok')
     return state
 
+
 def test_loadxtra(state):
-    print('testing loadxtra... ', end='')
+    """loading site directives"""
+    print(__doc__ + '...', end=' ')
     data = state.loadxtra()
-    print('ok')
+    assert data is not None # for now
+    print('ok (not implemented yet)')
     return state
 
+
 def test_savextra(state):
-    print('testing savextra... ', end='')
+    """saving site directives"""
+    print(__doc__ + '...', end=' ')
     data = state.savextra()
-    print('ok')
+    assert data is not None # for now
+    print('ok (not implemented yet)')
 
 
 def main():
+    """run tests"""
     sitename = 'test'
     clear_site_contents(sitename)
     clear_site_contents('blub')
@@ -783,7 +797,6 @@ def main():
     ## list_site_contents(sitename)
     clear_site_contents(sitename)
     clear_site_contents('blub')
-
 
 if __name__ == '__main__':
     main()
