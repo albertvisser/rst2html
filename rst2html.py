@@ -113,7 +113,7 @@ def resolve_images(rstdata, url, loc):
     return url.join(data)
 
 
-def format_previewdata(state, previewdata, fname, ftype):
+def format_previewdata(state, previewdata, fname, ftype, settings):
     """
     Insert a "back to source" button into the HTML to show
 
@@ -128,7 +128,7 @@ def format_previewdata(state, previewdata, fname, ftype):
         start, end = '', previewdata
     else:
         start, end = previewdata[:pos], previewdata[pos:]
-    loadrst = 'load{0}?{0}file={1}'.format(ftype, fname)
+    loadrst = 'load{0}?{0}file={1}&settings={2}'.format(ftype, fname, settings)
     previewdata = previewbutton.format(loadrst).join((start, end))
     return previewdata
 
@@ -215,7 +215,7 @@ class Rst2Html(object):
         """
         mld, previewdata, fname = self.state.convert(rstfile, newfile, rstdata)
         if mld == '':
-            return format_previewdata(self.state, previewdata, fname, 'rst')
+            return format_previewdata(self.state, previewdata, fname, 'rst', settings)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
                              self.state)
 
@@ -241,7 +241,7 @@ class Rst2Html(object):
         """preview the loaded HTML"""
         mld, previewdata, fname = self.state.showhtml(rstdata)
         if mld == '':
-            return format_previewdata(self.state, previewdata, fname, 'html')
+            return format_previewdata(self.state, previewdata, fname, 'html', settings)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
                              self.state)
 

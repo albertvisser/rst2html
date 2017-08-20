@@ -46,8 +46,8 @@ class Bottom(Directive):
         if nxt.startswith("../"):
             about = ""
         else:
-            about = ''.join('<a class="reference external" href="about.html">',
-                            'terug naar de indexpagina</a> ')
+            about = ''.join(('<a class="reference external" href="about.html">',
+                             'terug naar de indexpagina</a> '))
         if wid:
             start = '' if wid == '-1' else '<div class="grid_{}">'.format(wid)
             next = '' if nxt == 'None' else ''.join(
