@@ -293,6 +293,6 @@ if __name__ == "__main__":
     cherrypy.quickstart(Rst2Html(), config={
         "global": {'server.socket_host': '127.0.0.1',
                    'server.socket_port': 8099},
-        "/": {'tools.staticdir.root': os.path.abspath(os.getcwd())},
+        "/": {'tools.staticdir.root': pathlib.Path.cwd().resolve()},
         "/static": {'tools.staticdir.on': True,
                     'tools.staticdir.dir': "./static"}})

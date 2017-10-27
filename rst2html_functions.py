@@ -334,11 +334,11 @@ def _get_data(sitename, current, fname, origin):
 def read_src_data(sitename, current, fname):
     """get source data from wherever it's been stored
     """
-    fname, ext = os.path.splitext(fname)
-    if ext not in ('', '.rst'):
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.rst'):
         return 'rst_filename_error', ''
     try:
-        return '', _get_data(sitename, current, fname, 'src')
+        return '', _get_data(sitename, current, path.stem, 'src')
     except AttributeError:
         return 'src_name_missing', ''
     except FileNotFoundError:
@@ -348,11 +348,11 @@ def read_src_data(sitename, current, fname):
 def read_html_data(sitename, current, fname):
     """get target data from wherever it's been stored
     """
-    fname, ext = os.path.splitext(fname)
-    if ext not in ('', '.html'):
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.html'):
         return 'html_filename_error', ''
     try:
-        return '', _get_data(sitename, current, fname, 'dest')
+        return '', _get_data(sitename, current, path.stem, 'dest')
     except AttributeError:
         return 'html_name_missing', ''
     except FileNotFoundError:
@@ -408,8 +408,8 @@ def make_new_dir(sitename, fname):
 def save_src_data(sitename, current, fname, data, new=False):
     "save the source data on the server"
     ## print('args for save_src_name:', sitename, current, fname, new)
-    fname, ext = os.path.splitext(fname)
-    if ext not in ('', '.rst'):
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.rst'):
         return 'rst_filename_error'
     if current and current + '/' not in list_subdirs(sitename):
         try:
@@ -419,10 +419,10 @@ def save_src_data(sitename, current, fname, data, new=False):
     try:
         if new:
             try:
-                dml.create_new_doc(sitename, fname, directory=current)
+                dml.create_new_doc(sitename, path.name, directory=current)
             except FileExistsError:
                 return 'src_name_taken'
-        dml.update_rst(sitename, fname, data, directory=current)
+        dml.update_rst(sitename, path.stem, data, directory=current)
         return ''
     except AttributeError as e:
         if 'name' in str(e):
@@ -436,11 +436,11 @@ def save_src_data(sitename, current, fname, data, new=False):
 
 def save_html_data(sitename, current, fname, data):
     "save the source data on the server"
-    fname, ext = os.path.splitext(fname)
-    if ext not in ('', '.html'):
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.html'):
         return 'html_filename_error'
     try:
-        dml.update_html(sitename, fname, data, directory=current)
+        dml.update_html(sitename, path.stem, data, directory=current)
         return ''
     except AttributeError as e:
         if 'name' in str(e):
@@ -484,23 +484,23 @@ def complete_header(conf, rstdata):
 def save_to_mirror(sitename, current, fname, conf):
     """store the actual html on the server
     """
-    fname, ext = os.path.splitext(fname)
-    if ext not in ('', '.html'):
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.html'):
         return 'Not a valid html file name'
     dirname = WEBROOT / sitename
     if current:
         dirname /= current  # = dirname / current)
-        mld, data = read_html_data(sitename, current, fname)
+        mld, data = read_html_data(sitename, current, path.stem)
     else:
-        mld, data = read_html_data(sitename, '', fname)
+        mld, data = read_html_data(sitename, '', path.stem)
     if mld:
         return mld
     data = complete_header(conf, data)
     try:
         if "mirror" in conf:
-            dml.update_mirror(conf["mirror"], fname, data, directory=current)
+            dml.update_mirror(conf["mirror"], path.stem, data, directory=current)
         else:
-            dml.update_mirror(sitename, fname, data, directory=current)
+            dml.update_mirror(sitename, path.stem, data, directory=current)
     except AttributeError as e:
         if 'name' in str(e):
             return 'html_name_missing'
@@ -851,7 +851,7 @@ class R2hState:
             self.loaded = RST
             self.oldtext = self.rstdata = data
             self.rstfile = rstfile
-            self.htmlfile = os.path.splitext(rstfile)[0] + ".html"
+            self.htmlfile = pathlib.Path(rstfile).stem + ".html"
             self.newfile = ""
             mld = get_text('src_loaded', self.conf["lang"]).format(rstfile)
         return mld, self.rstdata, self.htmlfile, self.newfile
@@ -868,9 +868,9 @@ class R2hState:
             isfile = True
             mld = check_if_rst(rstdata, self.loaded, fname)
             if mld == '':
-                name, suffix = os.path.splitext(fname)
-                if suffix != ".rst":
-                    fname = name + ".rst"
+                path = pathlib.Path(fname)
+                if path.suffix != ".rst":
+                    fname = fname + ".rst"
                 mld = save_src_data(self.sitename, self.current, fname, rstdata,
                                     is_new_file)
             fmtdata = fname
@@ -879,7 +879,7 @@ class R2hState:
             mld = 'rst_saved' if isfile else 'new_subdir'
             self.rstfile = fname
             if isfile:
-                self.htmlfile = name + ".html"
+                self.htmlfile = path.stem + ".html"
             self.newfile = ""
         if mld:
             mld = get_text(mld, self.conf["lang"])
@@ -912,13 +912,13 @@ class R2hState:
         """convert rest source to html and save"""
         fname = newfile or rstfile
         is_new_file = newfile != ""
-        name, test = os.path.splitext(fname)
-        if test in ('.html', ''):
-            fname = name + '.rst'
+        path = pathlib.Path(fname)
+        if path.suffix in ('.html', ''):
+            fname = path.stem + '.rst'
         mld = check_if_rst(rstdata, self.loaded, fname)
         if mld == '':
             self.rstfile = fname
-            self.htmlfile = name + ".html"
+            self.htmlfile = path.stem + ".html"
             newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
@@ -949,9 +949,9 @@ class R2hState:
         if mld:
             mld = get_text(mld, self.conf["lang"])
         else:
-            fname, ext = os.path.splitext(htmlfile)
-            self.htmlfile = fname + '.html'
-            self.rstfile = fname + ".rst"
+            path = pathlib.Path(htmlfile)
+            self.htmlfile = path.stem + '.html'
+            self.rstfile = path.stem + ".rst"
             self.oldhtml = data.replace("&nbsp", "&amp;nbsp")
             self.rstdata = self.oldhtml
             mld = get_text('html_loaded', self.conf["lang"]).format(

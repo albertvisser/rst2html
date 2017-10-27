@@ -1,10 +1,9 @@
 """Data processing routines for Postgres SQL version
 """
-import os.path
 import datetime
 import shutil
 import functools
-## import pathlib
+import pathlib
 import psycopg2 as pg
 import psycopg2.extras as pgx
 from app_settings_postgres import user, password, DB_WEBROOT, LOC2EXT, LOCS, Stats
@@ -449,7 +448,7 @@ def create_new_doc(site_name, doc_name, directory=''):
 
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).name
     siteid = _get_site_id(site_name)
     ## if siteid is None:
         ## raise FileNotFoundError('Site bestaat niet')
@@ -480,7 +479,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         raise AttributeError('No name provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     dirid = _get_dir_id(siteid, directory)
@@ -518,7 +517,7 @@ def update_rst(site_name, doc_name, contents, directory=''):
         raise AttributeError('No contents provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
@@ -557,7 +556,7 @@ def update_html(site_name, doc_name, contents, directory=''):
         raise AttributeError('No contents provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
@@ -608,7 +607,7 @@ def update_mirror(site_name, doc_name, data, directory=''):
         raise AttributeError('No contents provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
@@ -661,7 +660,7 @@ def get_doc_stats(site_name, docname, dirname=''):
     """get statistics for alldocuments in a site subdirectory"""
     if not dirname:
         dirname = '/'
-    doc_name = os.path.splitext(docname)[0]
+    doc_name = pathlib.Path(doc_name).stem
     siteid = _get_site_id(site_name)
     if siteid is None:
         raise FileNotFoundError('Site bestaat niet')

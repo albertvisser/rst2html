@@ -2,8 +2,8 @@
 """
 import sys
 sys.stdout = sys.stderr
-import os
-sys.path.insert(0, os.path.dirname(__file__))
+import pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent)
 
 import atexit
 import threading

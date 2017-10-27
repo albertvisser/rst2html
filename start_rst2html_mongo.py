@@ -3,15 +3,16 @@
 """
 import sys
 import os
+import pathlib
 import shutil
 ## sys.stdout = sys.stderr
 import cgitb
 import cherrypy
 cgitb.enable()
 
-ROOT = os.path.dirname(os.path.abspath(__file__))  # '/home/albert/rst2html'
-os.chdir(ROOT)
-sys.path.insert(0, ROOT)
+ROOT = pathlib.Path(__file__).parent.resolve()  # '/home/albert/rst2html'
+os.chdir(str(ROOT))
+sys.path.insert(0, str(ROOT))
 shutil.copyfile('app_settings_mongo.py', 'app_settings.py')
 from rst2html import Rst2Html
 

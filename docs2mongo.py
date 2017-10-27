@@ -1,9 +1,8 @@
 """Data processing routines for MongoDB version
 """
-import os.path
 import datetime
 import shutil
-## import pathlib
+import pathlib
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from app_settings import DB_WEBROOT, LOC2EXT, LOCS, Stats
@@ -199,7 +198,7 @@ def create_new_doc(site_name, doc_name, directory=''):
         raise AttributeError('No name provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if directory not in sitedoc['docs']:
         raise FileNotFoundError('Subdirectory bestaat niet')
@@ -222,7 +221,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         raise AttributeError('No name provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     try:
         doc_id = sitedoc['docs'][directory][doc_name][doctype]['docid']
@@ -246,7 +245,7 @@ def update_rst(site_name, doc_name, contents, directory=''):
         raise AttributeError('No contents provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
         raise FileNotFoundError("Document doesn't exist")
@@ -276,7 +275,7 @@ def update_html(site_name, doc_name, contents, directory=''):
         raise AttributeError('No contents provided')
     if not directory:
         directory = '/'
-    doc_name = os.path.splitext(doc_name)[0]
+    doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
         raise FileNotFoundError("Document doesn't exist")
@@ -309,7 +308,7 @@ def update_mirror(site_name, doc_name, data, directory=''):
         raise AttributeError('No name provided')
     if not directory:
         directory = '/'
-    ## doc_name = os.path.splitext(doc_name)[0] # supposedly doc_name comes without extension
+    ## doc_name = pathlib.Path(doc_name).stem # supposedly doc_name comes without extension
     sitedoc = _get_site_doc(site_name)
     dts = datetime.datetime.utcnow()
     ## print(directory)

@@ -6,8 +6,10 @@ import sys
 ## import subprocess as sp
 ## import pprint
 ## import yaml
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+import pathlib
+HERE = pathlib.Path(__file__).parent.resolve()
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
 from app_settings import DML, WEBROOT, BASIC_CSS
 import rst2html_functions as rhfn
 from test_dml import list_site_contents, clear_site_contents
@@ -68,7 +70,7 @@ converted_txt = """\
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.13.1: http://docutils.sourceforge.net/" />
 <title></title>
 {}
 </head>
@@ -91,7 +93,7 @@ def sorted_items(input_dict):
 
 def test_new_site(sitename):
     """creating new site and doing some failure tests on updating"""
-    print(__doc__ + '...', end=' ')
+    print(test_new_site.__doc__ + '...', end=' ')
     mld = rhfn.new_conf(sitename)
     assert mld == ''
     mld, sett = rhfn.read_conf(sitename)
@@ -125,7 +127,7 @@ def test_new_site(sitename):
 
 def test_readwrite_conf(sitename):
     """reading and writing conf"""
-    print(__doc__ + '...', end=' ')
+    print(test_readwrite_conf.__doc__ + '...', end=' ')
     expected = '<option>test</option>'
     assert expected in rhfn.list_confs()
     expected = '<option selected="selected">test</option>'
@@ -157,7 +159,7 @@ def test_readwrite_conf(sitename):
 
 def test_list_files(sitename):
     """listing dirs and files"""
-    print(__doc__ + '...', end=' ')
+    print(test_list_files.__doc__ + '...', end=' ')
     naam = 'jansen'
     msg = rhfn.save_src_data(sitename, '', naam,
                              'now creating {}'.format(naam), True)
@@ -252,7 +254,7 @@ def test_list_files(sitename):
 
 def test_readwrite_docs(sitename, current):
     """reading and writing documents"""
-    print(__doc__ + '...', end=' ')
+    print(test_readwrite_docs.__doc__ + '...', end=' ')
     expected_msg_1 = ('src_name_missing', '', '', 'rst_filename_error')
     expected_data_1 = ('', 'now creating jansen', 'now creating jansen', '')
     expected_msg_2 = ('html_name_missing', '', 'html_filename_error', '')
@@ -313,7 +315,7 @@ def test_readwrite_docs(sitename, current):
 
 def test_check_formats(sitename, current):
     """check_if_rst in various situations"""
-    print(__doc__ + '...', end=' ')
+    print(test_check_formats.__doc__ + '...', end=' ')
     msg1 = "supply_text"
     msg2 = "rst_invalid"
     msg3 = "src_name_missing"
@@ -346,7 +348,7 @@ def test_check_formats(sitename, current):
 
 def test_progress_list(sitename, current, conf):
     """building progress list and updating all documents"""
-    print(__doc__ + '...', end=' ')
+    print(test_progress_list.__doc__ + '...', end=' ')
     # hard to assert-test because it uses actual date-time stamps
     # maybe I should create a separate demo site for this
     # but then the update-all would still be untestable this way
@@ -368,7 +370,7 @@ def test_progress_list(sitename, current, conf):
 
 def test_reference_list(sitename, current):
     """building reference document"""
-    print(__doc__ + '...', end=' ')
+    print(test_reference_list.__doc__ + '...', end=' ')
     # 1. add references to "jansen", save html and promote to mirror
     naam = 'jansen'
     rhfn.save_src_data(sitename, '', naam, 'bah humbug\n'
@@ -407,7 +409,7 @@ def test_reference_list(sitename, current):
 
 def test_state_class():
     """Testing state class"""
-    print(__doc__ + ":")
+    print(test_state_class.__doc__ + ":")
     state = rhfn.R2hState()
     ## assert state.sitename == 'test'
 
@@ -435,7 +437,7 @@ def test_state_class():
 
 def test_index(state):
     """testing index"""
-    print(__doc__ + '...', end=' ')
+    print(test_index.__doc__ + '...', end=' ')
 
     initial_site = state.sitename
     data = state.index()
@@ -454,7 +456,7 @@ def test_index(state):
 
 def test_load_conf(state):
     """testing loadconf"""
-    print(__doc__ + '...', end=' ')
+    print(test_load_conf.__doc__ + '...', end=' ')
     data = state.loadconf('-- new --', '')
     assert data == ("New site will be created on save - don't forget to provide "
                     "a name for it", newconfdata_text, '-- new --', '')
@@ -494,7 +496,7 @@ def test_load_conf(state):
 
 def test_save_conf(state):
     """testing saveconf"""
-    print(__doc__ + '...', end=' ')
+    print(test_save_conf.__doc__ + '...', end=' ')
     last_sett = state.sitename
     data = state.saveconf('test', '', '')
     assert data == ('Please provide content for text area', '', last_sett, '')
@@ -520,7 +522,7 @@ def test_save_conf(state):
 
 def test_loadrst(state):
     """testing loadrst"""
-    print(__doc__ + '...', end=' ')
+    print(test_loadrst.__doc__ + '...', end=' ')
     state.sitename = 'test'
     data = state.loadrst('')
     assert data == ('Oops! Page was probably open on closing the browser',
@@ -565,7 +567,7 @@ def test_loadrst(state):
 
 def test_saverst(state):
     """testing saverst"""
-    print(__doc__ + '...', end=' ')
+    print(test_saverst.__doc__ + '...', end=' ')
     data = state.saverst('jansen.rst', '', 'hallo vriendjes')
     assert data == ('Rst source saved as jansen.rst',
                     'jansen.rst', 'jansen.html', '')
@@ -591,7 +593,7 @@ def test_saverst(state):
 
 def test_convert(state):
     """testing convert"""
-    print(__doc__ + '...', end=' ')
+    print(test_convert.__doc__ + '...', end=' ')
     state.oldtext = 'hallo vriendjes'
     data = state.convert('jansen.rst', '', 'hallo vriendjes')
     assert data == ("Not executed: text area doesn't contain restructured text",
@@ -612,7 +614,7 @@ def test_convert(state):
 
 def test_saveall(state):
     """testing saveall"""
-    print(__doc__ + '...', end=' ')
+    print(test_saveall.__doc__ + '...', end=' ')
     state.oldtext = 'hallo vriendjes'
     state.loaded = rhfn.HTML
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
@@ -639,7 +641,7 @@ def test_saveall(state):
 
 def test_loadhtml(state):
     """testing loadhtml"""
-    print(__doc__ + '...', end=' ')
+    print(test_loadhtml.__doc__ + '...', end=' ')
     data = state.loadhtml('')
     assert data == ('Please enter or select a target (.html) filename',
                     pietersen_txt, 'pietersen.rst', 'pietersen.html')
@@ -667,7 +669,7 @@ def test_loadhtml(state):
 
 def test_showhtml(state):
     """testing showhtml"""
-    print(__doc__ + '...', end=' ')
+    print(test_showhtml.__doc__ + '...', end=' ')
     state.htmlfile = 'jansen.html'
     state.loaded = rhfn.RST
     data = state.showhtml(converted_txt)
@@ -681,7 +683,7 @@ def test_showhtml(state):
 
 def test_savehtml(state):
     """testing savehtml"""
-    print(__doc__ + '...', end=' ')
+    print(test_savehtml.__doc__ + '...', end=' ')
     state.loaded = rhfn.RST
     data = state.savehtml('jansen.html', '', converted_txt)
     assert data == ('Please load HTML first', converted_txt, '')
@@ -697,7 +699,7 @@ def test_savehtml(state):
 
 def test_copytoroot(state):
     """print('testing copytoroot"""
-    print(__doc__ + '...', end=' ')
+    print(test_copytoroot.__doc__ + '...', end=' ')
     state.loaded = rhfn.RST
     data = state.copytoroot('jansen.html', converted_txt)
     assert data == 'Please load HTML first'
@@ -710,7 +712,7 @@ def test_copytoroot(state):
 
 def test_makerefdoc(state):
     """testing makerefdoc"""
-    print(__doc__ + '...', end=' ')
+    print(test_makerefdoc.__doc__ + '...', end=' ')
     data = state.makerefdoc()
     assert data == ('Index created as reflist.html', 'Index\n=====\n\n')
     print('ok')
@@ -720,7 +722,7 @@ def test_makerefdoc(state):
 def test_convert_all(state):
     # not much more than receiving the results of the earlier tested update_all
     """testing convert_all"""
-    print(__doc__ + '...', end=' ')
+    print(test_convert_all.__doc__ + '...', end=' ')
     mld, data = state.convert_all()
     assert mld == 'Site documents regenerated, messages below'
     test = data.split('\n')
@@ -733,7 +735,7 @@ def test_convert_all(state):
 
 def test_overview(state):
     """testing overview"""
-    print(__doc__ + '...', end=' ')
+    print(test_overview.__doc__ + '...', end=' ')
     # not much more than receiving the results of the earlier tested build_progress_list
     data = state.overview()
     # this yields time-dependent data so we can't do a simple assert on it:
@@ -745,7 +747,7 @@ def test_overview(state):
 
 def test_loadxtra(state):
     """loading site directives"""
-    print(__doc__ + '...', end=' ')
+    print(test_loadxtra.__doc__ + '...', end=' ')
     data = state.loadxtra()
     assert data is not None # for now
     print('ok (not implemented yet)')
@@ -754,7 +756,7 @@ def test_loadxtra(state):
 
 def test_savextra(state):
     """saving site directives"""
-    print(__doc__ + '...', end=' ')
+    print(test_savextra.__doc__ + '...', end=' ')
     data = state.savextra()
     assert data is not None # for now
     print('ok (not implemented yet)')
