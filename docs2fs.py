@@ -79,8 +79,8 @@ def list_sites():
         test1 = item / 'source'
         test2 = item / 'target'
         test3 = item / SETTFILE
-        if (test1.exists() and test1.is_dir() and test2.exists() and test2.is_dir()
-                and test3.exists() and test3.is_file()):
+        if all((test1.exists(), test1.is_dir(), test2.exists(), test2.is_dir(),
+                test3.exists(), test3.is_file())):
             sitelist.append(item.stem)
     return sitelist
 
@@ -178,9 +178,8 @@ def list_docs(sitename, loc, directory=''):
     ## return [str(f.relative_to(path)) for f in path.glob("*.{}".format(ext))]
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()]
     ## return [str(f.relative_to(path).) for f in path.iterdir() if f.is_file()
-    return [f.stem for f in path.iterdir() if f.is_file()
-            ## and f.suffix != '.bak']
-            and f.suffix == LOC2EXT[loc]]
+    return [f.stem for f in path.iterdir()
+            if f.is_file() and f.suffix == LOC2EXT[loc]]
 
 
 def create_new_doc(sitename, docname, directory=''):

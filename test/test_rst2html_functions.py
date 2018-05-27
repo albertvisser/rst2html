@@ -749,7 +749,7 @@ def test_loadxtra(state):
     """loading site directives"""
     print(test_loadxtra.__doc__ + '...', end=' ')
     data = state.loadxtra()
-    assert data is not None # for now
+    assert data is not None  # for now
     print('ok (not implemented yet)')
     return state
 
@@ -758,7 +758,7 @@ def test_savextra(state):
     """saving site directives"""
     print(test_savextra.__doc__ + '...', end=' ')
     data = state.savextra()
-    assert data is not None # for now
+    assert data is not None  # for now
     print('ok (not implemented yet)')
 
 

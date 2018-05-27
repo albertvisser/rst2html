@@ -660,7 +660,7 @@ def get_doc_stats(site_name, docname, dirname=''):
     """get statistics for alldocuments in a site subdirectory"""
     if not dirname:
         dirname = '/'
-    doc_name = pathlib.Path(doc_name).stem
+    doc_name = pathlib.Path(docname).stem
     siteid = _get_site_id(site_name)
     if siteid is None:
         raise FileNotFoundError('Site bestaat niet')
