@@ -20,61 +20,6 @@
 
                 <div class="row-full" style="display: inline; float:left">
                     <div class="table-full" style="display: inline">
-<!--
-                        <div class="table-column" style="float:left">
-                            <select name="settings" title="_(t_settings)">
-                                <option>_(c_newitem)</option>
-                                {7}
-                            </select>
-                            <br/>
-                            _(c_settings):
-                            <input type="button" value="_(c_loadconf)" title="_(t_loadconf)"
-                                onclick="javascript:do_sub('loadconf'); return true;" />
-                            <input type="button" value="_(c_saveconf)" title="_(t_saveconf)"
-                                onclick="javascript:do_sub('saveconf'); return true;" />
-                        </div>
-                        <div class="table-column" style="float:left">
-                            _(c_rstfile):
-                            <select name="rstfile" title="_(t_rstfile)">
-                                <option>_(c_newitem)</option>
-                                {0}
-                            </select>
-                            _(c_htmlfile):
-                            <select name="htmlfile" title="_(t_htmlfile)">
-                                <option>_(c_newitem)</option>
-                                {1}
-                            </select>
-                            _(c_newfile):
-                            <input type="text" name="newfile" value="{2}" title="_(t_newfile)"/>
-                            <br/>
-                            <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc)"
-                                onclick="javascript: do_sub('loadrst'); return true;" />
-                            <input type="button" value="_(c_savesrc)" title="_(t_savesrc)"
-                                onclick="javascript: do_sub('saverst'); return true;" />
-                            <input type="button" value="_(c_convert)" title="_(t_convert)"
-                                onclick="javascript: do_sub('convert'); return true;" />
-                            <input type="button" value="_(c_saveall)" title="_(t_saveall)"
-                                onclick="javascript: do_sub('saveall'); return true;" />
-                            <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml)"
-                                onclick="javascript: do_sub('loadhtml'); return true;" />
-                            <input type="button" value="_(c_showhtml)" title="_(t_showhtml)"
-                                onclick="javascript: do_sub('showhtml'); return true;" />
-                            <input type="button" value="_(c_savehtml)" title="_(t_savehtml)"
-                                onclick="javascript: do_sub('savehtml'); return true;" />
-                        </div>
-                        <div class="table-column" style="float:left">
-                            <input type="button" value="_(c_index)" title="_(t_index)"
-                                onclick="javascript: do_sub('makerefdoc'); return true;" />
-                            <input type="button" value="_(c_regen)" title="_(t_regen)"
-                                onclick="javascript: do_sub('convert_all'); return true;" />
-                            <br/>
-                            <input type="button" value="_(c_copytoroot)" title="_(t_copytoroot)"
-                                onclick="javascript: do_sub('copytoroot'); return true;" />
-                            <input type="button" value="_(c_overview)" title="_(t_overview)"
-                                onclick="javascript: do_sub('overview'); return true;" />
-                        </div>
-                        <div class="clear" style="clear: both"></div>
-                        -->
                         <div>
                             <a href="/">Home</a>
                              _(c_settings):
@@ -88,7 +33,7 @@
                                 onclick="javascript:do_sub('saveconf'); return true;" />
                             _(c_rstfile):
                             <select name="rstfile" title="_(t_rstfile)">
-                                <option>_(c_newitem)</option>
+				<option>_(c_newitem)</option>
                                 {0}
                             </select>
                             _(c_htmlfile):
@@ -104,9 +49,9 @@
                             <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc)"
                                 onclick="javascript: do_sub('loadrst'); return true;" />
                             <input type="button" value="_(c_savesrc)" title="_(t_savesrc)"
-                                onclick="javascript: do_sub('saverst'); return true;" />
+			        onclick="javascript: do_sub('saverst'); return true;" />
                             <input type="button" value="_(c_convert)" title="_(t_convert)"
-                                onclick="javascript: do_sub('convert'); return true;" />
+				onclick="javascript: do_sub('convert'); return true;" />
                             <input type="button" value="_(c_saveall)" title="_(t_saveall)"
                                 onclick="javascript: do_sub('saveall'); return true;" />
                             <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml)"
@@ -182,6 +127,7 @@
                                 <span title="_(t_textheader)">.. textheader:: [<em>text</em>]</span><br/>
                                 <span title="_(t_startcenter)">.. startcenter::</span><br/>
                                 <span title="_(t_endcenter)">.. endcenter::</span><br/>
+				<span title="_(t_bottomnav)">.. bottomnav:: [<em>_(t_bottomnav_parms)</em>]</span><br/>
                                 <span title="_(t_endbody)">.. endbody::</span>
                             </div>
                             <div class="clear" style="clear: both"></div>

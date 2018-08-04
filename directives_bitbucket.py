@@ -84,8 +84,8 @@ class TextHeader(Directive):
         except IndexError:
             title_text = "&nbsp;"
         text.append('<h1 class="title">{}</h1>'.format(title_text))
-        datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
-        text.append('<p class="date">last modified on {}</p>'.format(datum))
+        # datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
+        # text.append('<p class="date">last modified on {}</p>'.format(datum))
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
 
@@ -116,6 +116,31 @@ class EndMarginless(Directive):
         "genereer de html"
         text = '</div><div id="container"><div id="body">'
         text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class BottomNav(Directive):
+    """Extra menuutje met links voor navigatie onderin
+    """
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = True
+
+    def run(self):
+        "genereer de html"
+        text = ['<div id="botnav"><ul>']
+        for line in self.content:
+            line = line.strip()
+            if line.startswith('`') and line.endswith(">`_"):
+                line = line[1:-3]
+                linktext, link = line.split(' <')
+                line = '<a href="{}">{}</a>'.format(link, linktext)
+            else:
+                line = line
+            text.append('<li class="menu">{}</li>'.format(line))
+        text.append('</ul></div>')
+        text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
 
 

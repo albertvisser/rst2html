@@ -30,10 +30,12 @@ t_endc = End of row/columns display
 t_bottom = Make x cells wide navigation footer with 'index' and 'next' links, 'made by' text and mailto link. The text for the 'next' link is standard unless provided.  No 'index' link is created unless a destination is provided or a standard one for None
 t_refkey = Define a reference to (a location on) this page for use with the 'create index' function
 t_startbody = Generate standard start of the body section
-t_navlinks = Generate navigation links
+t_navlinks = Generate standard navigation links
 t_textheader = Generate start of the text with title
 t_startcenter = Temporary suspend margins to display wide image(s)
 t_endcenter = Restore margins
+t_bottomnav = Generate indicated navigation links at the bottom of the page
+t_bottomnav_parms = indented lines containing the links to use
 t_endbody = Generate standard end of the body section
 
 # captions for buttons etc

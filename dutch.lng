@@ -30,10 +30,12 @@ t_endc = einde kolomweergave
 t_bottom = maak navigatiefooter van x cellen breed met 'index' en 'volgende' link, 'made by' tekst en mailto link. De tekst voor de 'volgende' link is standaard tenzij anders aangegeven; bij ontbreken van de bestandnaam wordt ook geen index link weergegeven; bij 'None' wordt de index link wel getoond
 t_refkey = definieer een verwijzing naar (een plek op) deze pagina t.b.v. de 'create index' functie
 t_startbody = genereer standaard begin van de body section
-t_navlinks = genereer navigatielinks
+t_navlinks = genereer standaard navigatielinks
 t_textheader = genereer begin van de tekst met titel
 t_startcenter = Tijdelijk marges negeren om brede images te tonen
 t_endcenter = Terug naar originele marges
+t_bottomnav = genereer de aangegeven navigatielinks onderaan de pagina
+t_bottomnav_parms = ingesprongen regels met daarin de te gebruiken links
 t_endbody = genereer standaard einde van de body section
 
 # captions for buttons etc

@@ -39,13 +39,14 @@ standard_directives.update({"startc": StartCols,
 from directives_magiokis import Bottom, RefKey
 standard_directives.update({"bottom": Bottom,
                             "refkey": RefKey})
-from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, \
+from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, BottomNav, \
     StartMarginless, EndMarginless
 standard_directives.update({"startbody": StartBody,
                             "navlinks": NavLinks,
                             "textheader": TextHeader,
                             "startcenter": StartMarginless,
                             "endcenter": EndMarginless,
+                            "bottomnav": BottomNav,
                             "endbody": EndBody})
 #
 # internals
