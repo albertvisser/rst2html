@@ -13,7 +13,9 @@ HERE = pathlib.Path(__file__).parent
 TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
                  'background-color: #C6E2FF; text-align: center; position: fixed">'
-                 '<a href={}><button>Back to editor</button></a></div>')
+                 '<a href={}><button accesskey="b">'
+                 '<span style="text-decoration:underline">B</span>ack to editor'
+                 '</button></a></div>')
 scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
 scriptdict = {'yaml': ('yaml/yaml',),
               'html': ('xml/xml', 'javascript/javascript', 'css/css',

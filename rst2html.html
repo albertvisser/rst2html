@@ -32,41 +32,53 @@
                             <input type="button" value="_(c_saveconf)" title="_(t_saveconf)"
                                 onclick="javascript:do_sub('saveconf'); return true;" />
                             _(c_rstfile):
-                            <select name="rstfile" title="_(t_rstfile)">
+                            <select name="rstfile" title="_(t_rstfile) [O]" accesskey="o">
 				<option>_(c_newitem)</option>
                                 {0}
                             </select>
                             _(c_htmlfile):
-                            <select name="htmlfile" title="_(t_htmlfile)">
+                            <select name="htmlfile" title="_(t_htmlfile) [T]" accesskey="t">
                                 <option>_(c_newitem)</option>
                                 {1}
                             </select>
                             _(c_newfile):
-                            <input type="text" name="newfile" value="{2}" title="_(t_newfile)"/>
+                            <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]"
+			    	accesskey="n"/>
                         </div>
                         <div class="clear" style="clear: both"></div>
                         <div class="table-column" style="float:left">
-                            <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc)"
+                            <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc) [L]"
+				accesskey="l"
                                 onclick="javascript: do_sub('loadrst'); return true;" />
-                            <input type="button" value="_(c_savesrc)" title="_(t_savesrc)"
+                            <input type="button" value="_(c_savesrc)" title="_(t_savesrc) [S]"
+                                accesskey="s"
 			        onclick="javascript: do_sub('saverst'); return true;" />
-                            <input type="button" value="_(c_convert)" title="_(t_convert)"
+			    <input type="button" value="_(c_convert)" title="_(t_convert) [R]"
+                                accesskey="r"
 				onclick="javascript: do_sub('convert'); return true;" />
-                            <input type="button" value="_(c_saveall)" title="_(t_saveall)"
+                            <input type="button" value="_(c_saveall)" title="_(t_saveall) [C]"
+				accesskey="c"
                                 onclick="javascript: do_sub('saveall'); return true;" />
-                            <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml)"
+                            <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml) [H]"
+				accesskey="h"
                                 onclick="javascript: do_sub('loadhtml'); return true;" />
-                            <input type="button" value="_(c_showhtml)" title="_(t_showhtml)"
+                            <input type="button" value="_(c_showhtml)" title="_(t_showhtml) [B]"
+				accesskey="b"
                                 onclick="javascript: do_sub('showhtml'); return true;" />
-                            <input type="button" value="_(c_savehtml)" title="_(t_savehtml)"
+                            <input type="button" value="_(c_savehtml)" title="_(t_savehtml) [U]"
+				accesskey="u"
                                 onclick="javascript: do_sub('savehtml'); return true;" />
-                            <input type="button" value="_(c_copytoroot)" title="_(t_copytoroot)"
+                            <input type="button" value="_(c_copytoroot)" title="_(t_copytoroot) [M]"
+				accesskey="m"
                                 onclick="javascript: do_sub('copytoroot'); return true;" />
-                            <input type="button" value="_(c_index)" title="_(t_index)"
+                            <input type="button" value="_(c_index)" title="_(t_index) [I]"
+				accesskey="i"
                                 onclick="javascript: do_sub('makerefdoc'); return true;" />
-                            <input type="button" value="_(c_regen)" title="_(t_regen)"
+                            <input type="button" value="_(c_regen)" title="_(t_regen) [G]"
+				accesskey="g"
                                 onclick="javascript: do_sub('convert_all'); return true;" />
-                            <input type="button" value="_(c_overview)" title="_(t_overview)"
+                            <input type="button" value="_(c_overview)" title="_(t_overview) [V]"
+				accesskey="v"
                                 onclick="javascript: do_sub('overview'); return true;" />
                         </div>
                         <div class="clear" style="clear: both"></div>
