@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 """Directives for BitBucket site layout
 
-- header (zit mogelijk al in standaard functionaliteit)
-- container div
-- header div: inhoud = variabele tekstregel
-- navigation div: inhoud = vaste serie links
-- body div
-- body start: div class title met inhoud = variabele tekstregel
--             p class date met inhoud = 'written on ...'
 """
 import datetime
 import json
@@ -132,9 +125,9 @@ class BottomNav(Directive):
         text = ['<div id="botnav"><ul>']
         for line in self.content:
             line = line.strip()
-            if line.startswith('`') and line.endswith(">`_"):
+            if line.startswith('`') and ' <' in line and line.endswith(">`_"):
                 line = line[1:-3]
-                linktext, link = line.split(' <')
+                linktext, link = line.split(' <', 1)
                 line = '<a href="{}">{}</a>'.format(link, linktext)
             else:
                 line = line
