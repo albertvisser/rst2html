@@ -19,6 +19,8 @@ t_copytoroot = Copy the stored html to the site mentioned in the config after ed
 t_overview = Present an overview of the stages of the various site documents
 t_loadxtra = Create or Load a file with user-defined directives for editing
 t_savextra = Save/update the input area's contents to the directives file
+t_rename = Check this and press `save source` to store the selected file under a new name and delete the original
+t_delete = Check this and press `save source` to delete the selected file 
 t_qref =  (opens in new tab)
 t_dir = Apart from the built in ones, the following <br/>directives are available (hover to view description):
 t_startc = Start row/columns display x cells wide (x = 12 of 16)
@@ -61,6 +63,8 @@ c_overview = Progress overview
 c_custom = Custom directives
 c_loadxtra = Load
 c_savextra = Save
+c_rename = Rename
+c_delete = Delete
 c_qref = Quick reStructuredText
 
 # notifications and such

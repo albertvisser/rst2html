@@ -435,8 +435,26 @@ def save_src_data(sitename, current, fname, data, new=False):
         return 'src_file_missing'
 
 
+def mark_deleted(sitename, current, fname):
+    """te verwijderen tekst als zodanig kenmerken
+    """
+    try:
+        dml.mark_src_deleted(sitename, fname, directory=current)
+    except FileNotFoundError:
+        return 'src_file_missing'
+
+
+# alternatief:
+# def mark_deleted(sitename, filename, mode='rst'):
+#     """te verwijderen tekst als zodanig kenmerken
+#
+#     aan te roepen bij save_src (mode is rst), save converted (mode is html) en copy to mirror
+#     (mode is mirror)
+#     """
+
+
 def save_html_data(sitename, current, fname, data):
-    "save the source data on the server"
+    "save the converted data on the server"
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'html_filename_error'
@@ -857,8 +875,10 @@ class R2hState:
             mld = get_text('src_loaded', self.conf["lang"]).format(rstfile)
         return mld, self.rstdata, self.htmlfile, self.newfile
 
-    def saverst(self, rstfile, newfile, rstdata):
-        """(re)ave rest source"""
+    def saverst(self, rstfile, newfile, action, rstdata):
+        """(re)ave rest source
+        TODO: implement rename/delete in source environment
+        """
         fname = newfile or rstfile
         is_new_file = newfile != ""
         if fname.endswith('/'):
@@ -869,11 +889,20 @@ class R2hState:
             isfile = True
             mld = check_if_rst(rstdata, self.loaded, fname)
             if mld == '':
-                path = pathlib.Path(fname)
-                if path.suffix != ".rst":
-                    fname = fname + ".rst"
-                mld = save_src_data(self.sitename, self.current, fname, rstdata,
-                                    is_new_file)
+                path = pathlib.Path(rstfile)
+                if action:
+                    mark_deleted(self.sitename, self.current, rstfile)
+                if action == 'delete':
+                    mld = '{} deleted'.format(str(path))
+                else:
+                    oldpath = path
+                    path = pathlib.Path(fname)
+                    if path.suffix != ".rst":
+                        fname = fname + ".rst"
+                    mld = save_src_data(self.sitename, self.current, fname, rstdata,
+                                        is_new_file)
+                if action == 'rename':
+                    mld = '{} renamed to {}'.format(str(oldpath), str(path))
             fmtdata = fname
         if mld == "":
             self.oldtext = self.rstdata = rstdata
@@ -883,13 +912,15 @@ class R2hState:
                 self.htmlfile = path.stem + ".html"
             self.newfile = ""
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            if not action:
+                mld = get_text(mld, self.conf["lang"])
             if '{}' in mld:
                 mld = mld.format(fmtdata)
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def convert(self, rstfile, newfile, rstdata):
-        """convert rest source to html and show on page"""
+        """convert rest source to html and show on page
+        """
         fname = newfile or rstfile
         if rstdata == self.oldtext:
             mld = check_if_rst(rstdata, self.loaded)  # alleen inhoud controleren
@@ -910,7 +941,9 @@ class R2hState:
         return mld, previewdata, fname
 
     def saveall(self, rstfile, newfile, rstdata):
-        """convert rest source to html and save"""
+        """convert rest source to html and save
+        TODO: apply deletions on target environment
+        """
         fname = newfile or rstfile
         is_new_file = newfile != ""
         path = pathlib.Path(fname)
@@ -1002,9 +1035,9 @@ class R2hState:
     def copytoroot(self, htmlfile, rstdata):
         """copy html to mirror site
 
-        along the way the right stylesheets are added"""
-        # not actually necessary because we're not saving the text in the webpage
-        # so this is just so that we can only do it when html is loaded
+        along the way the right stylesheets are added
+        TODO: apply deletions on mirror environment
+        """
         mld = check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
             mld = get_text(mld, self.conf["lang"])

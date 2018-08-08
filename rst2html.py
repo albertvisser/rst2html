@@ -2,8 +2,8 @@
 
 presentation layer
 """
-## import sys
-import os
+# import sys
+# import os
 import pathlib
 import datetime
 import cherrypy
@@ -119,7 +119,7 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
     """
     Insert a "back to source" button into the HTML to show
 
-    arg1 = previewdata: the html to show (utf-8 string)
+    arg1 = previewdata: the html to show (text string)
     arg2 = filename parameter for the screen to return to
     arg3 = type of this file: `rst` or `html`
     """
@@ -198,16 +198,14 @@ class Rst2Html(object):
                              self.state)
 
     @cherrypy.expose
-    def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata=""):
+    def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """(re)save rst file using selected name
 
         if new name specified, use that (extension must be .rst)
+        `action` has a value when rename or delete is checked
         """
-        mld, rstfile, htmlfile, newfile = self.state.saverst(rstfile, newfile,
+        mld, rstfile, htmlfile, newfile = self.state.saverst(rstfile, newfile, action,
                                                              rstdata)
-        # bij aanmaken nieuwe directory wordt deze niet getoond laat staan geselecteerd -
-        # dat komt doordat er dan nog geen rst document in zit
-        # dus eigenlijk moet de rst lijst gewoon alle subdirs tonen?
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
                              self.state)
 

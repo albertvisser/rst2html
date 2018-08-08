@@ -19,6 +19,8 @@ t_copytoroot = Kopieer de opgeslagen html naar de mirror omgeving genoemd in de 
 t_overview = Presenteer een overzicht van de status van de documenten aanwezig in de mirror omgeving
 t_loadxtra = Creëer of laad een bestand with user-defined directives in de input area.
 t_savextra = Sla de inhoud van de input area op naar het directives bestand
+t_rename = Vink aan en doe `sla bron op` om het geselecteerde bestand op te slaan onder een nieuwe naam en het origineel te verwijderen 
+t_delete = Vink aan en doe `sla bron op` om het geselecteerde bestand te verwijderen
 t_qref =  (opent in een nieuwe tab)
 t_dir = Naast de ingebouwde directives zijn nog de volgende<br/>beschikbaar (hover om de beschrijving te zien):
 t_startc = start kolomweergave van x cellen breed (x = 12 of 16)
@@ -61,6 +63,8 @@ c_overview = Voortgangsoverzicht
 c_custom = Custom directives
 c_loadxtra = Laden
 c_savextra = Opslaan
+c_rename = Hernoem
+c_delete = Verwijder
 c_qref = Quick reStructuredText
 
 # notifications and such

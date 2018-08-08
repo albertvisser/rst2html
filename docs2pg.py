@@ -543,6 +543,11 @@ def update_rst(site_name, doc_name, contents, directory=''):
     cur.close()
 
 
+def mark_src_deleted(sitename, doc_name, directory=''):
+    """mark a source document in the given directory as deleted
+    """
+
+
 def update_html(site_name, doc_name, contents, directory=''):
     """update a converted document in the given directory
 
@@ -592,6 +597,11 @@ def update_html(site_name, doc_name, contents, directory=''):
     cur.close()
 
 
+def apply_deletions_target(sitename, directory=''):
+    """Copy deletion markers from source to target environment (if not already there)
+    """
+
+
 def update_mirror(site_name, doc_name, data, directory=''):
     """administer promoting the converted document in the given directory
     to the mirror site
@@ -638,6 +648,11 @@ def update_mirror(site_name, doc_name, data, directory=''):
     if not path.exists():
         path.touch()
     save_to(path, data)
+
+
+def apply_deletions_mirror(sitename, directory=''):
+    """Copy deletion markers from target to mirror environment and remove in all envs
+    """
 
 
 def remove_doc(site_name, doc_name, directory=''):  # untested - do I need/want this?

@@ -262,6 +262,11 @@ def update_rst(site_name, doc_name, contents, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
+def mark_src_deleted(sitename, doc_name, directory=''):
+    """mark a source document in the given directory as deleted
+    """
+
+
 def update_html(site_name, doc_name, contents, directory=''):
     """update a converted document in the given directory
 
@@ -292,6 +297,11 @@ def update_html(site_name, doc_name, contents, directory=''):
     dts = datetime.datetime.utcnow()
     sitedoc['docs'][directory][doc_name]['dest']['updated'] = dts
     _update_site_doc(site_name, sitedoc['docs'])
+
+
+def apply_deletions_target(sitename, directory=''):
+    """Copy deletion markers from source to target environment (if not already there)
+    """
 
 
 def update_mirror(site_name, doc_name, data, directory=''):
@@ -327,6 +337,11 @@ def update_mirror(site_name, doc_name, data, directory=''):
     if not path.exists():
         path.touch()
     save_to(path, data)
+
+
+def apply_deletions_mirror(sitename, directory=''):
+    """Copy deletion markers from target to mirror environment and remove in all envs
+    """
 
 
 def remove_doc(site_name, doc_name, directory=''):  # untested - do I need/want this?

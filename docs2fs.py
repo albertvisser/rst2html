@@ -247,6 +247,23 @@ def update_rst(sitename, doc_name, contents, directory=''):
     save_to(path, contents)
 
 
+def mark_src_deleted(sitename, doc_name, directory=''):
+    """mark a source document in the given directory as deleted
+    """
+    if not doc_name:
+        raise AttributeError('No name provided')
+    if doc_name not in list_docs(sitename, 'src', directory):
+        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+    path = FS_WEBROOT / sitename / 'source'
+    if directory:
+        path /= directory
+    path = path / doc_name
+    ext = LOC2EXT['src']
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    path.rename(path.with_suffix('.deleted'))
+
+
 def update_html(sitename, doc_name, contents, directory=''):
     """update a converted document in the given directory
 
@@ -273,6 +290,25 @@ def update_html(sitename, doc_name, contents, directory=''):
     save_to(path, contents)
 
 
+def apply_deletions_target(sitename, directory=''):
+    """Copy deletion markers from source to target environment
+    """
+    path = FS_WEBROOT / sitename / 'source'
+    if directory:
+        path /= directory
+    deleted = [x.name for x in path.glob('*.deleted')]
+    for x in path.glob('*.deleted'):
+        x.unlink()
+    path = FS_WEBROOT / sitename / 'target'
+    if directory:
+        path /= directory
+    for item in deleted:
+        newpath = path / item
+        to_delete = newpath.with_suffix(LOC2EXT['dest'])
+        if to_delete.exists():
+            to_delete.rename(newpath)
+
+
 def update_mirror(sitename, doc_name, data, directory=''):
     """administer promoting the converted document in the given directory
     to the mirror site
@@ -294,6 +330,24 @@ def update_mirror(sitename, doc_name, data, directory=''):
     if path.suffix != ext:
         path = path.with_suffix(ext)
     save_to(path, data)
+
+
+def apply_deletions_mirror(sitename, directory=''):
+    """Copy deletion markers from target to mirror environment and remove in all envs
+    """
+    path = FS_WEBROOT / sitename / 'target'
+    if directory:
+        path /= directory
+    deleted = [x.name for x in path.glob('*.deleted')]
+    for x in path.glob('*.deleted'):
+        x.unlink()
+    path = FS_WEBROOT / sitename
+    if directory:
+        path /= directory
+    for item in deleted:
+        newpath = path / item
+        to_delete = newpath.with_suffix(LOC2EXT['dest'])
+        to_delete.unlink()
 
 
 def remove_doc(sitename, docname, directory=''):
