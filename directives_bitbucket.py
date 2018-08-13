@@ -122,7 +122,7 @@ class BottomNav(Directive):
 
     def run(self):
         "genereer de html"
-        text = ['<div id="botnav"><ul>']
+        text = ['<div><div id="botnav"><ul>']
         for line in self.content:
             line = line.strip()
             if line.startswith('`') and ' <' in line and line.endswith(">`_"):
@@ -132,7 +132,7 @@ class BottomNav(Directive):
             else:
                 line = line
             text.append('<li class="menu">{}</li>'.format(line))
-        text.append('</ul></div>')
+        text.append('</ul></div></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
 
