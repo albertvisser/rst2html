@@ -292,21 +292,21 @@ def list_subdirs(sitename, ext=''):
     return [x + '/' for x in sorted(test)]
 
 
-def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang']):
+def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang'], deleted=False):
     """build list of options from filenames, with `naam` selected"""
     ext = ext or 'src'  # default
-    if current:
-        try:
-            items = dml.list_docs(sitename, ext, directory=current)
-        except FileNotFoundError:
-            items = []
-    else:
-        try:
-            items = dml.list_docs(sitename, ext)
-        except FileNotFoundError:
+    try:
+        items = dml.list_docs(sitename, ext, directory=current, deleted=deleted)
+    except FileNotFoundError:
+        items = []
+        if current == '' and deleted is False:
             return "Site not found"
+
     if items is None:
         return 'Wrong type: `{}`'.format(ext)
+    elif deleted:
+        # just return the names of the deleted files
+        return items
     else:
         # make sure files have the correct extension
         items = [x + LOC2EXT[ext] for x in items]
@@ -408,7 +408,6 @@ def make_new_dir(sitename, fname):
 
 def save_src_data(sitename, current, fname, data, new=False):
     "save the source data on the server"
-    ## print('args for save_src_name:', sitename, current, fname, new)
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.rst'):
         return 'rst_filename_error'
@@ -438,23 +437,21 @@ def save_src_data(sitename, current, fname, data, new=False):
 def mark_deleted(sitename, current, fname):
     """te verwijderen tekst als zodanig kenmerken
     """
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.rst'):
+        return 'rst_filename_error'
     try:
-        dml.mark_src_deleted(sitename, fname, directory=current)
-    except FileNotFoundError:
+        dml.mark_src_deleted(sitename, path.stem, directory=current)
+        return ''
+    except AttributeError as e:
+        return 'src_name_missing'
+    except FileNotFoundError as e:
         return 'src_file_missing'
-
-
-# alternatief:
-# def mark_deleted(sitename, filename, mode='rst'):
-#     """te verwijderen tekst als zodanig kenmerken
-#
-#     aan te roepen bij save_src (mode is rst), save converted (mode is html) en copy to mirror
-#     (mode is mirror)
-#     """
 
 
 def save_html_data(sitename, current, fname, data):
     "save the converted data on the server"
+    dml.apply_deletions_target(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'html_filename_error'
@@ -503,6 +500,7 @@ def complete_header(conf, rstdata):
 def save_to_mirror(sitename, current, fname, conf):
     """store the actual html on the server
     """
+    dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'Not a valid html file name'
@@ -616,7 +614,7 @@ def get_reflinks_in_dir(sitename, dirname=''):
     items = dml.list_docs(sitename, 'src', directory=dirname)
     for filename in items:
         stats = dml.get_doc_stats(sitename, filename, dirname='')
-        if stats.src > stats.dest or stats.dest > stats.to_mirror:
+        if stats.src > stats.dest or stats.dest > stats.mirror:
             continue
         msg, rstdata = read_src_data(sitename, dirname, filename)
         if msg:
@@ -880,20 +878,39 @@ class R2hState:
         TODO: implement rename/delete in source environment
         """
         fname = newfile or rstfile
+        for lang in languages:
+            for keyword in ('c_rename', 'c_delete'):
+                if action == get_text(keyword, lang):
+                    action = keyword[2:]
+        if action == 'rename':
+            fname = newfile
         is_new_file = newfile != ""
+        clear_text = False
         if fname.endswith('/'):
             isfile = False
             mld = make_new_dir(self.sitename, fname[:-1])
             fmtdata = fname[:-1]
         else:
             isfile = True
-            mld = check_if_rst(rstdata, self.loaded, fname)
+            mld = ''
+            if action == "rename":
+                if newfile:
+                    mld, data = read_src_data(self.sitename, self.current, newfile)
+                    mld = "new_name_taken" if not mld else ''
+                else:
+                    mld = "new_name_missing"
+            if mld == '':
+                if action and not rstdata:
+                    if action == 'rename':
+                        mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
+                else:
+                    mld = check_if_rst(rstdata, self.loaded, fname)
             if mld == '':
                 path = pathlib.Path(rstfile)
-                if action:
-                    mark_deleted(self.sitename, self.current, rstfile)
                 if action == 'delete':
+                    mld = mark_deleted(self.sitename, self.current, rstfile)
                     mld = '{} deleted'.format(str(path))
+                    clear_text = True
                 else:
                     oldpath = path
                     path = pathlib.Path(fname)
@@ -901,8 +918,12 @@ class R2hState:
                         fname = fname + ".rst"
                     mld = save_src_data(self.sitename, self.current, fname, rstdata,
                                         is_new_file)
-                if action == 'rename':
-                    mld = '{} renamed to {}'.format(str(oldpath), str(path))
+                    if action == 'rename':
+                        if mld == "":
+                            mld = mark_deleted(self.sitename, self.current, rstfile)
+                            mld = '{} renamed to {}'.format(str(oldpath), str(path))
+                        else:
+                            mld = mld.replace('src_', 'new_')
             fmtdata = fname
         if mld == "":
             self.oldtext = self.rstdata = rstdata
@@ -912,11 +933,13 @@ class R2hState:
                 self.htmlfile = path.stem + ".html"
             self.newfile = ""
         if mld:
-            if not action:
+            try:
                 mld = get_text(mld, self.conf["lang"])
+            except KeyError:
+                pass
             if '{}' in mld:
                 mld = mld.format(fmtdata)
-        return mld, self.rstfile, self.htmlfile, self.newfile
+        return mld, self.rstfile, self.htmlfile, self.newfile, clear_text
 
     def convert(self, rstfile, newfile, rstdata):
         """convert rest source to html and show on page

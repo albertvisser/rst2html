@@ -44,11 +44,11 @@
                             _(c_newfile):
                             <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]"
 			    	accesskey="n"/>
-			    <input type="radio" name="action" value="rename" title="_(t_rename) [A]"
+			    <input type="radio" name="action" value="_(c_rename)" title="_(t_rename) [A]"
 			    	accesskey="a">
 			    	<label_for="rename">_(c_rename)</label>
 			    </input>
-			    <input type="radio" name="action" value="delete" title="_(t_delete) [D]"
+			    <input type="radio" name="action" value="_(c_delete)" title="_(t_delete) [D]"
 			    	accesskey="d">
 			    	<label_for="delete">_(c_delete)</label>
 			    </input>
@@ -108,13 +108,31 @@
                 <div class="clear" style="display: inline; clear: both"></div>
 
                 <div class="row-half" style="display: inline; float:left">
+		    <label for="rstdata" accesskey="e" value=" " />
                     <textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}"
-                        style="display: inline">{4}</textarea>
+			    accesskey="w"
+			    style="display: inline">{4}</textarea>
                 </div>
 
                 <div class="row-half" style="display: inline; float:left; padding: 5px; ">
                     <div class="table-full" style="display: inline">
 
+                            <div class="row-full" style="float: left">
+				<span title="O/T _(t_activate) _(c_rstfile)/_(c_htmlfile) selector
+					     N   _(t_activate) _(c_newfile) _(t_fld)
+					     A/D _(t_sel) _(c_rename)/_(c_delete) _(t_opt)
+					     L/S _(c_loadsrc)/_(c_savesrc)
+					     R   _(c_convert)
+					     C   _(c_saveall)
+					     H/U _(c_loadhtml)/_(c_savehtml)
+					     B   _(c_showhtml)
+					     M   _(c_copytoroot)
+					     I   _(c_index)
+					     G   _(c_regen)
+					     V   _(c_overview)">
+				_(t_access)</span>
+                            </div>
+                            <div class="clear" style="clear: both"></div>
                             <div class="row-full" style="float: left">
                                 <p><a href="http://docutils.sourceforge.net/docs/user/rst/quickref.html" target="_blank">
                                 _(c_qref)</a>_(t_qref)</p>
@@ -125,7 +143,11 @@
                             <div class="table-column" style="float:left">grid:</div>
                             <div class="table-column" style="float:left">
                                 <span title="_(t_startc)">.. startc:: <em>x</em></span><br/>
-                                <span title="_(t_firstc)">.. firstc:: <em>x</em> [<em>class</em>]</span><br/>
+                                <span title="ccess = sneltoetsen help (mouse over)
+				t_activate = activeer
+				t_fld = invulveld
+				t_sel = kies
+				t_opt = optie _(t_firstc)">.. firstc:: <em>x</em> [<em>class</em>]</span><br/>
                                 <span title="_(t_nextc)">.. nextc:: <em>x</em> [<em>class</em>]</span><br/>
                                 <span title="_(t_clearc)">.. clearc::</span><br/>
                                 <span title="_(t_spacer)">.. spacer:: [<em>x</em>]</span><br/>

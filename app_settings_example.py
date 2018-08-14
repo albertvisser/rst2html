@@ -25,7 +25,7 @@ BASIC_CSS = ['reset.css', 'html4css1.css', '960.css']
 #
 WEBROOT = FS_WEBROOT if DML == 'fs' else DB_WEBROOT
 # convert locations/doctypes to extensions v.v.
-EXTS, LOCS = ['.rst', '.html', '.html'], ['src', 'dest', 'to_mirror']
-EXT2LOC = dict(zip(EXTS, LOCS))
+EXTS, LOCS = ['.rst', '.html', '.html'], ['src', 'dest', 'mirror']
+EXT2LOC = dict(zip(EXTS[:2], LOCS[:2]))
 LOC2EXT = dict(zip(LOCS, EXTS))
 Stats = collections.namedtuple('Stats', LOCS)

@@ -9,19 +9,19 @@ import yaml
 from app_settings import FS_WEBROOT, EXT2LOC, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
+DELMARK = '.deleted'
 
 # zelfde API als docs2mongo plus:
 
 
 def _locify(path, loc=''):
     """append the location to save the file to to the path"""
-    if loc in ('', 'src'):
+    if not loc or loc == LOCS[0]:
         path /= 'source'
-    elif loc == 'dest':
+    elif loc == LOCS[1]:
         path /= 'target'
-    ## elif path != 'to_mirror':
-        ## return 'invalid type', ''
-    ## return '', path
+    elif loc != LOCS[2]:
+        raise ValueError('invalid type')
     return path
 
 
@@ -161,9 +161,10 @@ def remove_dir(sitename, directory):
     raise NotImplementedError
 
 
-def list_docs(sitename, loc, directory=''):
+def list_docs(sitename, loc, directory='', deleted=False):
     """list the documents of a given type in a given directory
 
+    if requested, list files marked as deleted instead
     raises FileNotFoundError if site or directory doesn't exist
     """
     path = FS_WEBROOT / sitename
@@ -175,11 +176,8 @@ def list_docs(sitename, loc, directory=''):
         if not path.exists():
             ## raise FileNotFoundError('Subdirectory bestaat niet')
             return []
-    ## return [str(f.relative_to(path)) for f in path.glob("*.{}".format(ext))]
-    ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_file()]
-    ## return [str(f.relative_to(path).) for f in path.iterdir() if f.is_file()
-    return [f.stem for f in path.iterdir()
-            if f.is_file() and f.suffix == LOC2EXT[loc]]
+    testsuffix = DELMARK if deleted else LOC2EXT[loc]
+    return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
 
 
 def create_new_doc(sitename, docname, directory=''):
@@ -261,7 +259,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
     ext = LOC2EXT['src']
     if path.suffix != ext:
         path = path.with_suffix(ext)
-    path.rename(path.with_suffix('.deleted'))
+    path.rename(path.with_suffix(DELMARK))
 
 
 def update_html(sitename, doc_name, contents, directory=''):
@@ -296,9 +294,10 @@ def apply_deletions_target(sitename, directory=''):
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
-    deleted = [x.name for x in path.glob('*.deleted')]
-    for x in path.glob('*.deleted'):
-        x.unlink()
+    deleted = []
+    for item in path.glob('*' + DELMARK):
+        deleted.append(item.name)
+        item.unlink()
     path = FS_WEBROOT / sitename / 'target'
     if directory:
         path /= directory
@@ -307,6 +306,8 @@ def apply_deletions_target(sitename, directory=''):
         to_delete = newpath.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
             to_delete.rename(newpath)
+        else:
+            newpath.touch()
 
 
 def update_mirror(sitename, doc_name, data, directory=''):
@@ -326,7 +327,7 @@ def update_mirror(sitename, doc_name, data, directory=''):
         if not path.exists():
             path.mkdir(parents=True)
     path /= doc_name
-    ext = LOC2EXT['dest']
+    ext = LOC2EXT['mirror']
     if path.suffix != ext:
         path = path.with_suffix(ext)
     save_to(path, data)
@@ -338,16 +339,18 @@ def apply_deletions_mirror(sitename, directory=''):
     path = FS_WEBROOT / sitename / 'target'
     if directory:
         path /= directory
-    deleted = [x.name for x in path.glob('*.deleted')]
-    for x in path.glob('*.deleted'):
-        x.unlink()
+    deleted = []
+    for item in path.glob('*' + DELMARK):
+        deleted.append(item.name)
+        item.unlink()
     path = FS_WEBROOT / sitename
     if directory:
         path /= directory
     for item in deleted:
         newpath = path / item
         to_delete = newpath.with_suffix(LOC2EXT['dest'])
-        to_delete.unlink()
+        if to_delete.exists():
+            to_delete.unlink()
 
 
 def remove_doc(sitename, docname, directory=''):
@@ -374,12 +377,7 @@ def get_doc_stats(sitename, docname, dirname=''):
 
 def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     """get statistics for all documents of a certain type in a site subdirectory"""
-    if ftype in ('', 'src'):
-        ext = '.rst'
-    elif ftype in ('dest', 'to_mirror'):
-        ext = '.html'
-    else:
-        return
+    ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
     path = _locify(FS_WEBROOT / sitename, ftype)
     if dirname:
@@ -424,7 +422,7 @@ def _get_dir_stats_for_docitem(site_name, dirname=''):
     for ftype in LOCS:
         statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
         for name, mtime in statslist:
-            if ftype != 'to_mirror':  # for comparability with other backends
+            if ftype != 'mirror':  # for comparability with other backends
                 docid += 1
                 result_dict[name][ftype]['docid'] = docid
             result_dict[name][ftype]['updated'] = datetime.datetime.fromtimestamp(mtime)
