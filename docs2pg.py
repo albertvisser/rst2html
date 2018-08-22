@@ -385,7 +385,7 @@ def remove_dir(site_name, directory):  # untested - do I need/want this?
     raise NotImplementedError
 
 
-def list_docs(site_name, doctype='', directory=''):
+def list_docs(site_name, doctype='', directory='', deleted=False):
     """list the documents of a given type in a given directory
 
     raises FileNotFoundError if site or directory doesn't exist
@@ -406,9 +406,16 @@ def list_docs(site_name, doctype='', directory=''):
                 'from {} where dir_id = %s;'.format(TABLES[3]), (dirid,))
     doclist = []
     for row in cur:
-        if ((doctype == 'src' and row['source_docid'])
-                or (doctype == 'dest' and row['target_docid'])
-                or (doctype == 'to_mirror' and row['mirror_updated'])):
+        # print(doctype, row['source_docid'], deleted, row['source_deleted'])
+        add = False
+        if doctype == 'src' and row['source_docid']:
+            # print(row['source_deleted'])
+            add = bool(row['source_deleted']) == deleted
+        elif doctype == 'dest' and row['target_docid']:
+            add = bool(row['target_deleted']) == deleted
+        elif doctype == 'mirror' and row['mirror_updated']:
+            add = not deleted
+        if add:
             doclist.append(row['docname'])
     conn.commit()
     cur.close()
@@ -543,9 +550,30 @@ def update_rst(site_name, doc_name, contents, directory=''):
     cur.close()
 
 
-def mark_src_deleted(sitename, doc_name, directory=''):
+def mark_src_deleted(site_name, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
+    if not doc_name:
+        raise AttributeError('No name provided')
+    if not directory:
+        directory = '/'
+    doc_name = pathlib.Path(doc_name).stem
+
+    siteid = _get_site_id(site_name)
+    if siteid is None:
+        raise FileNotFoundError('Site bestaat niet')
+    dirid = _get_dir_id(siteid, directory)
+    if dirid is None:
+        raise FileNotFoundError('Subdirectory bestaat niet')
+    doc_id = _get_doc_ids(dirid, doc_name)[0]
+    if doc_id is None:
+        raise FileNotFoundError("Document doesn't exist")
+
+    cur = conn.cursor()
+    cur.execute('update {} set source_deleted = %s where id = %s'.format(
+        TABLES[3]), (True, doc_id))
+    conn.commit()
+    cur.close()
 
 
 def update_html(site_name, doc_name, contents, directory=''):
@@ -597,9 +625,25 @@ def update_html(site_name, doc_name, contents, directory=''):
     cur.close()
 
 
-def apply_deletions_target(sitename, directory=''):
+def apply_deletions_target(site_name, directory=''):
     """Copy deletion markers from source to target environment (if not already there)
     """
+    if not directory:
+        directory = '/'
+    siteid = _get_site_id(site_name)
+    if siteid is None:
+        raise FileNotFoundError('Site bestaat niet')
+    dirid = _get_dir_id(siteid, directory)
+    if dirid is None:
+        raise FileNotFoundError('Subdirectory bestaat niet')
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('select id from {} where source_deleted = %s'.format(TABLES[3]), (True,))
+    deleted = [row['id'] for row in cur]
+    for docid in deleted:
+        cur.execute('update {} set source_deleted = %s, target_deleted = %s '
+                    'where id = %s'.format(TABLES[3]), (False, True, docid))
+    conn.commit()
+    cur.close()
 
 
 def update_mirror(site_name, doc_name, data, directory=''):
@@ -650,14 +694,24 @@ def update_mirror(site_name, doc_name, data, directory=''):
     save_to(path, data)
 
 
-def apply_deletions_mirror(sitename, directory=''):
+def apply_deletions_mirror(site_name, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-
-
-def remove_doc(site_name, doc_name, directory=''):  # untested - do I need/want this?
-    """delete document from site"""
-    raise NotImplementedError
+    if not directory:
+        directory = '/'
+    siteid = _get_site_id(site_name)
+    if siteid is None:
+        raise FileNotFoundError('Site bestaat niet')
+    dirid = _get_dir_id(siteid, directory)
+    if dirid is None:
+        raise FileNotFoundError('Subdirectory bestaat niet')
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('select id from {} where target_deleted = %s'.format(TABLES[3]), (True,))
+    deleted = [row['id'] for row in cur]
+    for docid in deleted:
+        cur.execute('delete from {} where id = %s'.format(TABLES[3]), (docid,))
+    conn.commit()
+    cur.close()
 
 
 def _get_stats(docinfo):

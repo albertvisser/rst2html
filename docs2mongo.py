@@ -153,7 +153,7 @@ def remove_dir(site_name, directory):  # untested - do I need/want this?
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def list_docs(site_name, doctype='', directory=''):
+def list_docs(site_name, doctype='', directory='', deleted=False):
     """list the documents of a given type in a given directory
 
     raises FileNotFoundError if site or directory doesn't exist
@@ -168,7 +168,13 @@ def list_docs(site_name, doctype='', directory=''):
     doclist = []
     for docname, typelist in sitedoc['docs'][directory].items():
         if doctype in typelist:
-            doclist.append(docname)
+            if 'deleted' in sitedoc['docs'][directory][docname][doctype]:
+                test = sitedoc['docs'][directory][docname][doctype]['deleted']
+                if deleted and test:
+                    doclist.append(docname)
+            else:
+                if not deleted:
+                    doclist.append(docname)
     return doclist  # returns all documents of the given type
 
 
@@ -262,9 +268,20 @@ def update_rst(site_name, doc_name, contents, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def mark_src_deleted(sitename, doc_name, directory=''):
+def mark_src_deleted(site_name, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
+    if not doc_name:
+        raise AttributeError('No name provided')
+    if not directory:
+        directory = '/'
+    doc_name = pathlib.Path(doc_name).stem
+    sitedoc = _get_site_doc(site_name)
+    if doc_name not in sitedoc['docs'][directory]:
+        ## raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
+    sitedoc['docs'][directory][doc_name]['src']['deleted'] = True
+    _update_site_doc(site_name, sitedoc['docs'])
 
 
 def update_html(site_name, doc_name, contents, directory=''):
@@ -299,9 +316,17 @@ def update_html(site_name, doc_name, contents, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def apply_deletions_target(sitename, directory=''):
+def apply_deletions_target(site_name, directory=''):
     """Copy deletion markers from source to target environment (if not already there)
     """
+    if not directory:
+        directory = '/'
+    sitedoc = _get_site_doc(site_name)
+    for doc_name in sitedoc['docs'][directory]:
+        if 'deleted' in sitedoc['docs'][directory][doc_name]['src']:
+            sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
+            sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
+    _update_site_doc(site_name, sitedoc['docs'])
 
 
 def update_mirror(site_name, doc_name, data, directory=''):
@@ -339,15 +364,18 @@ def update_mirror(site_name, doc_name, data, directory=''):
     save_to(path, data)
 
 
-def apply_deletions_mirror(sitename, directory=''):
+def apply_deletions_mirror(site_name, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-
-
-def remove_doc(site_name, doc_name, directory=''):  # untested - do I need/want this?
-    """delete document from site"""
+    if not directory:
+        directory = '/'
     sitedoc = _get_site_doc(site_name)
-    sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
+    deleted = []
+    for doc_name in sitedoc['docs'][directory]:
+        if 'deleted' in sitedoc['docs'][directory][doc_name]['dest']:
+            deleted.append(doc_name)
+    for doc_name in deleted:
+        sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
     _update_site_doc(site_name, sitedoc['docs'])
 
 
