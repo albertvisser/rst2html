@@ -4,9 +4,8 @@ import pathlib
 import collections
 
 # specify which data backend to use
-## DML = 'fs'        # file system
-DML = 'mongo'     # NoSQL
-## DML = 'postgres'  # SQL
+dtypes = ['fs', 'mongo', 'postgres']  # resp. file system, NoSQL, SQL
+DML = dtypes[i]
 # database connection parameters (needed for postgresql)
 user = '<username>'
 password = '<password>'
