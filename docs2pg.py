@@ -402,8 +402,8 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
 
     ## doclist = _get_docs_in_dir(dirid)
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select docname, source_docid, target_docid, mirror_updated '
-                'from {} where dir_id = %s;'.format(TABLES[3]), (dirid,))
+    cur.execute('select docname, source_docid, source_deleted, target_docid, target_deleted, '
+                'mirror_updated from {} where dir_id = %s;'.format(TABLES[3]), (dirid,))
     doclist = []
     for row in cur:
         # print(doctype, row['source_docid'], deleted, row['source_deleted'])
@@ -799,8 +799,8 @@ def list_site_data(site_name):
     dirids = [x for x in dirmap]
     sitedoc['docs'] = {x: {} for x in dirmap.values()}
 
-    cur.execute('select docname, source_docid, source_updated, target_docid, '
-                'target_updated, mirror_updated, dir_id from {} '
+    cur.execute('select docname, source_docid, source_updated, source_deleted, target_docid, '
+                'target_updated, target_deleted, mirror_updated, dir_id from {} '
                 'where dir_id = any(%s);'.format(TABLES[3]), (dirids,))
     docstats, docnames = [], {}
     for row in cur:
@@ -816,16 +816,20 @@ def list_site_data(site_name):
             sourcedoc['docid'] = row['source_docid']
         if row['source_updated'] is not None:
             sourcedoc['updated'] = row['source_updated']
+        if row['source_deleted'] is not None:
+            sourcedoc['deleted'] = row['source_deleted']
         if sourcedoc:
             docdata.append(('src', sourcedoc))
         if row['target_docid'] is not None:
             destdoc['docid'] = row['target_docid']
         if row['target_updated'] is not None:
             destdoc['updated'] = row['target_updated']
+        if row['target_deleted'] is not None:
+            destdoc['deleted'] = row['target_deleted']
         if destdoc:
             docdata.append(('dest', destdoc))
         if row['mirror_updated'] is not None:
-            docdata.append(('to_mirror', {'updated': row['target_updated']}))
+            docdata.append(('mirror', {'updated': row['target_updated']}))
         docstats.append(tuple(docdata))
         docnames[row['source_docid']] = (docitem, 'src')
         docnames[row['target_docid']] = (docitem, 'dest')
