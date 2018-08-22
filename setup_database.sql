@@ -1,9 +1,11 @@
-# set up database
+-- set up database
 
 CREATE DATABASE rst2html;
+\connect rst2html;
+DROP TABLE sites CASCADE;
 CREATE TABLE sites (
     id serial PRIMARY KEY,
-    name    VARCHAR UNIQUE
+    sitename    VARCHAR UNIQUE
     );
 CREATE TABLE site_settings (
     id serial   PRIMARY KEY,
@@ -22,8 +24,10 @@ CREATE TABLE doc_stats (
     docname            VARCHAR,
     source_docid       INTEGER,   /* references TABLES[4] */
     source_updated  TIMESTAMP,
+    source_deleted  BOOLEAN,
     target_docid        INTEGER, /* references TABLES[4] */
     target_updated   TIMESTAMP,
+    target_deleted   BOOLEAN,
     mirror_updated   TIMESTAMP
     );
 CREATE TABLE documents (
