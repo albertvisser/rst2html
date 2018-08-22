@@ -325,8 +325,14 @@ def apply_deletions_target(site_name, directory=''):
         directory = '/'
     sitedoc = _get_site_doc(site_name)
     for doc_name in sitedoc['docs'][directory]:
+        # print('checking deletion mark for', doc_name)
+        # print(sitedoc['docs'][directory][doc_name])
         if 'deleted' in sitedoc['docs'][directory][doc_name]['src']:
             sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
+            if 'dest' not in sitedoc['docs'][directory][doc_name]:
+                htmldoc = {'current': '', 'previous': ''}
+                doc_id = _add_doc(htmldoc)
+                sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
             sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
     _update_site_doc(site_name, sitedoc['docs'])
 
@@ -340,15 +346,12 @@ def update_mirror(site_name, doc_name, data, directory=''):
     raise AttributeError if no name provided
     create a new entry if it's the first time
     """
-    ## print(directory, doc_name)
     if not doc_name:
         raise AttributeError('no_name')
     if not directory:
         directory = '/'
-    ## doc_name = pathlib.Path(doc_name).stem # supposedly doc_name comes without extension
     sitedoc = _get_site_doc(site_name)
     dts = datetime.datetime.utcnow()
-    ## print(directory)
     sitedoc['docs'][directory][doc_name]['mirror'] = {'updated': dts}
     _update_site_doc(site_name, sitedoc['docs'])
 
@@ -374,11 +377,23 @@ def apply_deletions_mirror(site_name, directory=''):
     sitedoc = _get_site_doc(site_name)
     deleted = []
     for doc_name in sitedoc['docs'][directory]:
-        if 'deleted' in sitedoc['docs'][directory][doc_name]['dest']:
+        # if 'deleted' in sitedoc['docs'][directory][doc_name]['dest']:
+        if 'deleted' in sitedoc['docs'][directory][doc_name].get('dest', {}):
             deleted.append(doc_name)
     for doc_name in deleted:
-        sitedoc['docs'][directory][doc_name] = {}   # should't this be: remove key ?
+        sitedoc['docs'][directory].pop(doc_name)
     _update_site_doc(site_name, sitedoc['docs'])
+
+    path = DB_WEBROOT / site_name
+    if directory != '/':
+        path /= directory
+    for doc_name in deleted:
+        path /= doc_name
+        ext = LOC2EXT['dest']
+        if path.suffix != ext:
+            path = path.with_suffix(ext)
+        if path.exists():
+            path.unlink()
 
 
 def _get_stats(docinfo):

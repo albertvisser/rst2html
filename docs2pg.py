@@ -708,12 +708,23 @@ def apply_deletions_mirror(site_name, directory=''):
     if dirid is None:
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select id from {} where target_deleted = %s'.format(TABLES[3]), (True,))
-    deleted = [row['id'] for row in cur]
-    for docid in deleted:
+    cur.execute('select id, docname from {} where target_deleted = %s'.format(TABLES[3]), (True,))
+    deleted = [(row['id'], row['docname']) for row in cur]
+    for docid, docname in deleted:
         cur.execute('delete from {} where id = %s'.format(TABLES[3]), (docid,))
     conn.commit()
     cur.close()
+
+    path = DB_WEBROOT / site_name
+    if directory != '/':
+        path /= directory
+    for docid, doc_name in deleted:
+        path /= doc_name
+        ext = LOC2EXT['dest']
+        if path.suffix != ext:
+            path = path.with_suffix(ext)
+        if path.exists():
+            path.unlink()
 
 
 def _get_stats(docinfo):
