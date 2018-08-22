@@ -1,4 +1,4 @@
-"""Rst@HTML unit tests for dml modules: same tests apply for all variants
+"""Rst2HTML unit tests for dml modules: same tests apply for all variants
 
 can be configured which module to use via app_settings
 """
