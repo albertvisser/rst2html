@@ -59,7 +59,7 @@ def create_new_site(site_name):
     """
     path = DB_WEBROOT / site_name
     if _get_site_doc(site_name) is not None or path.exists():
-        raise FileExistsError('Site already exists')
+        raise FileExistsError('site_name_taken')
 
     # create sitedoc
     new_site = {'name': site_name, 'settings': {}, 'docs': {'/': {}}}
@@ -113,7 +113,7 @@ def list_dirs(site_name, doctype=''):
     """
     sitedoc = _get_site_doc(site_name)
     if sitedoc is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirlist = []
     for dirname, doclist in sitedoc['docs'].items():
         if dirname == '/':
@@ -162,9 +162,9 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
         directory = '/'
     sitedoc = _get_site_doc(site_name)
     if sitedoc is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     if directory not in sitedoc['docs']:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doclist = []
     for docname, typelist in sitedoc['docs'][directory].items():
         if doctype in typelist:
@@ -201,13 +201,13 @@ def create_new_doc(site_name, doc_name, directory=''):
            FileNotFoundError if directory doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if directory not in sitedoc['docs']:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     if doc_name in sitedoc['docs'][directory]:
         raise FileExistsError
     new_doc = {'current': '', 'previous': ''}
@@ -224,7 +224,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
            FileNotFoundError if document doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
@@ -233,7 +233,8 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         doc_id = sitedoc['docs'][directory][doc_name][doctype]['docid']
         # throws TypeError when doc_name doesn't exist, KeyError on nonexisting docid
     except (TypeError, KeyError):
-        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        raise FileNotFoundError("no_document".format(doc_name))
     doc_data = site_coll.find({'_id': doc_id})[0]
     return doc_data['current']
 
@@ -246,15 +247,16 @@ def update_rst(site_name, doc_name, contents, directory=''):
             using create_new_doc first)
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
-        raise FileNotFoundError("Document doesn't exist")
+        ## raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
     doc_id = sitedoc['docs'][directory][doc_name]['src']['docid']
     rstdoc = site_coll.find({'_id': doc_id})[0]
     ## if contents == rstdoc['current']:
@@ -272,7 +274,7 @@ def mark_src_deleted(site_name, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
@@ -292,15 +294,15 @@ def update_html(site_name, doc_name, contents, directory=''):
            FileNotFoundError if document doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
     if 'dest' not in sitedoc['docs'][directory][doc_name]:
         htmldoc = {'current': '', 'previous': ''}
         doc_id = _add_doc(htmldoc)
@@ -340,14 +342,14 @@ def update_mirror(site_name, doc_name, data, directory=''):
     """
     ## print(directory, doc_name)
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     ## doc_name = pathlib.Path(doc_name).stem # supposedly doc_name comes without extension
     sitedoc = _get_site_doc(site_name)
     dts = datetime.datetime.utcnow()
     ## print(directory)
-    sitedoc['docs'][directory][doc_name]['to_mirror'] = {'updated': dts}
+    sitedoc['docs'][directory][doc_name]['mirror'] = {'updated': dts}
     _update_site_doc(site_name, sitedoc['docs'])
 
     path = DB_WEBROOT / site_name
@@ -420,7 +422,7 @@ def list_site_data(site_name):
     """
     sitedoc = _get_site_doc(site_name)
     if sitedoc is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     id_list, id_dict = [], {}
     for dirname, diritem in sitedoc['docs'].items():
         for docname, docitem in diritem.items():

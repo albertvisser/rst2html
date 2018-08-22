@@ -93,7 +93,7 @@ def create_new_site(sitename):
     try:
         path.mkdir()
     except FileExistsError:
-        raise FileExistsError('Site already exists')
+        raise FileExistsError('site_name_taken')
     src = path / 'source'
     src.mkdir()
     targ = path / 'target'
@@ -143,7 +143,7 @@ def list_dirs(sitename, loc=''):
     "list subdirs for type"
     test = FS_WEBROOT / sitename
     if not test.exists():
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
     return [f.stem for f in path.iterdir() if f.is_dir()]
@@ -169,12 +169,12 @@ def list_docs(sitename, loc, directory='', deleted=False):
     """
     path = FS_WEBROOT / sitename
     if not path.exists():
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     path = _locify(path, loc)
     if directory:
         path /= directory
         if not path.exists():
-            ## raise FileNotFoundError('Subdirectory bestaat niet')
+            ## raise FileNotFoundError('no_subdir')
             return []
     testsuffix = DELMARK if deleted else LOC2EXT[loc]
     return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
@@ -188,12 +188,12 @@ def create_new_doc(sitename, docname, directory=''):
            FileNotFoundError if directory doesn't exist
     """
     if not docname:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     path = _locify(FS_WEBROOT / sitename, 'src')
     if directory:
         path = path / directory
     if not path.exists():
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     path = path / docname
     if path.suffix != '.rst':
         path = path.with_suffix('.rst')
@@ -230,11 +230,12 @@ def update_rst(sitename, doc_name, contents, directory=''):
             using create_new_doc first)
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if doc_name not in list_docs(sitename, 'src', directory):
-        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        raise FileNotFoundError("no_document".format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
@@ -249,9 +250,10 @@ def mark_src_deleted(sitename, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if doc_name not in list_docs(sitename, 'src', directory):
-        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        raise FileNotFoundError("no_document".format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
@@ -270,12 +272,12 @@ def update_html(sitename, doc_name, contents, directory=''):
            FileNotFoundError if document doesn't exist in source tree
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('load_html')
     if doc_name not in [x.replace('.rst', '.html') for x in list_docs(
             sitename, 'src', directory)]:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
     path = FS_WEBROOT / sitename / 'target'
     if directory:
         path /= directory
@@ -320,7 +322,7 @@ def update_mirror(sitename, doc_name, data, directory=''):
     create a new entry if it's the first time
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     path = FS_WEBROOT / sitename
     if directory:
         path /= directory

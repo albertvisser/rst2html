@@ -114,7 +114,7 @@ def test_new_site(sitename):
     assert_equal(mld, '')
     assert_equal(sett, {})
     mld = rhfn.new_conf('test')
-    assert_equal(mld, 'Site already exists')
+    assert_equal(mld, 'site_name_taken')
     sett = {x: y for x, y in rhfn.DFLT_CONF.items()}
     mld = rhfn.save_conf(sitename, rhfn.conf2text(sett))
     mld, sett = rhfn.read_conf(sitename)
@@ -663,7 +663,7 @@ def test_saverst(state):
     assert_equal(data, ('Please enter a (.rst) name to rename this file to',
                         'python.rst', 'python.html', '', False))
     data = state.saverst('python.rst', 'jansen.rst', 'rename', '')
-    assert_equal(data, ('New name for file already exists', 'python.rst', 'python.html',
+    assert_equal(data, ('New name for file already in use', 'python.rst', 'python.html',
                         '', False))
     data = state.saverst('python.rst', 'cleese.rst', 'rename', '')
     assert_equal(data, ('python.rst renamed to cleese.rst', 'python.rst', 'python.html',

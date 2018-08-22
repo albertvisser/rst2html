@@ -213,7 +213,7 @@ def create_new_site(site_name):
     """
     path = DB_WEBROOT / site_name
     if _get_site_id(site_name) is not None or path.exists():
-        raise FileExistsError('Site already exists')
+        raise FileExistsError('site_name_taken')
 
     cur = conn.cursor()
     cur.execute('insert into {} (sitename) values (%s) returning id;'.format(
@@ -252,7 +252,7 @@ def read_settings(site_name):
     """
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     ## cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     ## cur.execute('select count(*) from sites where sitename = %s', (site_name,))
     ## if cur.fetchone()['count'] == 0:
@@ -323,7 +323,7 @@ def list_dirs(site_name, doctype=''):
     """
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
 
     ## probable inefficient approach
     ## for dir_id in dirids:
@@ -364,7 +364,7 @@ def create_new_dir(site_name, directory):
     """
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     if directory == '/':
         raise RuntimeError('')
     if directory in list_dirs(site_name):
@@ -394,11 +394,11 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
         directory = '/'
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
 
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
 
     ## doclist = _get_docs_in_dir(dirid)
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
@@ -451,17 +451,17 @@ def create_new_doc(site_name, doc_name, directory=''):
            FileNotFoundError if directory doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
 
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).name
     siteid = _get_site_id(site_name)
     ## if siteid is None:
-        ## raise FileNotFoundError('Site bestaat niet')
+        ## raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     if doc_name in _get_docs_in_dir(dirid):
         raise FileExistsError
 
@@ -483,7 +483,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
            FileNotFoundError if document doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
@@ -492,14 +492,16 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     dirid = _get_dir_id(siteid, directory)
     docid, src_id, dest_id = _get_doc_ids(dirid, doc_name)
     if docid is None:
-        raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
+        raise FileNotFoundError("no_document".format(doc_name))
     if doctype == 'src':
         if src_id is None:
-            raise FileNotFoundError("Document {} source not found".format(doc_name))
+            ## raise FileNotFoundError("Document {} source not found".format(doc_name))
+            raise FileNotFoundError("src_file_missing")
         docid = src_id
     elif doctype == 'dest':
         if dest_id is None:
-            raise FileNotFoundError("Document {} html not found".format(doc_name))
+            ## raise FileNotFoundError("Document {} html not found".format(doc_name))
+            raise FileNotFoundError("html_file_missing")
         docid = dest_id
 
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
@@ -519,22 +521,22 @@ def update_rst(site_name, doc_name, contents, directory=''):
             using create_new_doc first)
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doc_id, rst_id, _ = _get_doc_ids(dirid, doc_name)
     if doc_id is None:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
 
     oldtext = _get_doc_text(rst_id)
     ## if contents == oldtext:
@@ -554,20 +556,20 @@ def mark_src_deleted(site_name, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doc_id = _get_doc_ids(dirid, doc_name)[0]
     if doc_id is None:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
     cur.execute('update {} set source_deleted = %s where id = %s'.format(
@@ -584,22 +586,22 @@ def update_html(site_name, doc_name, contents, directory=''):
            FileNotFoundError if document doesn't exist
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doc_id, _, html_id = _get_doc_ids(dirid, doc_name)
     if doc_id is None:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
 
     if html_id is None:
         new_html_id = _add_doc()
@@ -632,10 +634,10 @@ def apply_deletions_target(site_name, directory=''):
         directory = '/'
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute('select id from {} where source_deleted = %s'.format(TABLES[3]), (True,))
     deleted = [row['id'] for row in cur]
@@ -656,22 +658,22 @@ def update_mirror(site_name, doc_name, data, directory=''):
     create a new entry if it's the first time
     """
     if not doc_name:
-        raise AttributeError('No name provided')
+        raise AttributeError('no_name')
     if not data:
-        raise AttributeError('No contents provided')
+        raise AttributeError('no_contents')
     if not directory:
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
 
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doc_id = _get_doc_ids(dirid, doc_name)[0]
     if doc_id is None:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
     dts = datetime.datetime.utcnow()
@@ -701,10 +703,10 @@ def apply_deletions_mirror(site_name, directory=''):
         directory = '/'
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute('select id from {} where target_deleted = %s'.format(TABLES[3]), (True,))
     deleted = [row['id'] for row in cur]
@@ -726,19 +728,19 @@ def _get_stats(docinfo):
 
 
 def get_doc_stats(site_name, docname, dirname=''):
-    """get statistics for alldocuments in a site subdirectory"""
+    """get statistics for all documents in a site subdirectory"""
     if not dirname:
         dirname = '/'
     doc_name = pathlib.Path(docname).stem
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
     dirid = _get_dir_id(siteid, dirname)
     if dirid is None:
-        raise FileNotFoundError('Subdirectory bestaat niet')
+        raise FileNotFoundError('no_subdir')
     doc_id = _get_doc_ids(dirid, doc_name)[0]
     if doc_id is None:
-        raise FileNotFoundError("Document doesn't exist")
+        raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
     cur.execute('select source_updated, target_updated, mirror_updated from {} '
@@ -752,7 +754,7 @@ def get_all_doc_stats(site_name):
     """get statistics for all site subdirectories"""
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
 
     dirids = _get_all_dir_ids(siteid)
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
@@ -788,7 +790,7 @@ def list_site_data(site_name):
     """
     siteid = _get_site_id(site_name)
     if siteid is None:
-        raise FileNotFoundError('Site bestaat niet')
+        raise FileNotFoundError('no_site')
 
     sitedoc = {'_id': siteid, 'name': site_name, 'settings': _get_settings(siteid)}
 
