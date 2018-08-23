@@ -455,7 +455,7 @@ def create_new_doc(site_name, doc_name, directory=''):
 
     if not directory:
         directory = '/'
-    doc_name = pathlib.Path(doc_name).name
+    doc_name = pathlib.Path(doc_name).stem
     siteid = _get_site_id(site_name)
     ## if siteid is None:
         ## raise FileNotFoundError('no_site')
@@ -642,8 +642,8 @@ def apply_deletions_target(site_name, directory=''):
     cur.execute('select id from {} where source_deleted = %s'.format(TABLES[3]), (True,))
     deleted = [row['id'] for row in cur]
     for docid in deleted:
-        cur.execute('update {} set source_deleted = %s, target_deleted = %s '
-                    'where id = %s'.format(TABLES[3]), (False, True, docid))
+        cur.execute('update {} set source_deleted = %s, target_docid = %s,  target_deleted = %s '
+                    'where id = %s'.format(TABLES[3]), (False, 1, True, docid))
     conn.commit()
     cur.close()
 
