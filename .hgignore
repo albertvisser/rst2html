@@ -4,10 +4,10 @@ syntax: glob
 *.bak
 *~
 *pyc
-settings*
 static/*
 custom_directives.py
 test/*
 rst2html-data/*
 backups/*
-
+history/*
+app_settings*
