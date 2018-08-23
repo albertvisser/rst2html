@@ -537,10 +537,8 @@ def build_progress_list(sitename):
             break
     data.sort()
     data.insert(0, rootitem)
-    ## for x in data: print(x)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
-            ## maxidx = stats.index(max(stats))
             maxval = max(stats)
             for idx, val in enumerate(stats):
                 if maxval == val:
@@ -874,7 +872,7 @@ class R2hState:
         return mld, self.rstdata, self.htmlfile, self.newfile
 
     def saverst(self, rstfile, newfile, action, rstdata):
-        """(re)ave rest source
+        """(re)save rest source
         TODO: implement rename/delete in source environment
         """
         fname = newfile or rstfile
@@ -965,7 +963,6 @@ class R2hState:
 
     def saveall(self, rstfile, newfile, rstdata):
         """convert rest source to html and save
-        TODO: apply deletions on target environment
         """
         fname = newfile or rstfile
         is_new_file = newfile != ""
@@ -1059,7 +1056,6 @@ class R2hState:
         """copy html to mirror site
 
         along the way the right stylesheets are added
-        TODO: apply deletions on mirror environment
         """
         mld = check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
