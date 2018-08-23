@@ -55,7 +55,7 @@ def list_site_contents(sitename, filename=''):
     else:
         with open(filename, 'w') as _out:
             if errs:
-                _out.write(errs)
+                print(errs, file=_out)
             else:
                 pprint.pprint(sitedoc, stream=_out)
                 for doc in docdata:
@@ -66,6 +66,18 @@ def list_site_contents(sitename, filename=''):
     ## outline = 'Settings: {}: {}'
     ## for setting, value in ordered([(x, y) for x, y in sitedoc["settings"].items()]):
         ## outdata.append(outline.format(
+
+
+def list_site_and_docs(sitename, filename):
+    """show site contents and also all types of directory listings
+    """
+    list_site_contents(sitename, filename)
+    with open(filename, 'a') as _out:
+        for ftype in ('src', 'dest', 'mirror'):
+            data = dml.list_docs(sitename, ftype)
+            print('list files for', ftype, ':', data, file=_out)
+            data = dml.list_docs(sitename, ftype, deleted=True)
+            print('list deleted for', ftype, ':', data, file=_out)
 
 
 def clear_site_contents(sitename):
@@ -172,31 +184,65 @@ def test_dml(site_name):
     ## dml.update_mirror(site_name, rootdoc, data)
     print('ok')
 
-    rootdeldoc = 'jansens'
+    rootdeldoc = 'jan'
+    rootdeldoc_2 = 'jans'
+    rootdeldoc_3 = 'jansens'
     fsroot = '/home/albert/www'
     print('testing mark for deletion ...', end='')
     dml.create_new_doc(site_name, rootdeldoc)
     dml.update_rst(site_name, rootdeldoc, 'ladida')
+    assert 'jan' in dml.list_docs(site_name, 'src')
+    assert 'jan' not in dml.list_docs(site_name, 'src', deleted=True)
+    dml.create_new_doc(site_name, rootdeldoc_2)
+    dml.update_rst(site_name, rootdeldoc_2, 'ladida')
+    assert 'jans' in dml.list_docs(site_name, 'src')
+    assert 'jans' not in dml.list_docs(site_name, 'src', deleted=True)
+    dml.create_new_doc(site_name, rootdeldoc_3)
+    dml.update_rst(site_name, rootdeldoc_3, 'ladida')
     assert 'jansens' in dml.list_docs(site_name, 'src')
     assert 'jansens' not in dml.list_docs(site_name, 'src', deleted=True)
-    dml.update_html(site_name, rootdeldoc, '<p>ladida</p>')  # migrate first
     dml.mark_src_deleted(site_name, rootdeldoc)
+    assert 'jan' not in dml.list_docs(site_name, 'src')
+    assert 'jan' in dml.list_docs(site_name, 'src', deleted=True)
+    dml.update_html(site_name, rootdeldoc_2, '<p>ladida</p>')  # migrate first
+    dml.mark_src_deleted(site_name, rootdeldoc_2)
+    assert 'jans' not in dml.list_docs(site_name, 'src')
+    assert 'jans' in dml.list_docs(site_name, 'src', deleted=True)
+    dml.update_html(site_name, rootdeldoc_3, '<p>ladida</p>')  # migrate first
+    dml.mark_src_deleted(site_name, rootdeldoc_3)
     assert 'jansens' not in dml.list_docs(site_name, 'src')
     assert 'jansens' in dml.list_docs(site_name, 'src', deleted=True)
     print('ok')
+    list_site_and_docs(site_name, '/tmp/dml_{}_src'.format(DML))
 
     print('checking migration of deletion mark...', end='')
+    assert 'jan' not in dml.list_docs(site_name, 'dest')
+    assert 'jans' in dml.list_docs(site_name, 'dest')
     assert 'jansens' in dml.list_docs(site_name, 'dest')
-    dml.update_mirror(site_name, rootdeldoc, '<p>ladida</p>')  # migrate first
+    dml.update_mirror(site_name, rootdeldoc_3, '<p>ladida</p>')  # migrate first
     dml.apply_deletions_target(site_name, directory='')
+    list_site_and_docs(site_name, '/tmp/dml_{}_dest'.format(DML))
+    assert 'jan' not in dml.list_docs(site_name, 'dest')
+    assert 'jan' not in dml.list_docs(site_name, 'src', deleted=True)
+    assert 'jan' in dml.list_docs(site_name, 'dest', deleted=True)
+    assert 'jans' not in dml.list_docs(site_name, 'dest')
+    assert 'jans' not in dml.list_docs(site_name, 'src', deleted=True)
+    assert 'jans' in dml.list_docs(site_name, 'dest', deleted=True)
     assert 'jansens' not in dml.list_docs(site_name, 'dest')
     assert 'jansens' not in dml.list_docs(site_name, 'src', deleted=True)
     assert 'jansens' in dml.list_docs(site_name, 'dest', deleted=True)
     print('ok')
 
     print('checking final result of delete action...', end='')
+    assert 'jan' not in dml.list_docs(site_name, 'mirror')
+    assert 'jans' not in dml.list_docs(site_name, 'mirror')
     assert 'jansens' in dml.list_docs(site_name, 'mirror')
     dml.apply_deletions_mirror(site_name, directory='')
+    list_site_and_docs(site_name, '/tmp/dml_{}_mirror'.format(DML))
+    assert 'jan' not in dml.list_docs(site_name, 'dest', deleted=True)
+    assert 'jan' not in dml.list_docs(site_name, 'mirror')
+    assert 'jans' not in dml.list_docs(site_name, 'dest', deleted=True)
+    assert 'jans' not in dml.list_docs(site_name, 'mirror')
     assert 'jansens' not in dml.list_docs(site_name, 'dest', deleted=True)
     assert 'jansens' not in dml.list_docs(site_name, 'mirror')
     print('ok')
@@ -266,7 +312,7 @@ def main():
     except AssertionError:
         raise
     finally:
-        list_site_contents(site_name)
+        pass  # list_site_contents(site_name)
     clear_site_contents(site_name)
 
 if __name__ == '__main__':
