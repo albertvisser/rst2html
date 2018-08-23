@@ -4,7 +4,7 @@
 import os
 import sys
 ## import subprocess as sp
-## import pprint
+import pprint
 ## import yaml
 import pathlib
 HERE = pathlib.Path(__file__).parent.resolve()
@@ -423,10 +423,12 @@ def test_check_formats(sitename, current):
 def test_progress_list(sitename, current, conf):
     """building progress list and updating all documents"""
     print(test_progress_list.__doc__ + '...', end=' ')
+    ## list_site_contents(sitename)
     # hard to assert-test because it uses actual date-time stamps
     # maybe I should create a separate demo site for this
     # but then the update-all would still be untestable this way
     # so here we just pprint an htmlview the lot
+    # print(list((WEBROOT / sitename).iterdir()))
     olddata = rhfn.build_progress_list(sitename)
     ## pprint.pprint(olddata)
 
@@ -655,7 +657,7 @@ def test_saverst(state):
     assert_equal(data, ('Subdirectory monty already exists',
                         'jansen.rst', 'jansen.html', '', False))
     # save as
-    data = state.saverst('jansen.rst', 'python', '', 'my hovercraft is full of eels')
+    data = state.saverst('jansen.rst', 'python.rst', '', 'my hovercraft is full of eels')
     assert_equal(data, ('Rst source saved as python.rst', 'python.rst', 'python.html',
                         '', False))
     # rename
@@ -709,9 +711,16 @@ def test_saveall(state):
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert_equal(data[0], "Not executed: text area doesn't contain restructured text")
     state.loaded = rhfn.RST
+    # first-time only: check if deletions have been propagated
+    for name in ('tobedeleted', 'python'):
+        assert name in rhfn.list_files(state.sitename, state.current, ext='src', deleted=True)
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='dest', deleted=True)
     data = state.saveall('jansen.rst', '', 'hallo vriendjes')
     assert_equal(data, ('Rst converted to html and saved as jansen.html',
                         'jansen.rst', 'jansen.html', ''))
+    for name in ('tobedeleted', 'python'):
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='src', deleted=True)
+        assert name in rhfn.list_files(state.sitename, state.current, ext='dest', deleted=True)
     data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
     assert_equal(data, ('Rst converted to html and saved as pietersen.html',
                         'pietersen.rst', 'pietersen.html', ''))
@@ -721,9 +730,7 @@ def test_saveall(state):
                         'jansen.rst', 'jansen.html', ''))
     data = state.saveall('jansen.rst', 'pietersen.rst', 'hallo vriendjes')
     assert_equal(data, ('Source file already exists', 'pietersen.rst',
-                        'pietersen.html', ''))   # is this ok?
-    # It is meant to be a safeguard against using an existing name in a "save as" operation
-    # TODO: insert checking if deletions have been propagated
+                        'pietersen.html', ''))
     print('ok')
     return state
 
@@ -793,9 +800,17 @@ def test_copytoroot(state):
     data = state.copytoroot('jansen.html', converted_txt)
     assert_equal(data, 'Please load HTML first')
     state.loaded = rhfn.HTML
+    # also check if deletions have been propagated
+    for name in ('tobedeleted', 'python'):
+        assert name in rhfn.list_files(state.sitename, state.current, ext='dest', deleted=True)
     data = state.copytoroot('jansen.html', converted_txt)
     assert_equal(data, 'Copied to siteroot/jansen.html')
-    # TODO: insert checking if deletions have been propagated
+    for name in ('tobedeleted', 'python'):
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='dest', deleted=True)
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='src')
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='dest')
+        # also check existence in mirror directory
+        assert name not in rhfn.list_files(state.sitename, state.current, ext='mirror')
     print('ok')
     return state
 
