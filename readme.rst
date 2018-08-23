@@ -20,7 +20,7 @@ As another small bonus to myself, I added a javascript library to provide code h
 It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
 
 
-The latest addition is the possibility to easily plug in a different data storage mechanism. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB database.
+The latest addition is the possibility to easily plug in a different data storage mechanism. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB or PostgreSQL database.
 
 
 How to use
@@ -28,12 +28,12 @@ How to use
 
 1. setting up a site on your local webserver
 
-When starting a new site, choose what kind of implementation (file system or MongDB) to use, start up the application and choose "load settings", then enter a nice name and choose "save settings". This will create a destination site in a standard location as well as define locations for keeping the intermediary results. You can then map the location to a url for your local webserver so that you can view the result in all its glory.
+When starting a new site, begin by choosing what kind of implementation to use. For Mongo or Postgres you may have some preparation to do e.g. setting up a database server. With the right configuration and startup script (see below), start up the application and choose "load settings", then enter a nice name and choose "save settings". This will create a destination site in a standard location as well as define locations for keeping the intermediary results. You can then map the location to a url for your local webserver so that you can view the result in all its glory.
 
 When using an existing site, you can use the existing site configuration and map FS_WEBROOT in `app_settings.py` to the physical directory.
 For a file system implementation, create a `settings.yml` file and a `source` and `target` directory tree in it and you're good to go.
 A MongoDB implementation has all this stuff stored in a database, for this the pertaining database layer takes care of all the setup details. In the same vein there's the possibility to use a Postgres SQL database.
-What backend to use is also defined in `app_settings.py`.
+What backend to use is also defined in `app_settings.py` (the DML variable).
 
 2. setting up the application
 
@@ -55,4 +55,5 @@ Requirements
 - yaml for the config parsing stuff
 - PyQt(5) for the gui version
 - CodeMirror for the syntax highlighting (you can do without it I think)
-- MongoDB if you choose that backend for your data storage
+- MongoDB/Pymongo if you choose that backend for your data storage
+- PostgreSQL/Psycopg2 if you choose that backend for your data storage
