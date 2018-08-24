@@ -1,4 +1,4 @@
-"""Rst2HTML unit tests for all types of dml
+"""exceute test_scenario_1 for dml system(s) of choice
 """
 import subprocess
 import shutil
@@ -14,4 +14,6 @@ for sett in ('fs', 'mongo', 'postgres'):
         continue
     settfile = os.path.join(root, 'app_settings_{}.py'.format(sett))
     shutil.copyfile(settfile, destfile)
-    subprocess.run(['python3', 'test_dml.py'])
+    subprocess.run(['python3', 'test_scenario_1.py'])
+    outname = '/tmp/test_scenario_1.out'
+    shutil.copyfile(outname, outname.replace('.', '_{}.'.format(sett)))

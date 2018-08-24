@@ -47,15 +47,15 @@ def test_unexposed():
         ('/', 'horrorscenario', 0, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 96000),
             dest=datetime.datetime(1, 1, 1, 0, 0),
-            to_mirror=datetime.datetime(1, 1, 1, 0, 0))),
+            mirror=datetime.datetime(1, 1, 1, 0, 0))),
         ('/', 'jansen', 2, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
             dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
+            mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000))),
         ('guichelheil', 'pietersen', 2, Stats(
             src=datetime.datetime(2016, 3, 28, 16, 0, 52, 248000),
             dest=datetime.datetime(2016, 3, 28, 16, 0, 52, 326000),
-            to_mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000)))])
+            mirror=datetime.datetime(2016, 3, 28, 16, 0, 52, 329000)))])
     with open('/tmp/progress_list.html', 'w') as _out:
         _out.write(data.format(sitename))
     ## sp.Popen(['/home/albert/bin/viewhtml', '/tmp/test2.html'])

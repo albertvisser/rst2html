@@ -10,7 +10,7 @@ root = os.path.dirname(root)
 dmloms = ['file system', 'mongodb', 'postgresql']
 scripts = {'dml': ['test_dml.py', 'test_all_dml.py'],
            'functions': ['test_rst2html_functions', 'test_rhfn_all.py'],
-           'scenario': ['test_scenario1.py', ''],
+           'scenario': ['test_scenario1.py', 'test_scen1_all.py'],
            'app': ['test_rst2html.py', '']}
 
 def main(args):

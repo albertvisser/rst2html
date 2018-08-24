@@ -8,7 +8,7 @@ import pprint
 import datetime
 ## import pathlib
 ## import shutil
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app_settings import DML, WEBROOT
 if DML == 'fs':
     print('using file system dml')

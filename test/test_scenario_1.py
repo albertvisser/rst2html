@@ -3,12 +3,11 @@
 import os
 import sys
 ## import pprint
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+ME = os.path.abspath(__file__)
+sys.path.insert(0, os.path.dirname(ME))
+sys.path.insert(0, os.path.dirname(os.path.dirname(ME)))
 from rst2html import Rst2Html
-## from rst2html_all import Rst2Html
-from analyze_testdata import sitename, dump_data_and_compare  # , get_db_diff, \
-#    analyze_html_data, get_html_diff
+import analyze_testdata
 from test_dml import list_site_contents, clear_site_contents
 
 rstdata_1 = """\
@@ -103,7 +102,9 @@ def main():
     """main processing"""
     # simulate starting up the application
     app = Rst2Html()
-    dbdata, htmldata = dump_data_and_compare(app.index(), '01_index')
+    sitename = analyze_testdata.sitename
+    comp = analyze_testdata.Comparer()
+    dbdata, htmldata = comp.dump_data_and_compare(app.index(), '01_index')
     assert_equal(dbdata, ({}, []))  # sitedocs index followed by list of site docs
     # initial html data is not very useful
     ## assert sorted_items(htmldata) == sorted_items({
@@ -119,15 +120,16 @@ def main():
         ## })
 
     # simulate loading new conf
-    dbdata, htmldata = dump_data_and_compare(
-        app.loadconf('-- new --', '', '', '', ''), '02_loadconf_new')
+    dbdata, htmldata = comp.dump_data_and_compare(
+        app.loadconf('-- new --', '', '', '', ''),
+        '02_loadconf_new')
     assert_equal(dbdata, ['site data has not changed'])
     assert ('mld_text is "New site will be created on save - don\'t forget to '
             'provide a name for it"') in htmldata
     assert 'textdata changed' in htmldata
 
     # simulate saving new conf - forgetting to change the name
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
                      app.state.newfile, app.state.rstdata),
         '03_saveconf_invalid')
@@ -135,7 +137,7 @@ def main():
     assert_equal(htmldata, ['mld_text is "Not a valid filename"'])
 
     # simulate saving new conf - using a new name
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
                      sitename, app.state.rstdata),
         '04_saveconf_new')
@@ -149,23 +151,23 @@ def main():
 
     # simulate saving new conf - using an existing name for a new site
     app.state.newconf = True
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
                      sitename, app.state.rstdata),
         '05_saveconf_existing')
     app.state.newconf = False
     assert_equal(dbdata, ['site data has not changed'])
-    assert_equal(htmldata, ['mld_text is "Site already exists"'])
+    assert_equal(htmldata, ['mld_text is "site_name_taken"'])
 
     # simulate loading a document where none exist yet
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, '', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '06a_loadrst_nonexistant')
     assert_equal(dbdata, ['site data has not changed'])
     assert_equal(htmldata, [
         'mld_text is "Oops! Page was probably open on closing the browser"'])
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, 'x', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '06b_loadrst_nonexistant')
@@ -173,7 +175,7 @@ def main():
     assert_equal(htmldata, ['mld_text is "Source file does not exist"'])
 
     # simulate creating a new source document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, '-- new --', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '07_loadrst_new')
@@ -182,7 +184,7 @@ def main():
                             'textdata cleared'])
 
     # simulate saving the new document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
                     'testdoc1.rst', rstdata_1),
         '08a_saverst_new')
@@ -194,7 +196,7 @@ def main():
                             'textdata changed'])
 
     # simulate creating a new directory
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saverst(app.state.settings, '-- new --', app.state.htmlfile,
                     'subdir/', rstdata_1),
         '08b_saverst_newdir')
@@ -204,7 +206,7 @@ def main():
                             'rstfile_name: value was "testdoc1.rst", is now "subdir/"'])
 
     # simulate entering the new directory
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, 'subdir/', app.state.htmlfile,
                     '', rstdata_1),
         '08c_loadrst_dirdown')
@@ -218,7 +220,7 @@ def main():
                             'textdata cleared'])
 
     # simulate going back to the root
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, '..', app.state.htmlfile, '', rstdata_1),
         '08d_loadrst_dirup')
     assert_equal(dbdata, ['site data has not changed'])
@@ -230,7 +232,7 @@ def main():
 
     # simulate viewing the new document
     ## app.state.rstdata = rstdata_1
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.convert(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, rstdata_1),
         '09a_convert_new')
@@ -244,7 +246,7 @@ def main():
 
     ## return
     # simulate viewing the (slightly changed) document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.convert(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, rstdata_2),
         '09b_convert_new_changed')
@@ -257,7 +259,7 @@ def main():
                             'rstfile_list: removed value ".."'])
 
     # simulate loading an existing source document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '10_loadrst_existing')
@@ -267,7 +269,7 @@ def main():
                             'textdata changed'])
 
     # simulate saving an existing document with more changes as html (and rst)
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saveall(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, rstdata_3),
         '11_saveall_w_changes')
@@ -281,14 +283,14 @@ def main():
                             'textdata changed'])
 
     # simulate loading an existing document and saving under a different name
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '12a_loadrst_existing')
     assert_equal(dbdata, ['site data has not changed'])
     assert_equal(htmldata, ['mld_text is "Source file testdoc1.rst loaded"'])
 
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saverst(app.state.settings, app.state.rstfile, app.state.htmlfile,
                     'testdoc1a.rst', app.state.rstdata),
         '12a_saverst_existing_othername')
@@ -300,7 +302,7 @@ def main():
                             'rstfile_name: value was "testdoc1.rst", is now "testdoc1a.rst"'])
 
     # simulate loading an existing document and saving as html under a different name
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadrst(app.state.settings, 'testdoc1.rst', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata),
         '12b_loadrst_existing')
@@ -309,7 +311,7 @@ def main():
                             'mld_text is "Source file testdoc1.rst loaded"',
                             'rstfile_name: value was "testdoc1a.rst", is now "testdoc1.rst"'])
 
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.saveall(app.state.settings, app.state.rstfile, app.state.htmlfile,
                     'testdoc1a.rst', app.state.rstdata),
         '12b_saveall_existing_othername')
@@ -319,7 +321,7 @@ def main():
                             'rstfile_name: value was "testdoc1.rst", is now "testdoc1a.rst"'])
 
     # simulate loading an HTML document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.loadhtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
                      app.state.newfile, app.state.rstdata),
         '13_loadhtml')
@@ -330,7 +332,7 @@ def main():
                             'textdata cleared'])
 
     # simulate rendering an unchanged HTML document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.showhtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
                      app.state.newfile, app.state.rstdata),
         '14a_showhtml')
@@ -342,7 +344,7 @@ def main():
                             'textdata cleared'])
 
     # simulate rendering a changed HTML document - check if it is saved
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.showhtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
                      app.state.newfile, htmldata_2),
         '14b_showhtml_modified')
@@ -356,7 +358,7 @@ def main():
                             'textdata cleared'])
 
     # simulate saving a (changed) HTML document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.savehtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
                      app.state.newfile, htmldata_2),
         '15a_savehtml_modified')
@@ -365,7 +367,7 @@ def main():
     assert_equal(htmldata, ['mld_text is "Modified HTML saved as testdoc1.html"'])
 
     # simulate saving an HTML document under a different name - do we allow this?
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.savehtml(app.state.settings, app.state.rstfile, 'testdoc1.html',
                      'testdoc2.html', htmldata_2),
         '15b_savehtml_newname')
@@ -376,13 +378,13 @@ def main():
     # skip this test?
 
     # simulate promoting a (changed) HTML document to mirror
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.copytoroot(app.state.settings, app.state.rstfile, 'testdoc1.html',
                        app.state.newfile, htmldata_2),
         '16_copytoroot')
     # this looks weird, but is correct: mirror data is not included in the docs comparison
     assert_equal(dbdata, ['site docs have not changed',
-                          'new doctype for doc testdoc1 in /: to_mirror'])
+                          'new doctype for doc testdoc1 in /: mirror'])
     assert_equal(htmldata, ['mld_text is "Copied to siteroot/testdoc1.html"'])
 
     # change some documents by adding references
@@ -396,7 +398,7 @@ def main():
                 app.state.newfile, app.state.rstdata + '.. refkey:: ref2: here2\n')
 
     # simulate updating all documents
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.convert_all(app.state.settings, app.state.rstfile, app.state.htmlfile,
                         app.state.newfile, app.state.rstdata),
         '17_convert_all')
@@ -413,7 +415,7 @@ def main():
                             'textdata changed'])
 
     # simulate building a progress list
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.overview(app.state.settings, app.state.rstfile, app.state.htmlfile,
                      app.state.newfile, app.state.rstdata),
         '18_overview')
@@ -425,7 +427,7 @@ def main():
                             'textdata changed'])
 
     # simulate building a reference document
-    dbdata, htmldata = dump_data_and_compare(
+    dbdata, htmldata = comp.dump_data_and_compare(
         app.makerefdoc(app.state.settings, app.state.rstfile, app.state.htmlfile,
                        app.state.newfile, app.state.rstdata),
         '19_makerefdoc')
@@ -441,15 +443,12 @@ def main():
 
 if __name__ == "__main__":
     # start from scratch
+    sitename = analyze_testdata.sitename
     ## clear_database_contents()
-    clear_site_contents('testsite')
+    clear_site_contents(sitename)
     # run the tests
     main()
     # see what we have done
-    sitedoc, data = list_site_contents('testsite')
-    ## pprint.pprint(sitedoc)
-    ## for item in data:
-        ## pprint.pprint(item)
+    sitedoc, data = list_site_contents(sitename, filename='/tmp/test_scenario_1.out')
     # remove our traces
-    ## clear_database_contents()
-    clear_site_contents('testsite')
+    clear_site_contents(sitename)
