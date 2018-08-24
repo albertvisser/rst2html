@@ -572,6 +572,9 @@ def mark_src_deleted(site_name, doc_name, directory=''):
         raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
+    cur.execute('select source_docid from {} where id = %s'.format(TABLES[3]), (doc_id,))
+    docid = cur.fetchone()[0]
+    cur.execute('delete from {} where id = %s'.format(TABLES[4]), (docid,))
     cur.execute('update {} set source_deleted = %s where id = %s'.format(
         TABLES[3]), (True, doc_id))
     conn.commit()
@@ -639,11 +642,14 @@ def apply_deletions_target(site_name, directory=''):
     if dirid is None:
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select id from {} where source_deleted = %s'.format(TABLES[3]), (True,))
-    deleted = [row['id'] for row in cur]
-    for docid in deleted:
-        cur.execute('update {} set source_deleted = %s, target_docid = %s,  target_deleted = %s '
-                    'where id = %s'.format(TABLES[3]), (False, 1, True, docid))
+    cur.execute('select id, target_docid from {} '
+                'where source_deleted = %s'.format(TABLES[3]), (True,))
+    deleted = [row for row in cur]
+    docids = [(row['target_docid'],) for row in deleted]
+    cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
+    deleted = [(None, 1, True, row['id']) for row in deleted]
+    cur.executemany('update {} set source_deleted = %s, target_docid = %s,  target_deleted = %s '
+                    'where id = %s'.format(TABLES[3]), deleted)
     conn.commit()
     cur.close()
 
@@ -708,17 +714,21 @@ def apply_deletions_mirror(site_name, directory=''):
     if dirid is None:
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select id, docname from {} where target_deleted = %s'.format(TABLES[3]), (True,))
-    deleted = [(row['id'], row['docname']) for row in cur]
-    for docid, docname in deleted:
-        cur.execute('delete from {} where id = %s'.format(TABLES[3]), (docid,))
+    cur.execute('select id, docname, target_docid from {} '
+                    'where target_deleted = %s'.format(TABLES[3]), (True,))
+    deleted = [row for row in cur]
+    # docids = [(row['target_docid'],) for row in deleted]
+    # cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
+    delids = [(row['id'],) for row in deleted]
+    cur.executemany('delete from {} where id = %s'.format(TABLES[3]), delids)
     conn.commit()
     cur.close()
 
     path = DB_WEBROOT / site_name
     if directory != '/':
         path /= directory
-    for docid, doc_name in deleted:
+    deleted = [row['docname'] for row in deleted]
+    for doc_name in deleted:
         path /= doc_name
         ext = LOC2EXT['dest']
         if path.suffix != ext:
@@ -914,6 +924,7 @@ def clear_site_data(site_name):
         sel = 'id = %s'
         sql = base_sql.format(TABLES[0], sel)
         cur.execute(sql, (siteid,))
+    conn.commit()
 
     if fs_data:
         ## if not db_data
