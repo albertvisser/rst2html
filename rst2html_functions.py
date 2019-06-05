@@ -36,9 +36,17 @@ standard_directives.update({"startc": StartCols,
                             "nextc": NextCol,
                             "clearc": ClearCol,
                             "spacer": Spacer})
-from directives_magiokis import Bottom, RefKey
+from directives_magiokis import Bottom, RefKey, HeaderText, ByLine, Audio, MenuText, MySidebar, \
+    FooterText
 standard_directives.update({"bottom": Bottom,
-                            "refkey": RefKey})
+                            "refkey": RefKey,
+                            'headertext': HeaderText,
+                            'byline': ByLine,
+                            'audio': Audio,
+                            'menutext': MenuText,
+                            'mysidebar': MySidebar,
+                            'footertext': FooterText
+                            })
 from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, BottomNav, \
     StartMarginless, EndMarginless
 standard_directives.update({"startbody": StartBody,
@@ -102,6 +110,8 @@ def rst2html(data, css):
                  "stylesheet_path": '',
                  "stylesheet": css,
                  "report_level": 3}
+    # TODO: de targets in .. include:: directives aanpassen zodat deze niet verwijzen naar de
+    # programmadirectory maar naar de server map (inclusief de geselecteerde subdirectory)
     return publish_string(source=data,
                           destination_path="temp/omgezet.html",
                           writer_name='html',
