@@ -9,13 +9,14 @@ import importlib
 import inspect
 ## import glob
 import html
-import urllib.request, urllib.error
+import urllib.request
+import urllib.error
 import yaml
 ## import datetime
 ## import gettext
 ## import collections
 
-from app_settings import DFLT, DML, WEBROOT, EXT2LOC, LOC2EXT, BASIC_CSS
+from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS
 if DML == 'fs':
     import docs2fs as dml
 elif DML == 'mongo':
@@ -37,16 +38,28 @@ standard_directives.update({"startc": StartCols,
                             "clearc": ClearCol,
                             "spacer": Spacer})
 from directives_magiokis import Bottom, RefKey, HeaderText, ByLine, Audio, MenuText, MySidebar, \
-    FooterText
+    FooterText, Transcript, MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst, \
+    StartBlock, EndBlock, RoleSpec, Scene, Anno
 standard_directives.update({"bottom": Bottom,
                             "refkey": RefKey,
                             'headertext': HeaderText,
+                            'myheader': MyHeader,
+                            'myfooter': MyFooter,
                             'byline': ByLine,
                             'audio': Audio,
                             'menutext': MenuText,
+                            'transcript': Transcript,
                             'mysidebar': MySidebar,
-                            'footertext': FooterText
-                            })
+                            'gedicht': Gedicht,
+                            'songtekst': SongTekst,
+                            'startblock': StartBlock,
+                            'endblock': EndBlock,
+                            'rollen': RoleSpec,
+                            'scene': Scene,
+                            'anno': Anno,
+                            'startsidebar': StartSideBar,
+                            'endsidebar': EndSideBar,
+                            'footertext': FooterText})
 from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, BottomNav, \
     StartMarginless, EndMarginless
 standard_directives.update({"startbody": StartBody,
@@ -65,7 +78,7 @@ custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'lang': 'en', 'url': '', 'css': []}
-FULL_CONF = {'starthead': [], 'endhead': []}
+FULL_CONF = {'starthead': [], 'endhead': [], 'seflinks': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 # constants for loaded data
@@ -103,9 +116,31 @@ def get_text(keyword, lang=DFLT_CONF['lang']):
     ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 
 
+def post_process_magiokis(data):
+    """replace generated title with title from document
+    """
+    try:
+        start, rest = data.split('<h1 class="page-title">', 1)
+        doit = True
+    except ValueError:
+        doit = False
+    if doit:
+        title, end = rest.split('</h1>', 1)
+        test = data.index('<head>')
+        test2 = data.index('</head>', test)
+        test3 = data.index('<title>', test)
+        if test3 < test2:
+            len = test3
+            start = data[:len]
+            _, end = data[len:].split('</title>')
+            data = ''.join((start, '<title>', title, '</title>', end))
+    return data
+
+
 # -- rst related --
 def rst2html(data, css):
-    """rst naar html omzetten en resultaat teruggeven"""
+    """rst naar html omzetten en resultaat teruggeven
+    """
     overrides = {"embed_stylesheet": False,
                  "stylesheet_path": '',
                  "stylesheet": css,
@@ -453,9 +488,9 @@ def mark_deleted(sitename, current, fname):
     try:
         dml.mark_src_deleted(sitename, path.stem, directory=current)
         return ''
-    except AttributeError as e:
+    except AttributeError:
         return 'src_name_missing'
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         return 'src_file_missing'
 
 
@@ -630,7 +665,7 @@ def get_reflinks_in_dir(sitename, dirname=''):
             continue
         for line in rstdata.split('\n'):
             if line.startswith("..") and "refkey::" in line:
-                x, refs = line.split("refkey::", 1)
+                refs = line.split("refkey::", 1)[1]
                 for ref in (x.split(":") for x in refs.split(";")):
                     word = ref[0].strip().capitalize()
                     link = filename + '.html'
@@ -724,7 +759,8 @@ class R2hState:
         return fname
 
     def get_conf(self, settings):
-        """retrieve site config and set some variables"""
+        """retrieve site config and set some variables
+        """
         # settings is hier de site naam
         mld = ''
         if self.newconf:
@@ -747,7 +783,8 @@ class R2hState:
         return mld
 
     def index(self):
-        """create landing page"""
+        """create landing page
+        """
         # config defaults so we can always show the first page
         ## self.conf = DFLT_CONF
         mld = self.get_conf(self.sitename)
@@ -785,7 +822,8 @@ class R2hState:
     def saveconf(self, settings, newfile, rstdata):
         """(re)save settings file using selected name
 
-        if new name specified, use that"""
+        if new name specified, use that
+        """
         mld = ""
         newsett = settings
         if rstdata == "":
@@ -818,7 +856,8 @@ class R2hState:
         return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
-        """load site directives file and show on page"""
+        """load site directives file and show on page
+        """
         # this data actually *does* come from the file system as itś code stored on the server
         # but itś effectively deactivated for now
         mld = ''
@@ -832,7 +871,8 @@ class R2hState:
         return mld, self.rstdata
 
     def savextra(self, rstdata):
-        """(re)save site directives file"""
+        """(re)save site directives file
+        """
         # this data actually *does* come from the file system as itś code stored on the server
         # but itś effectively deactivated for now
         mld = ''
@@ -847,7 +887,8 @@ class R2hState:
         return mld
 
     def loadrst(self, rstfile):
-        """load rest source into page"""
+        """load rest source into page
+        """
         mld = ""
         if rstfile == "":
             mld = 'unlikely_1'
@@ -966,6 +1007,7 @@ class R2hState:
                 mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
             previewdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            previewdata = post_process_magiokis(previewdata)
         else:
             mld = get_text(mld, self.conf["lang"])
             previewdata = fname = ''
@@ -984,6 +1026,7 @@ class R2hState:
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
             newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            newdata = post_process_magiokis(newdata)
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
                                     rstdata, is_new_file)
@@ -1002,7 +1045,8 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def loadhtml(self, htmlfile):
-        """load the created html and show on page"""
+        """load the created html and show on page
+        """
         mld = ""
         # perhaps we want the same changing directory behaviour as in loadrst?
         if htmlfile.endswith("/") or htmlfile in (
@@ -1024,7 +1068,8 @@ class R2hState:
         return mld, self.rstdata, self.rstfile, self.htmlfile
 
     def showhtml(self, rstdata):
-        """render the loaded html"""
+        """render the loaded html
+        """
         fname = self.htmlfile
         ## if rstdata.replace('\r\n', '\n') == html.unescape(self.oldhtml):
         if html.escape(rstdata.replace('\r\n', '\n')) == html.escape(
@@ -1042,7 +1087,8 @@ class R2hState:
         return mld, newdata, fname
 
     def savehtml(self, htmlfile, newfile, rstdata):
-        """(re)save the html"""
+        """(re)save the html
+        """
         if newfile:
             mld = 'html_name_wrong'
         else:
