@@ -6,7 +6,7 @@ import datetime
 import shutil
 import pathlib
 import yaml
-from app_settings import FS_WEBROOT, EXT2LOC, LOC2EXT, LOCS, Stats
+from app_settings import FS_WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
@@ -15,7 +15,8 @@ DELMARK = '.deleted'
 
 
 def _locify(path, loc=''):
-    """append the location to save the file to to the path"""
+    """append the location to save the file to to the path
+    """
     if not loc or loc == LOCS[0]:
         path /= 'source'
     elif loc == LOCS[1]:
@@ -31,6 +32,12 @@ def read_data(fname):   # to be used for actual file system data
     on success: returns empty message and data as a string
     on failure: returns error message and empty string for data
     """
+    sitename = fname.relative_to(FS_WEBROOT).parts[0]
+    test = read_settings(sitename)
+    if 'seflinks' in test and test['seflinks']:
+        if fname.suffix == '.html' and fname.stem != 'index':
+            fname = fname.with_suffix('') / 'index.html'
+    #
     mld = data = ''
     try:
         with fname.open(encoding='utf-8') as f_in:
@@ -50,7 +57,19 @@ def read_data(fname):   # to be used for actual file system data
 def save_to(fullname, data):  # to be used for actual file system data
     """backup file, then write data to file
 
-    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
+    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
+    """
+    sitename = fullname.relative_to(FS_WEBROOT).parts[0]
+    test = read_settings(sitename)
+    if 'seflinks' in test and test['seflinks']:
+        if fullname.suffix == '.html' and fullname.stem != 'index':
+            new_fname = fullname.with_suffix('')
+            if new_fname.exists() and not new_fname.is_dir():
+                new_fname.replace(new_fname.with_suffix('.bak'))
+            if not new_fname.exists():
+                new_fname.mkdir()
+            fullname = new_fname / 'index.html'
+    #
     mld = ''
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
@@ -67,7 +86,8 @@ def save_to(fullname, data):  # to be used for actual file system data
 
 def list_sites():
     """list all directories under FS_WEBROOT having subdirectories source en target
-    (and a settings file)"""
+    (and a settings file)
+    """
     ## """build list of options containing all settings files in current directory"""
     ## return [x.stem.replace('settings_', '') for x in HERE.glob('settings*.yml')]
     ## return [x.name for x in HERE.glob('settings*.yml')]
@@ -146,13 +166,14 @@ def list_dirs(sitename, loc=''):
         raise FileNotFoundError('no_site')
     path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
-    return [f.stem for f in path.iterdir() if f.is_dir()]
+    return [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()]
 
 
 def create_new_dir(sitename, dirname):
     "create site subdirectory in source tree"
     path = FS_WEBROOT / sitename / 'source' / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
+    (path / '.files').touch()   # mark as site subdirectory
 
 
 def remove_dir(sitename, directory):
@@ -177,7 +198,15 @@ def list_docs(sitename, loc, directory='', deleted=False):
             ## raise FileNotFoundError('no_subdir')
             return []
     testsuffix = DELMARK if deleted else LOC2EXT[loc]
-    return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
+    conf = read_settings(sitename)
+    if loc == 'dest' and 'seflinks' in conf and conf['seflinks']:
+        lines = [f.stem for f in path.iterdir()
+                 if f.is_dir() and (f / ('index' + testsuffix)).exists()]
+        if not directory and (FS_WEBROOT / sitename / 'index.html').exists():
+            lines.append('index')
+        return lines
+    else:
+        return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
 
 
 def create_new_doc(sitename, docname, directory=''):
@@ -216,7 +245,11 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     ext = LOC2EXT[doctype]
     if path.suffix != ext:
         path = path.with_suffix(ext)
+    with open('get_doc_contents', 'w') as f:
+        print('in get_doc_contents - path =', path, file=f)
     mld, doc_data = read_data(path)
+    with open('get_doc_contents', 'a') as f:
+        print('in get_doc_contents - mld =', mld, file=f)
     if mld:
         raise FileNotFoundError(mld)
     return doc_data
