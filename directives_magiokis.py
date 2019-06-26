@@ -525,10 +525,11 @@ class MyFooter(Directive):
         # helaas, letterlijk overnemen van de footer code helpt ook niet om dit onderaan
         # te krijgen
         lines = ('</div></div>',
-                 '<div class="region region-bottom">',
+                 '<div id="footer" class="region region-bottom">',
                  '<div id="block-block-1" class="block block-block first last odd">',
+                 '<footer>',
                  "<p>Please don't copy without source attribution. contact me: "
-                 '<a href="mailto:info@magiokis.nl">info@magiokis.nl</a></p>')
+                 '<a href="mailto:info@magiokis.nl">info@magiokis.nl</a></p></footer>')
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]
         # lines = ['<p></p><div id="footer">']
