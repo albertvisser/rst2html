@@ -609,10 +609,11 @@ def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_on
         if not msg:
             msg, htmldata = read_html_data(sitename, dirname, filename)
             if msg:
-                if missing_ok:
+                if missing_ok or missing_only:
                     msg = ''
-                else:
-                    msg = 'target_missing'
+                    htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
+                # else:
+                #     msg = 'target_missing'
             else:
                 if missing_only:
                     msg = 'target_present'
@@ -621,15 +622,14 @@ def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_on
         if not msg:
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
-            # copy to mirror MITS het file daar bestaat
             destfile = path / (filename + '.html')
-            if not destfile.exists() and not missing:
-                msg = 'mirror_missing'
-            else:
+            if destfile.exists() or missing_ok or missing_only:
                 ## newdata = read_html_data(sitename, dirname, filename)
                 ## data = complete_header(conf, newdata)
                 complete_header(conf, htmldata)
                 msg = save_to_mirror(sitename, dirname, filename, conf)
+            else:
+                msg = 'mirror_missing'
         if msg:
             fname = filename if dirname in ('', '/') else '/'.join((dirname,
                                                                     filename))
@@ -644,7 +644,7 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False):
     all_dirs = dml.list_dirs(sitename, 'src')
     for dirname in all_dirs:
         errors.extend(update_files_in_dir(sitename, conf, dirname=dirname,
-                                          missing=missing))
+                                          missing_ok=missing_ok, missing_only=missing_only))
     return errors
 
 
