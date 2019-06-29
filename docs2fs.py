@@ -412,6 +412,8 @@ def get_doc_stats(sitename, docname, dirname=''):
 
 def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     """get statistics for all documents of a certain type in a site subdirectory"""
+    conf = read_settings(sitename)
+    do_seflinks = 'seflinks' in conf and conf['seflinks']
     ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
     path = _locify(FS_WEBROOT / sitename, ftype)
@@ -419,12 +421,24 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
         path = path / dirname
     if path.exists():
         for item in path.iterdir():
-            if not item.is_file():
+            if item.name.startswith('.') or item.name in ('css', 'source', 'target'):
                 continue
-            if item.suffix and item.suffix != ext:
-                continue
-            docname = item.relative_to(path).stem
-            result.append((docname, item.stat().st_mtime))
+            if ftype in LOCS[1:] and do_seflinks:
+                docname = item.stem
+                if item.is_dir():
+                    check_item = item / 'index.html'
+                elif item.name == 'index.html' and not dirname:
+                    check_item = item
+                else:
+                    continue
+                result.append((docname, check_item.stat().st_mtime))
+            else:
+                if not item.is_file():
+                    continue
+                if item.suffix and item.suffix != ext:
+                    continue
+                docname = item.relative_to(path).stem
+                result.append((docname, item.stat().st_mtime))
     return result
 
 
