@@ -136,6 +136,7 @@ html_name_wrong = Not executed: can only save HTML under the same name
 load_html = Please load HTML first
 copied_to = Copied to {}
 target_missing = {} skipped: not in target directory
+target_present = {} skipped: already in target directory
 mirror_missing = {} not present at mirror
 docs_converted = Site documents regenerated, messages below
 loaded = loaded

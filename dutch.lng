@@ -136,6 +136,7 @@ html_name_wrong = Niet uitgevoerd: kan HTML alleen opslaan onder dezelfde naam
 load_html = Eerst html laden s.v.p.
 copied_to = gekopieerd naar {}
 target_missing = {} overgeslagen: niet in target directory
+target_present = {} overgeslagen: al aanwezig in target directory
 mirror_missing = {} niet aanwezig in mirror
 docs_converted = Site documenten opnieuw gegenereerd, meldingen zie onder
 loaded = opgehaald

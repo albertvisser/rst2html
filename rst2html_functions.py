@@ -593,7 +593,7 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_files_in_dir(sitename, conf, dirname='', missing=False):
+def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_only=False):
     """process all documents in a site directory
     """
     errors = []
@@ -609,12 +609,15 @@ def update_files_in_dir(sitename, conf, dirname='', missing=False):
         if not msg:
             msg, htmldata = read_html_data(sitename, dirname, filename)
             if msg:
-                if missing:
+                if missing_ok:
                     msg = ''
                 else:
                     msg = 'target_missing'
             else:
-                htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
+                if missing_only:
+                    msg = 'target_present'
+                else:
+                    htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
         if not msg:
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
@@ -634,10 +637,10 @@ def update_files_in_dir(sitename, conf, dirname='', missing=False):
     return errors
 
 
-def update_all(sitename, conf, missing=False):
+def update_all(sitename, conf, missing_ok=False, missing_only=False):
     """process all documents on the site
     """
-    errors = update_files_in_dir(sitename, conf, missing=missing)
+    errors = update_files_in_dir(sitename, conf, missing_ok=missing_ok, missing_only=missing_only)
     all_dirs = dml.list_dirs(sitename, 'src')
     for dirname in all_dirs:
         errors.extend(update_files_in_dir(sitename, conf, dirname=dirname,
