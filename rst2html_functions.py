@@ -147,10 +147,15 @@ def rst2html(data, css):
                  "report_level": 3}
     # TODO: de targets in .. include:: directives aanpassen zodat deze niet verwijzen naar de
     # programmadirectory maar naar de server map (inclusief de geselecteerde subdirectory)
-    return publish_string(source=data,
-                          destination_path="temp/omgezet.html",
-                          writer_name='html',
-                          settings_overrides=overrides)
+    # return publish_string(source=data,
+    #                       destination_path="temp/omgezet.html",
+    #                       writer_name='html',
+    #                       settings_overrides=overrides)
+    newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
+                                 writer_name='html', settings_overrides=overrides),
+                  encoding='utf-8')
+    newdata = post_process_magiokis(newdata)
+    return newdata
 
 
 def register_directives():
@@ -611,14 +616,14 @@ def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_on
             if msg:
                 if missing_ok or missing_only:
                     msg = ''
-                    htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
+                    htmldata = rst2html(rstdata, conf['css'])
                 # else:
                 #     msg = 'target_missing'
             else:
                 if missing_only:
                     msg = 'target_present'
                 else:
-                    htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
+                    htmldata = rst2html(rstdata, conf['css'])
         if not msg:
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
@@ -1009,8 +1014,7 @@ class R2hState:
                 # only if current text type == previous text type?
                 mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
-            previewdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
-            previewdata = post_process_magiokis(previewdata)
+            previewdata = rst2html(rstdata, self.conf['css'])
         else:
             mld = get_text(mld, self.conf["lang"])
             previewdata = fname = ''
@@ -1028,8 +1032,7 @@ class R2hState:
         if mld == '':
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
-            newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
-            newdata = post_process_magiokis(newdata)
+            newdata = rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
                                     rstdata, is_new_file)
@@ -1139,7 +1142,7 @@ class R2hState:
         if mld:  # might not be present yet, so try again
             mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata)
         if mld == "":
-            newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            newdata = rst2html(rstdata, self.conf['css'])
             mld = save_html_data(self.sitename, dirname, docname + '.html', newdata)
             if mld == "":
                 mld = save_to_mirror(self.sitename, dirname, docname + '.html',
