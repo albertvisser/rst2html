@@ -33,8 +33,7 @@ def read_data(fname):   # to be used for actual file system data
     on failure: returns error message and empty string for data
     """
     sitename = fname.relative_to(FS_WEBROOT).parts[0]
-    test = read_settings(sitename)
-    if 'seflinks' in test and test['seflinks']:
+    if read_settings(sitename).get('seflinks', False):
         if fname.suffix == '.html' and fname.stem != 'index':
             fname = fname.with_suffix('') / 'index.html'
     #
@@ -60,8 +59,7 @@ def save_to(fullname, data):  # to be used for actual file system data
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
     """
     sitename = fullname.relative_to(FS_WEBROOT).parts[0]
-    test = read_settings(sitename)
-    if 'seflinks' in test and test['seflinks']:
+    if read_settings(sitename).get('seflinks', False):
         if fullname.suffix == '.html' and fullname.stem != 'index':
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():
@@ -198,8 +196,7 @@ def list_docs(sitename, loc, directory='', deleted=False):
             ## raise FileNotFoundError('no_subdir')
             return []
     testsuffix = DELMARK if deleted else LOC2EXT[loc]
-    conf = read_settings(sitename)
-    if loc == 'dest' and 'seflinks' in conf and conf['seflinks']:
+    if loc == 'dest' and read_settings(sitename).get('seflinks', False):
         lines = [f.stem for f in path.iterdir()
                  if f.is_dir() and (f / ('index' + testsuffix)).exists()]
         if not directory and (FS_WEBROOT / sitename / 'index.html').exists():
@@ -412,8 +409,7 @@ def get_doc_stats(sitename, docname, dirname=''):
 
 def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     """get statistics for all documents of a certain type in a site subdirectory"""
-    conf = read_settings(sitename)
-    do_seflinks = 'seflinks' in conf and conf['seflinks']
+    do_seflinks = read_settings(sitename).get('seflinks')
     ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
     path = _locify(FS_WEBROOT / sitename, ftype)

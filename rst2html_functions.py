@@ -601,7 +601,6 @@ def build_progress_list(sitename):
 def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_only=False):
     """process all documents in a site directory
     """
-    use_sef = 'seflinks' in conf and conf['seflinks']
     errors = []
     items = dml.list_docs(sitename, 'src', directory=dirname)
     if DML == 'fs':
@@ -628,7 +627,7 @@ def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_on
         if not msg:
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
-            if use_sef and (dirname, filename) != ('', 'index.html'):
+            if conf.get('seflinks', False) and (dirname, filename) != ('', 'index.html'):
                 destfile = path / filename / 'index.html'
             else:
                 destfile = path / (filename + '.html')
