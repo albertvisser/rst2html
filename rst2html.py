@@ -89,9 +89,11 @@ def format_progress_list(timelist):
     return ''.join(output)
 
 
-def resolve_images(rstdata, url, loc):
+def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
     """fix the urls in image links so that preview html points to the right place
     """
+    # TODO: dit houdt er nog geen rekening mee dat hrefs die met / beginnen bedoeld zijn om
+    # absoluut vanaf de siteroot geladen te worden (blijkbaar is me dat nog niet eerder opgevallen)
     data = []
     pos = rstdata.find('<img')
     while pos >= 0:
@@ -111,7 +113,9 @@ def resolve_images(rstdata, url, loc):
     data.append(rstdata)
     url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
     if loc:
-        url = url + loc.strip('/') + '/'  # if present add loc with no double //'s
+        url += loc.strip('/') + '/'  # if present add loc with no double //'s
+    if use_sef and fname and fname != 'index':
+        url += fname + '/'
     return url.join(data)
 
 
@@ -123,7 +127,9 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
     arg2 = filename parameter for the screen to return to
     arg3 = type of this file: `rst` or `html`
     """
-    previewdata = resolve_images(previewdata, state.conf['url'], state.current)
+    previewdata = resolve_images(previewdata, state.conf['url'], state.current,
+                                 state.conf.get('seflinks'),
+                                 fname.replace('.rst', '').replace('.html', ''))
     try:
         pos = previewdata.index('>', previewdata.index('<body')) + 1
     except ValueError:
