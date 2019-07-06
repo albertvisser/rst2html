@@ -21,13 +21,13 @@ t_loadxtra = Creëer of laad een bestand with user-defined directives in de inpu
 t_savextra = Sla de inhoud van de input area op naar het directives bestand
 t_rename = Vink aan en doe `sla bron op` om het geselecteerde bestand op te slaan onder een nieuwe naam en het origineel te verwijderen
 t_delete = Vink aan en doe `sla bron op` om het geselecteerde bestand te verwijderen
-t_access = sneltoetsen help (mouse over)
+t_access = sneltoetsen help (mouse over om te bekijken)
 t_activate = activeer
 t_fld = invulveld
 t_sel = kies
 t_opt = optie
 t_qref =  (opent in een nieuwe tab)
-t_dir = Naast de ingebouwde directives zijn nog de volgende<br/>beschikbaar (hover om de beschrijving te zien):
+t_dir = Naast de ingebouwde directives zijn nog de volgende<br/>beschikbaar (mouse over om de beschrijving te zien):
 t_startc = start kolomweergave van x cellen breed (x = 12 of 16)
 t_firstc = start eerste kolom met breedte van x cellen met evt. class
 t_nextc = start volgende kolom met breedte van x cellen met evt. class
