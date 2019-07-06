@@ -418,6 +418,11 @@ def read_tpl_data(sitename, fnaam):
     return dml.read_template(sitename, fnaam)
 
 
+def save_tpl_data(sitename, fnaam, data):
+    "store template data"
+    return dml.write_template(sitename, fnaam, data)
+
+
 def check_if_rst(data, loaded, filename=None):
     """simple check if data contains rest
     assuming "loaded" indicates the current type of text
@@ -910,8 +915,6 @@ class R2hState:
         mld = ""
         if rstfile == "":
             mld = 'unlikely_1'
-        # elif rstfile == get_text('c_newitem', self.conf["lang"]):
-        # TODO: also show reminder for templates, e.g.
         elif rstfile.startswith('--'):
             if rstfile == get_text('c_newitem', self.conf["lang"]):
                 self.rstdata = ''
@@ -920,7 +923,6 @@ class R2hState:
             mld = 'save_reminder'
             self.loaded = RST
             self.htmlfile = self.newfile = ""
-            # self.rstdata = ""  # TODO: remove if we do the above
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
             self.rstdata = ""
@@ -949,7 +951,7 @@ class R2hState:
 
     def saverst(self, rstfile, newfile, action, rstdata):
         """(re)save rest source
-        TODO: implement rename/delete in source environment
+        TODO: implement rename/delete in source environment - methinks I already done that
         """
         fname = newfile or rstfile
         for lang in languages:
@@ -959,11 +961,17 @@ class R2hState:
         if action == 'rename':
             fname = newfile
         is_new_file = newfile != ""
-        clear_text = False
+        clear_text = is_tpl = False
         if fname.endswith('/'):
             isfile = False
             mld = make_new_dir(self.sitename, fname[:-1])
             fmtdata = fname[:-1]
+        elif fname.endswith('.tpl'):
+            # TODO: ook rename en delete toestaan? Anders expliciet afkeuren (if action:)
+            # NOTE: geen controle op bestaat al, bestaande data wordt zonder meer overschreven
+            isfile = is_tpl = True
+            mld = save_tpl_data(self.sitename, fname, rstdata)
+            fmtdata = fname
         else:
             isfile = True
             mld = ''
@@ -1001,10 +1009,13 @@ class R2hState:
             fmtdata = fname
         if mld == "":
             self.oldtext = self.rstdata = rstdata
-            mld = 'rst_saved' if isfile else 'new_subdir'
-            self.rstfile = fname
-            if isfile:
-                self.htmlfile = path.stem + ".html"
+            mld = 'tpl_saved' if is_tpl else 'rst_saved' if isfile else 'new_subdir'
+            if is_tpl:
+                self.rstfile = self.htmlfile = ''
+            else:
+                self.rstfile = fname
+                if isfile:
+                    self.htmlfile = path.stem + ".html"
             self.newfile = ""
         if mld:
             try:

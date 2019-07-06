@@ -143,3 +143,4 @@ loaded = loaded
 init = initialized, but not saved yet
 index_header = Index
 index_built = Index created as reflist.html
+tpl_saved = Template saved as {}

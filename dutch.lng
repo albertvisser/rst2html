@@ -143,3 +143,4 @@ loaded = opgehaald
 init = initieel aangemaakt, nog niet opgeslagen
 index_header = Trefwoordenlijst
 index_built = Trefwoordenlijst aangemaakt als reflist.html
+tpl_saved = Template opgeslagen als {}

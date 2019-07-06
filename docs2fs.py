@@ -211,8 +211,7 @@ def list_templates(sitename):
     path = FS_WEBROOT / sitename / '.templates'
     if not path.exists():
         return []
-    else:
-        return [f.name for f in path.iterdir()]
+    return sorted([f.name for f in path.iterdir() if f.suffix == '.tpl'])
 
 
 def read_template(sitename, docname):
@@ -221,6 +220,21 @@ def read_template(sitename, docname):
     with (FS_WEBROOT / sitename / '.templates' / docname).open() as f_in:
         data = ''.join(f_in.readlines()).replace('\r\n', '\n')
     return data
+
+
+def write_template(sitename, fnaam, data):
+    """store the source for a template"""
+    # moet eigenlijk met save_to maar dan moet ik die eerst geschikt maken
+    fullname = FS_WEBROOT / sitename / '.templates' / fnaam
+    if fullname.exists():
+        shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
+    mld = ''
+    with fullname.open("w", encoding='utf-8') as f_out:
+        try:
+            f_out.write(data)
+        except OSError as err:
+            mld = str(err)
+    return mld
 
 
 def create_new_doc(sitename, docname, directory=''):
@@ -282,7 +296,7 @@ def update_rst(sitename, doc_name, contents, directory=''):
         raise AttributeError('no_contents')
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError("no_document")  # .format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
@@ -300,7 +314,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
         raise AttributeError('no_name')
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError("no_document")  # .format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
