@@ -367,6 +367,9 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang'], de
         items = list_subdirs(sitename, ext) + items
     ## items.insert(0, get_text('c_newitem', lang))
     out = []
+    if ext == 'src':
+        for f in dml.list_templates(sitename):
+            out.append("<option>-- {} --</option>".format(f))
     for f in items:
         s = ' selected="selected"' if naam == f else ''
         out.append("<option{}>{}</option>".format(s, f))
@@ -408,6 +411,11 @@ def read_html_data(sitename, current, fname):
         return 'html_name_missing', ''
     except FileNotFoundError:
         return 'html_file_missing', ''
+
+
+def read_tpl_data(sitename, fnaam):
+    "get template data from wherever it's stored"
+    return dml.read_template(sitename, fnaam)
 
 
 def check_if_rst(data, loaded, filename=None):
@@ -902,10 +910,17 @@ class R2hState:
         mld = ""
         if rstfile == "":
             mld = 'unlikely_1'
-        elif rstfile == get_text('c_newitem', self.conf["lang"]):
+        # elif rstfile == get_text('c_newitem', self.conf["lang"]):
+        # TODO: also show reminder for templates, e.g.
+        elif rstfile.startswith('--'):
+            if rstfile == get_text('c_newitem', self.conf["lang"]):
+                self.rstdata = ''
+            else:
+                self.rstdata = read_tpl_data(self.sitename, rstfile.split()[1])
             mld = 'save_reminder'
             self.loaded = RST
-            self.htmlfile = self.newfile = self.rstdata = ""
+            self.htmlfile = self.newfile = ""
+            # self.rstdata = ""  # TODO: remove if we do the above
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
             self.rstdata = ""

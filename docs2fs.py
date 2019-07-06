@@ -206,6 +206,23 @@ def list_docs(sitename, loc, directory='', deleted=False):
         return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
 
 
+def list_templates(sitename):
+    """return a list of template names for this site"""
+    path = FS_WEBROOT / sitename / '.templates'
+    if not path.exists():
+        return []
+    else:
+        return [f.name for f in path.iterdir()]
+
+
+def read_template(sitename, docname):
+    """get the source of a specific template"""
+    # moet eigenlijk met read_data maar dan moet ik die eerst geschikt maken
+    with (FS_WEBROOT / sitename / '.templates' / docname).open() as f_in:
+        data = ''.join(f_in.readlines()).replace('\r\n', '\n')
+    return data
+
+
 def create_new_doc(sitename, docname, directory=''):
     """add a new (source) document to the given directory
 
