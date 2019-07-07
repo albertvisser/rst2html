@@ -22,14 +22,16 @@
                     <div class="table-full" style="display: inline">
                         <div class="table-column" style="float:left">
                             <a href="/">Home</a>
-                             _(c_settings):
-                            <select name="settings" title="_(t_settings)">
-                                <option>_(c_newitem)</option>
+			    <span style="padding-left: 10px"> _(c_settings): </span>
+                            <select name="settings" title="_(t_settings)"accesskey="x"
+                                option>_(c_newitem)</option>
                                 {7}
                             </select>
                             <input type="button" value="_(c_loadconf)" title="_(t_loadconf)"
+				accesskey="y"
                                 onclick="javascript:do_sub('loadconf'); return true;" />
                             <input type="button" value="_(c_saveconf)" title="_(t_saveconf)"
+				accesskey="z"
                                 onclick="javascript:do_sub('saveconf'); return true;" />
 			    <span style="width: 200px">&nbsp;&nbsp;</span>
                         </div>
@@ -69,12 +71,12 @@
                             <span style="padding-left: 10px">_(c_newfile):</span>
                             <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]"
 			    	accesskey="n"/>
-			    <input type="radio" name="action" value="_(c_rename)" title="_(t_rename) [A]"
-			    	accesskey="a">
+			    <input type="radio" name="action" value="_(c_rename)" 
+				title="_(t_rename) [A]" accesskey="a">
 			    	<label_for="rename">_(c_rename)</label>
 			    </input>
-			    <input type="radio" name="action" value="_(c_delete)" title="_(t_delete) [D]"
-			    	accesskey="d">
+			    <input type="radio" name="action" value="_(c_delete)" 
+				title="_(t_delete) [D]" accesskey="d">
 			    	<label_for="delete">_(c_delete)</label>
 			    </input>
                         </div>
@@ -122,27 +124,31 @@
 
                 <div class="row-half" style="display: inline; float:left">
 		    <label for="rstdata" accesskey="e" value=" " />
-                    <textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}"
-			    accesskey="w"
-			    style="display: inline">{4}</textarea>
+                    <textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}" accesskey="w"
+			      style="display: inline">{4}</textarea>
                 </div>
 
                 <div class="row-half" style="display: inline; float:left; padding: 5px; ">
                     <div class="table-full" style="display: inline">
 
                             <div class="row-full" style="float: left">
-				<span title="O/T _(t_activate) _(c_rstfile)/_(c_htmlfile) selector
-					     N   _(t_activate) _(c_newfile) _(t_fld)
-					     A/D _(t_sel) _(c_rename)/_(c_delete) _(t_opt)
-					     L/S _(c_loadsrc)/_(c_savesrc)
-					     R   _(c_convert)
-					     C   _(c_saveall)
-					     H/U _(c_loadhtml)/_(c_savehtml)
-					     B   _(c_showhtml)
-					     M   _(c_copytoroot)
-					     I   _(c_index)
-					     G   _(c_regen)
-					     V   _(c_overview)">
+				<span title="
+O   _(t_activate) _(c_rstfile) selector
+L/S _(c_loadsrc)/_(c_savesrc)
+R   _(c_convert)
+C   _(c_saveall)
+T   _(t_activate) _(c_htmlfile) selector
+H/U _(c_loadhtml)/_(c_savehtml)
+B   _(c_showhtml)
+M   _(c_copytoroot)
+N   _(t_activate) _(c_newfile) _(t_fld)
+A/D _(t_sel) _(c_rename)/_(c_delete) _(t_opt)
+X   _(t_activate) _(c_settings) selector
+Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
+I   _(c_index)
+G   _(c_regen)
+V   _(c_overview)
+">
 				_(t_access)</span>
                             </div>
                             <div class="clear" style="clear: both"></div>
