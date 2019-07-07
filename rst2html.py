@@ -106,15 +106,17 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
                 begin = begin[1:]
             data.append(begin)
             rstdata = rstdata[pos2:]
+            from_root = False
             if rstdata.startswith('/'):
                 rstdata = rstdata[1:]
+                from_root = True
             pos = 0
         pos = rstdata.find('<img', pos)
     data.append(rstdata)
     url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
     if loc:
         url += loc.strip('/') + '/'  # if present add loc with no double //'s
-    if use_sef and fname and fname != 'index':
+    if use_sef and fname and fname != 'index' and not from_root:
         url += fname + '/'
     return url.join(data)
 
