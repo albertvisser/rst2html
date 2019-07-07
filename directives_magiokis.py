@@ -477,8 +477,10 @@ class StartSideBar(Directive):
 
 
 class EndSideBar(Directive):
-    "genereert tageindes zodat een sidebar met een include directive kan worden opgenomen"
+    """genereert tag-eindes zodat een sidebar met een include directive kan worden opgenomen
 
+    voegt een dummy sidebar toe bij wijze van rechtermarge
+    """
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = True
@@ -487,7 +489,10 @@ class EndSideBar(Directive):
 
     def run(self):
         "genereer de html"
-        text_node = nodes.raw('', '</div></section></aside>', format='html')
+        text_node = nodes.raw('', '</div></section>'
+                              '<section class="region-sidebar-second column sidebar">'
+                              '<div id="block"><p>&nbsp;</p></div></section>'
+                              '</aside>', format='html')
         return [text_node]
 
 
