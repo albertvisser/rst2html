@@ -1,0 +1,75 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.node .content { /* Node's content wrapper */
+/* marvin code */
+  clear: both;
+  padding-left: 1em; /* LTR */
+}
+
+#logo { /* Wrapping link for logo */
+  float: left; /* LTR */
+  margin: 0;
+  padding: 0;
+}
+
+img {
+  border: 0;
+}
+#logo img {
+  vertical-align: bottom;
+}
+
+#name-and-slogan { /* Wrapper for website name and slogan */
+  float: left;
+}
+
+#site-slogan { /* The slogan (or tagline) of a website */
+  margin: 0;
+  font-size: 1em;
+}
+
+.block { /* Block wrapper */
+/*  margin-bottom: 1.5em;  --original */
+/* marvin code */
+  margin-bottom: 10px;
+  font-size: 0.9em;
+}
+
+.block .content {
+/* marvin code */
+  border: solid 1px #888;
+  border-top: none;
+  margin: 0;
+  padding: 5px;
+}
+
+h1.title, /* The title of the page */
+  margin: 0;
+}
+
+#block-system-main-menu { /* "Main menu" block */
+}
+
+#navigation ul.menu { /* Menu block links */
+  margin: 0;
+  padding: 0;
+  text-align: left; /* LTR */
+}
+
+#navigation ul.menu li { /* A simple method to get navigation links to appear in one line. */
+  float: left; /* LTR */
+  padding: 0 10px 0 0; /* LTR */
+  list-style-type: none;
+  list-style-image: none;
+}
+
+#block-menu-menu-NAME { /* Custom menu block */
+}
+
+#block-block-1 { /* First block created with "Add block" link */
+}
+
+hr.footer { visibility: hidden }
