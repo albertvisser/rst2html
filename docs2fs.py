@@ -164,7 +164,11 @@ def list_dirs(sitename, loc=''):
         raise FileNotFoundError('no_site')
     path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
-    return [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()]
+    if loc == 'src' and read_settings(sitename).get('seflinks', False):
+        lines = [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()]
+    else:
+        lines = [f.stem for f in path.iterdir() if f.is_dir()]
+    return lines
 
 
 def create_new_dir(sitename, dirname):
@@ -201,9 +205,9 @@ def list_docs(sitename, loc, directory='', deleted=False):
                  if f.is_dir() and (f / ('index' + testsuffix)).exists()]
         if not directory and (FS_WEBROOT / sitename / 'index.html').exists():
             lines.append('index')
-        return lines
     else:
-        return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
+        lines = [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
+    return lines
 
 
 def list_templates(sitename):
