@@ -9,13 +9,14 @@ import importlib
 import inspect
 ## import glob
 import html
-import urllib.request, urllib.error
+import urllib.request
+import urllib.error
 import yaml
 ## import datetime
 ## import gettext
 ## import collections
 
-from app_settings import DFLT, DML, WEBROOT, EXT2LOC, LOC2EXT, BASIC_CSS
+from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS
 if DML == 'fs':
     import docs2fs as dml
 elif DML == 'mongo':
@@ -36,9 +37,29 @@ standard_directives.update({"startc": StartCols,
                             "nextc": NextCol,
                             "clearc": ClearCol,
                             "spacer": Spacer})
-from directives_magiokis import Bottom, RefKey
+from directives_magiokis import Bottom, RefKey, HeaderText, ByLine, Audio, MenuText, MySidebar, \
+    FooterText, Transcript, MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst, \
+    StartBlock, EndBlock, RoleSpec, Scene, Anno
 standard_directives.update({"bottom": Bottom,
-                            "refkey": RefKey})
+                            "refkey": RefKey,
+                            'headertext': HeaderText,
+                            'myheader': MyHeader,
+                            'myfooter': MyFooter,
+                            'byline': ByLine,
+                            'audio': Audio,
+                            'menutext': MenuText,
+                            'transcript': Transcript,
+                            'mysidebar': MySidebar,
+                            'gedicht': Gedicht,
+                            'songtekst': SongTekst,
+                            'startblock': StartBlock,
+                            'endblock': EndBlock,
+                            'rollen': RoleSpec,
+                            'scene': Scene,
+                            'anno': Anno,
+                            'startsidebar': StartSideBar,
+                            'endsidebar': EndSideBar,
+                            'footertext': FooterText})
 from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, BottomNav, \
     StartMarginless, EndMarginless
 standard_directives.update({"startbody": StartBody,
@@ -57,7 +78,7 @@ custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'lang': 'en', 'url': '', 'css': []}
-FULL_CONF = {'starthead': [], 'endhead': []}
+FULL_CONF = {'starthead': [], 'endhead': [], 'seflinks': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 # constants for loaded data
@@ -95,17 +116,46 @@ def get_text(keyword, lang=DFLT_CONF['lang']):
     ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 
 
+def post_process_magiokis(data):
+    """replace generated title with title from document
+    """
+    try:
+        start, rest = data.split('<h1 class="page-title">', 1)
+        doit = True
+    except ValueError:
+        doit = False
+    if doit:
+        title, end = rest.split('</h1>', 1)
+        test = data.index('<head>')
+        test2 = data.index('</head>', test)
+        test3 = data.index('<title>', test)
+        if test3 < test2:
+            len = test3
+            start = data[:len]
+            _, end = data[len:].split('</title>')
+            data = ''.join((start, '<title>', title, '</title>', end))
+    return data
+
+
 # -- rst related --
 def rst2html(data, css):
-    """rst naar html omzetten en resultaat teruggeven"""
+    """rst naar html omzetten en resultaat teruggeven
+    """
     overrides = {"embed_stylesheet": False,
                  "stylesheet_path": '',
                  "stylesheet": css,
                  "report_level": 3}
-    return publish_string(source=data,
-                          destination_path="temp/omgezet.html",
-                          writer_name='html',
-                          settings_overrides=overrides)
+    # TODO: de targets in .. include:: directives aanpassen zodat deze niet verwijzen naar de
+    # programmadirectory maar naar de server map (inclusief de geselecteerde subdirectory)
+    # return publish_string(source=data,
+    #                       destination_path="temp/omgezet.html",
+    #                       writer_name='html',
+    #                       settings_overrides=overrides)
+    newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
+                                 writer_name='html', settings_overrides=overrides),
+                  encoding='utf-8')
+    newdata = post_process_magiokis(newdata)
+    return newdata
 
 
 def register_directives():
@@ -317,6 +367,9 @@ def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang'], de
         items = list_subdirs(sitename, ext) + items
     ## items.insert(0, get_text('c_newitem', lang))
     out = []
+    if ext == 'src':
+        for f in dml.list_templates(sitename):
+            out.append("<option>-- {} --</option>".format(f))
     for f in items:
         s = ' selected="selected"' if naam == f else ''
         out.append("<option{}>{}</option>".format(s, f))
@@ -358,6 +411,16 @@ def read_html_data(sitename, current, fname):
         return 'html_name_missing', ''
     except FileNotFoundError:
         return 'html_file_missing', ''
+
+
+def read_tpl_data(sitename, fnaam):
+    "get template data from wherever it's stored"
+    return dml.read_template(sitename, fnaam)
+
+
+def save_tpl_data(sitename, fnaam, data):
+    "store template data"
+    return dml.write_template(sitename, fnaam, data)
 
 
 def check_if_rst(data, loaded, filename=None):
@@ -443,9 +506,9 @@ def mark_deleted(sitename, current, fname):
     try:
         dml.mark_src_deleted(sitename, path.stem, directory=current)
         return ''
-    except AttributeError as e:
+    except AttributeError:
         return 'src_name_missing'
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         return 'src_file_missing'
 
 
@@ -548,7 +611,7 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_files_in_dir(sitename, conf, dirname='', missing=False):
+def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_only=False):
     """process all documents in a site directory
     """
     errors = []
@@ -564,39 +627,44 @@ def update_files_in_dir(sitename, conf, dirname='', missing=False):
         if not msg:
             msg, htmldata = read_html_data(sitename, dirname, filename)
             if msg:
-                if missing:
+                if missing_ok or missing_only:
                     msg = ''
-                else:
-                    msg = 'target_missing'
+                    htmldata = rst2html(rstdata, conf['css'])
+                # else:
+                #     msg = 'target_missing'
             else:
-                htmldata = str(rst2html(rstdata, conf['css']), encoding='utf-8')
+                if missing_only:
+                    msg = 'target_present'
+                else:
+                    htmldata = rst2html(rstdata, conf['css'])
         if not msg:
             msg = save_html_data(sitename, dirname, filename, htmldata)
         if not msg:
-            # copy to mirror MITS het file daar bestaat
-            destfile = path / (filename + '.html')
-            if not destfile.exists() and not missing:
-                msg = 'mirror_missing'
+            if conf.get('seflinks', False) and (dirname, filename) != ('', 'index.html'):
+                destfile = path / filename / 'index.html'
             else:
+                destfile = path / (filename + '.html')
+            if destfile.exists() or missing_ok or missing_only:
                 ## newdata = read_html_data(sitename, dirname, filename)
                 ## data = complete_header(conf, newdata)
                 complete_header(conf, htmldata)
                 msg = save_to_mirror(sitename, dirname, filename, conf)
+            else:
+                msg = 'mirror_missing'
         if msg:
-            fname = filename if dirname in ('', '/') else '/'.join((dirname,
-                                                                    filename))
+            fname = filename if dirname in ('', '/') else '/'.join((dirname, filename))
             errors.append((fname, msg))
     return errors
 
 
-def update_all(sitename, conf, missing=False):
+def update_all(sitename, conf, missing_ok=False, missing_only=False):
     """process all documents on the site
     """
-    errors = update_files_in_dir(sitename, conf, missing=missing)
+    errors = update_files_in_dir(sitename, conf, missing_ok=missing_ok, missing_only=missing_only)
     all_dirs = dml.list_dirs(sitename, 'src')
     for dirname in all_dirs:
         errors.extend(update_files_in_dir(sitename, conf, dirname=dirname,
-                                          missing=missing))
+                                          missing_ok=missing_ok, missing_only=missing_only))
     return errors
 
 
@@ -620,7 +688,7 @@ def get_reflinks_in_dir(sitename, dirname=''):
             continue
         for line in rstdata.split('\n'):
             if line.startswith("..") and "refkey::" in line:
-                x, refs = line.split("refkey::", 1)
+                refs = line.split("refkey::", 1)[1]
                 for ref in (x.split(":") for x in refs.split(";")):
                     word = ref[0].strip().capitalize()
                     link = filename + '.html'
@@ -714,7 +782,8 @@ class R2hState:
         return fname
 
     def get_conf(self, settings):
-        """retrieve site config and set some variables"""
+        """retrieve site config and set some variables
+        """
         # settings is hier de site naam
         mld = ''
         if self.newconf:
@@ -737,7 +806,8 @@ class R2hState:
         return mld
 
     def index(self):
-        """create landing page"""
+        """create landing page
+        """
         # config defaults so we can always show the first page
         ## self.conf = DFLT_CONF
         mld = self.get_conf(self.sitename)
@@ -775,7 +845,8 @@ class R2hState:
     def saveconf(self, settings, newfile, rstdata):
         """(re)save settings file using selected name
 
-        if new name specified, use that"""
+        if new name specified, use that
+        """
         mld = ""
         newsett = settings
         if rstdata == "":
@@ -808,7 +879,8 @@ class R2hState:
         return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
-        """load site directives file and show on page"""
+        """load site directives file and show on page
+        """
         # this data actually *does* come from the file system as itś code stored on the server
         # but itś effectively deactivated for now
         mld = ''
@@ -822,7 +894,8 @@ class R2hState:
         return mld, self.rstdata
 
     def savextra(self, rstdata):
-        """(re)save site directives file"""
+        """(re)save site directives file
+        """
         # this data actually *does* come from the file system as itś code stored on the server
         # but itś effectively deactivated for now
         mld = ''
@@ -837,14 +910,19 @@ class R2hState:
         return mld
 
     def loadrst(self, rstfile):
-        """load rest source into page"""
+        """load rest source into page
+        """
         mld = ""
         if rstfile == "":
             mld = 'unlikely_1'
-        elif rstfile == get_text('c_newitem', self.conf["lang"]):
+        elif rstfile.startswith('--'):
+            if rstfile == get_text('c_newitem', self.conf["lang"]):
+                self.rstdata = ''
+            else:
+                self.rstdata = read_tpl_data(self.sitename, rstfile.split()[1])
             mld = 'save_reminder'
             self.loaded = RST
-            self.htmlfile = self.newfile = self.rstdata = ""
+            self.htmlfile = self.newfile = ""
         elif rstfile.endswith("/"):
             self.current = rstfile[:-1]
             self.rstdata = ""
@@ -873,7 +951,7 @@ class R2hState:
 
     def saverst(self, rstfile, newfile, action, rstdata):
         """(re)save rest source
-        TODO: implement rename/delete in source environment
+        TODO: implement rename/delete in source environment - methinks I already done that
         """
         fname = newfile or rstfile
         for lang in languages:
@@ -883,11 +961,17 @@ class R2hState:
         if action == 'rename':
             fname = newfile
         is_new_file = newfile != ""
-        clear_text = False
+        clear_text = is_tpl = False
         if fname.endswith('/'):
             isfile = False
             mld = make_new_dir(self.sitename, fname[:-1])
             fmtdata = fname[:-1]
+        elif fname.endswith('.tpl'):
+            # TODO: ook rename en delete toestaan? Anders expliciet afkeuren (if action:)
+            # NOTE: geen controle op bestaat al, bestaande data wordt zonder meer overschreven
+            isfile = is_tpl = True
+            mld = save_tpl_data(self.sitename, fname, rstdata)
+            fmtdata = fname
         else:
             isfile = True
             mld = ''
@@ -925,10 +1009,13 @@ class R2hState:
             fmtdata = fname
         if mld == "":
             self.oldtext = self.rstdata = rstdata
-            mld = 'rst_saved' if isfile else 'new_subdir'
-            self.rstfile = fname
-            if isfile:
-                self.htmlfile = path.stem + ".html"
+            mld = 'tpl_saved' if is_tpl else 'rst_saved' if isfile else 'new_subdir'
+            if is_tpl:
+                self.rstfile = self.htmlfile = ''
+            else:
+                self.rstfile = fname
+                if isfile:
+                    self.htmlfile = path.stem + ".html"
             self.newfile = ""
         if mld:
             try:
@@ -955,7 +1042,7 @@ class R2hState:
                 # only if current text type == previous text type?
                 mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
-            previewdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            previewdata = rst2html(rstdata, self.conf['css'])
         else:
             mld = get_text(mld, self.conf["lang"])
             previewdata = fname = ''
@@ -973,7 +1060,7 @@ class R2hState:
         if mld == '':
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
-            newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            newdata = rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
                                     rstdata, is_new_file)
@@ -992,7 +1079,8 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def loadhtml(self, htmlfile):
-        """load the created html and show on page"""
+        """load the created html and show on page
+        """
         mld = ""
         # perhaps we want the same changing directory behaviour as in loadrst?
         if htmlfile.endswith("/") or htmlfile in (
@@ -1014,7 +1102,8 @@ class R2hState:
         return mld, self.rstdata, self.rstfile, self.htmlfile
 
     def showhtml(self, rstdata):
-        """render the loaded html"""
+        """render the loaded html
+        """
         fname = self.htmlfile
         ## if rstdata.replace('\r\n', '\n') == html.unescape(self.oldhtml):
         if html.escape(rstdata.replace('\r\n', '\n')) == html.escape(
@@ -1032,7 +1121,8 @@ class R2hState:
         return mld, newdata, fname
 
     def savehtml(self, htmlfile, newfile, rstdata):
-        """(re)save the html"""
+        """(re)save the html
+        """
         if newfile:
             mld = 'html_name_wrong'
         else:
@@ -1080,7 +1170,7 @@ class R2hState:
         if mld:  # might not be present yet, so try again
             mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata)
         if mld == "":
-            newdata = str(rst2html(rstdata, self.conf['css']), encoding='utf-8')
+            newdata = rst2html(rstdata, self.conf['css'])
             mld = save_html_data(self.sitename, dirname, docname + '.html', newdata)
             if mld == "":
                 mld = save_to_mirror(self.sitename, dirname, docname + '.html',

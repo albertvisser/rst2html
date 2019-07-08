@@ -6,7 +6,7 @@ import datetime
 import shutil
 import pathlib
 import yaml
-from app_settings import FS_WEBROOT, EXT2LOC, LOC2EXT, LOCS, Stats
+from app_settings import FS_WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
@@ -15,7 +15,8 @@ DELMARK = '.deleted'
 
 
 def _locify(path, loc=''):
-    """append the location to save the file to to the path"""
+    """append the location to save the file to to the path
+    """
     if not loc or loc == LOCS[0]:
         path /= 'source'
     elif loc == LOCS[1]:
@@ -31,6 +32,11 @@ def read_data(fname):   # to be used for actual file system data
     on success: returns empty message and data as a string
     on failure: returns error message and empty string for data
     """
+    sitename = fname.relative_to(FS_WEBROOT).parts[0]
+    if read_settings(sitename).get('seflinks', False):
+        if fname.suffix == '.html' and fname.stem != 'index':
+            fname = fname.with_suffix('') / 'index.html'
+    #
     mld = data = ''
     try:
         with fname.open(encoding='utf-8') as f_in:
@@ -50,7 +56,18 @@ def read_data(fname):   # to be used for actual file system data
 def save_to(fullname, data):  # to be used for actual file system data
     """backup file, then write data to file
 
-    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)"""
+    gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
+    """
+    sitename = fullname.relative_to(FS_WEBROOT).parts[0]
+    if read_settings(sitename).get('seflinks', False):
+        if fullname.suffix == '.html' and fullname.stem != 'index':
+            new_fname = fullname.with_suffix('')
+            if new_fname.exists() and not new_fname.is_dir():
+                new_fname.replace(new_fname.with_suffix('.bak'))
+            if not new_fname.exists():
+                new_fname.mkdir()
+            fullname = new_fname / 'index.html'
+    #
     mld = ''
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
@@ -67,7 +84,8 @@ def save_to(fullname, data):  # to be used for actual file system data
 
 def list_sites():
     """list all directories under FS_WEBROOT having subdirectories source en target
-    (and a settings file)"""
+    (and a settings file)
+    """
     ## """build list of options containing all settings files in current directory"""
     ## return [x.stem.replace('settings_', '') for x in HERE.glob('settings*.yml')]
     ## return [x.name for x in HERE.glob('settings*.yml')]
@@ -146,13 +164,14 @@ def list_dirs(sitename, loc=''):
         raise FileNotFoundError('no_site')
     path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
-    return [f.stem for f in path.iterdir() if f.is_dir()]
+    return [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()]
 
 
 def create_new_dir(sitename, dirname):
     "create site subdirectory in source tree"
     path = FS_WEBROOT / sitename / 'source' / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
+    (path / '.files').touch()   # mark as site subdirectory
 
 
 def remove_dir(sitename, directory):
@@ -177,7 +196,45 @@ def list_docs(sitename, loc, directory='', deleted=False):
             ## raise FileNotFoundError('no_subdir')
             return []
     testsuffix = DELMARK if deleted else LOC2EXT[loc]
-    return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
+    if loc == 'dest' and read_settings(sitename).get('seflinks', False):
+        lines = [f.stem for f in path.iterdir()
+                 if f.is_dir() and (f / ('index' + testsuffix)).exists()]
+        if not directory and (FS_WEBROOT / sitename / 'index.html').exists():
+            lines.append('index')
+        return lines
+    else:
+        return [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
+
+
+def list_templates(sitename):
+    """return a list of template names for this site"""
+    path = FS_WEBROOT / sitename / '.templates'
+    if not path.exists():
+        return []
+    return sorted([f.name for f in path.iterdir() if f.suffix == '.tpl'])
+
+
+def read_template(sitename, docname):
+    """get the source of a specific template"""
+    # moet eigenlijk met read_data maar dan moet ik die eerst geschikt maken
+    with (FS_WEBROOT / sitename / '.templates' / docname).open() as f_in:
+        data = ''.join(f_in.readlines()).replace('\r\n', '\n')
+    return data
+
+
+def write_template(sitename, fnaam, data):
+    """store the source for a template"""
+    # moet eigenlijk met save_to maar dan moet ik die eerst geschikt maken
+    fullname = FS_WEBROOT / sitename / '.templates' / fnaam
+    if fullname.exists():
+        shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
+    mld = ''
+    with fullname.open("w", encoding='utf-8') as f_out:
+        try:
+            f_out.write(data)
+        except OSError as err:
+            mld = str(err)
+    return mld
 
 
 def create_new_doc(sitename, docname, directory=''):
@@ -216,7 +273,11 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     ext = LOC2EXT[doctype]
     if path.suffix != ext:
         path = path.with_suffix(ext)
+    with open('get_doc_contents', 'w') as f:
+        print('in get_doc_contents - path =', path, file=f)
     mld, doc_data = read_data(path)
+    with open('get_doc_contents', 'a') as f:
+        print('in get_doc_contents - mld =', mld, file=f)
     if mld:
         raise FileNotFoundError(mld)
     return doc_data
@@ -235,7 +296,7 @@ def update_rst(sitename, doc_name, contents, directory=''):
         raise AttributeError('no_contents')
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError("no_document")  # .format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
@@ -253,7 +314,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
         raise AttributeError('no_name')
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError("no_document")  # .format(doc_name))
     path = FS_WEBROOT / sitename / 'source'
     if directory:
         path /= directory
@@ -379,6 +440,7 @@ def get_doc_stats(sitename, docname, dirname=''):
 
 def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     """get statistics for all documents of a certain type in a site subdirectory"""
+    do_seflinks = read_settings(sitename).get('seflinks')
     ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
     path = _locify(FS_WEBROOT / sitename, ftype)
@@ -386,12 +448,24 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
         path = path / dirname
     if path.exists():
         for item in path.iterdir():
-            if not item.is_file():
+            if item.name.startswith('.') or item.name in ('css', 'source', 'target'):
                 continue
-            if item.suffix and item.suffix != ext:
-                continue
-            docname = item.relative_to(path).stem
-            result.append((docname, item.stat().st_mtime))
+            if ftype in LOCS[1:] and do_seflinks:
+                docname = item.stem
+                if item.is_dir():
+                    check_item = item / 'index.html'
+                elif item.name == 'index.html' and not dirname:
+                    check_item = item
+                else:
+                    continue
+                result.append((docname, check_item.stat().st_mtime))
+            else:
+                if not item.is_file():
+                    continue
+                if item.suffix and item.suffix != ext:
+                    continue
+                docname = item.relative_to(path).stem
+                result.append((docname, item.stat().st_mtime))
     return result
 
 
