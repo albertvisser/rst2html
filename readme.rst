@@ -20,7 +20,7 @@ As another small bonus to myself, I added a javascript library to provide code h
 It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
 
 
-The latest addition is the possibility to easily plug in a different data storage mechanism. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB or PostgreSQL database.
+The latest addition is the possibility to easily plug in a different data storage mechanisms. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB or PostgreSQL database.
 
 
 How to use
@@ -34,6 +34,8 @@ When using an existing site, you can use the existing site configuration and map
 For a file system implementation, create a `settings.yml` file and a `source` and `target` directory tree in it and you're good to go.
 A MongoDB implementation has all this stuff stored in a database, for this the pertaining database layer takes care of all the setup details. In the same vein there's the possibility to use a Postgres SQL database.
 What backend to use is also defined in `app_settings.py` (the DML variable).
+
+Note that when using CodeMirror for syntax highlighting, the size of the editor window becomes fixed and can only be set from within `static/codemirror/lib/codemirror.js` (as far as I've been able to determine). So controlling it from the site settings becomes impossible.
 
 2. setting up the application
 
@@ -54,6 +56,6 @@ Requirements
 - CherryPy for the web application
 - yaml for the config parsing stuff
 - PyQt(5) for the gui version
-- CodeMirror for the syntax highlighting (you can do without it I think)
+- CodeMirror(.js) for the syntax highlighting (you can do without it I think)
 - MongoDB/Pymongo if you choose that backend for your data storage
 - PostgreSQL/Psycopg2 if you choose that backend for your data storage
