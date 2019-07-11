@@ -10,6 +10,7 @@ from app_settings import FS_WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
+SRC_LOC, DEST_LOC = '.source', '.target'
 
 # zelfde API als docs2mongo plus:
 
@@ -18,9 +19,9 @@ def _locify(path, loc=''):
     """append the location to save the file to to the path
     """
     if not loc or loc == LOCS[0]:
-        path /= 'source'
+        path /= SRC_LOC
     elif loc == LOCS[1]:
-        path /= 'target'
+        path /= DEST_LOC
     elif loc != LOCS[2]:
         raise ValueError('invalid type')
     return path
@@ -94,8 +95,8 @@ def list_sites():
     for item in path.iterdir():
         if not item.is_dir():
             continue
-        test1 = item / 'source'
-        test2 = item / 'target'
+        test1 = item / SRC_LOC
+        test2 = item / DEST_LOC
         test3 = item / SETTFILE
         if all((test1.exists(), test1.is_dir(), test2.exists(), test2.is_dir(),
                 test3.exists(), test3.is_file())):
@@ -112,9 +113,9 @@ def create_new_site(sitename):
         path.mkdir()
     except FileExistsError:
         raise FileExistsError('site_name_taken')
-    src = path / 'source'
+    src = path / SRC_LOC
     src.mkdir()
-    targ = path / 'target'
+    targ = path / DEST_LOC
     targ.mkdir()
     path = path / SETTFILE
     path.touch()
@@ -173,7 +174,7 @@ def list_dirs(sitename, loc=''):
 
 def create_new_dir(sitename, dirname):
     "create site subdirectory in source tree"
-    path = FS_WEBROOT / sitename / 'source' / dirname
+    path = FS_WEBROOT / sitename / SRC_LOC / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
     (path / '.files').touch()   # mark as site subdirectory
 
@@ -301,7 +302,7 @@ def update_rst(sitename, doc_name, contents, directory=''):
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
-    path = FS_WEBROOT / sitename / 'source'
+    path = FS_WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     path = path / doc_name
@@ -319,7 +320,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
-    path = FS_WEBROOT / sitename / 'source'
+    path = FS_WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     path = path / doc_name
@@ -343,7 +344,7 @@ def update_html(sitename, doc_name, contents, directory=''):
     if doc_name not in [x.replace('.rst', '.html') for x in list_docs(
             sitename, 'src', directory)]:
         raise FileNotFoundError("no_document")
-    path = FS_WEBROOT / sitename / 'target'
+    path = FS_WEBROOT / sitename / DEST_LOC
     if directory:
         path /= directory
     if not path.exists():
@@ -358,14 +359,14 @@ def update_html(sitename, doc_name, contents, directory=''):
 def apply_deletions_target(sitename, directory=''):
     """Copy deletion markers from source to target environment
     """
-    path = FS_WEBROOT / sitename / 'source'
+    path = FS_WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     deleted = []
     for item in path.glob('*' + DELMARK):
         deleted.append(item.name)
         item.unlink()
-    path = FS_WEBROOT / sitename / 'target'
+    path = FS_WEBROOT / sitename / DEST_LOC
     if directory:
         path /= directory
     for item in deleted:
@@ -403,7 +404,7 @@ def update_mirror(sitename, doc_name, data, directory=''):
 def apply_deletions_mirror(sitename, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-    path = FS_WEBROOT / sitename / 'target'
+    path = FS_WEBROOT / sitename / DEST_LOC
     if directory:
         path /= directory
     deleted = []
@@ -452,7 +453,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
         path = path / dirname
     if path.exists():
         for item in path.iterdir():
-            if item.name.startswith('.') or item.name in ('css', 'source', 'target'):
+            if item.name.startswith('.') or item.name in ('css', SRC_LOC, DEST_LOC):
                 continue
             if ftype in LOCS[1:] and do_seflinks:
                 docname = item.stem
@@ -548,7 +549,7 @@ def list_site_data(sitename):
             fnames.extend([('/'.join((dirname, x)), ftype) for x in names])
     base = FS_WEBROOT / sitename
     for name, ftype in sorted(fnames):
-        path = base / 'source' if ftype == 'src' else base / 'target'
+        path = base / SRC_LOC if ftype == 'src' else base / DEST_LOC
         path /= name
         mld1, data1 = read_data(path.with_suffix(LOC2EXT[ftype]))
         mld2, data2 = read_data(path.with_suffix(LOC2EXT[ftype] + '.bak'))

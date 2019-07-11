@@ -4,6 +4,8 @@ syntax: glob
 *.bak
 *~
 *pyc
+*swp
+*swo
 static/*
 custom_directives.py
 test/*
