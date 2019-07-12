@@ -706,8 +706,9 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
     """
     reflinks, errors = get_reflinks_in_dir(sitename)
     all_dirs = dml.list_dirs(sitename, 'src')
+    print(all_dirs)
     for dirname in all_dirs:
-        refs, errs = get_reflinks_in_dir(sitename)
+        refs, errs = get_reflinks_in_dir(sitename, dirname)
         reflinks.update(refs)
         errors.extend(errs)
     ## print(reflinks, errors)
@@ -716,12 +717,18 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
     hdr = get_text('index_header', lang)
     data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
+    if sitename == 'magiokis':
+        to_top = "+  `top <#header>`_"
+    else:
+        to+top = "+   top_"
     for key in sorted(reflinks.keys()):
         if key[0] != current_letter:
             if titel:
                 data.extend(titel)
                 data.append("")
                 data.extend(teksten)
+                data.append(to_top)
+                to_top = "+   top_"
                 data.append("")
                 data.extend(links)
                 data.append("")
@@ -730,9 +737,12 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
                 titel, teksten, links, anchors = [], [], [], []
             # produceer het begin voor een letter
             current_letter = key[0]
-            data[3] += "`{0}`_ ".format(current_letter)
+            data[3] += "{0}_ ".format(current_letter)
             data.append("")
-            titel = ["{0}".format(current_letter), "-"]
+            if sitename == 'magiokis':
+                titel = [".. _{0}:\n\n**{0}**".format(current_letter), ""]
+            else:
+                titel = ["{0}".format(current_letter), "-"]
             linkno = 0
         # produceer het begin voor een nieuw trefwoord
         current_trefw = "+   {0}".format(key)
@@ -749,6 +759,7 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
         data.extend(titel)
         data.append("")
         data.extend(teksten)
+        data.append(to_top)
         data.append(" ")
         data.extend(links)
         data.append(" ")
