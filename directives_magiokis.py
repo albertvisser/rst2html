@@ -8,7 +8,7 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
-ifrom app_settings import FS_WEBROOT
+from app_settings import FS_WEBROOT
 
 def align(argument):
     """Conversion function for the "align" option."""
@@ -146,6 +146,7 @@ class MyHeader(Directive):
             menufile = pathlib.Path(self.options['menu'])
         else:
             # TODO: ipv "magiokis" variabele sitename gebruiken?
+            # beter: ophalen via correcte dml module
             menufile = FS_WEBROOT / 'magiokis' / '.source' / 'hoofdmenu.rst'
         if menufile.exists():
             text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]

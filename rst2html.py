@@ -96,6 +96,8 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
     # absoluut vanaf de siteroot geladen te worden (blijkbaar is me dat nog niet eerder opgevallen)
     data = []
     pos = rstdata.find('<img')
+    if pos == -1:
+        return rstdata
     while pos >= 0:
         pos2 = rstdata.find('src="', pos) + 5
         if rstdata[pos2:].startswith('http'):
