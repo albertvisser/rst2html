@@ -71,8 +71,8 @@ converted_txt = """\
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
-<title></title>
+<meta name="generator" content="Docutils 0.14: http://docutils.sourceforge.net/" />
+<title>&lt;string&gt;</title>
 {}
 </head>
 <body>
@@ -439,7 +439,7 @@ def test_progress_list(sitename, current, conf):
     ## pprint.pprint(newdata)
     # compare newdata with olddata and check for expected differences
     # force creating missing html and mirror documents:
-    errors = rhfn.update_all(sitename, conf, missing=True)
+    errors = rhfn.update_all(sitename, conf, missing_ok=True)
     assert_equal(errors, [])
     print('ok')
 
@@ -820,6 +820,7 @@ def test_makerefdoc(state):
     print(test_makerefdoc.__doc__ + '...', end=' ')
     data = state.makerefdoc()
     assert_equal(data, ('Index created as reflist.html', 'Index\n=====\n\n'))
+    # ja zo kan ik het ook - nog een keer met refkeys aanwezig graag
     print('ok')
     return state
 
@@ -832,8 +833,11 @@ def test_convert_all(state):
     test = data.split('\n')
     assert_equal(sorted(test),
                  sorted(('pietersen not present at mirror',
-                         'cleese skipped: not in target directory',
-                         'horrorscenario skipped: not in target directory')))
+                         # target_missing message vervangen door html_file_missing
+                         # 'cleese skipped: not in target directory',
+                         # 'horrorscenario skipped: not in target directory')))
+                         'cleese: Target file does not exist',
+                         'horrorscenario: Target file does not exist')))
     print('ok')
     return state
 
