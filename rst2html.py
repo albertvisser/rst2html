@@ -155,10 +155,10 @@ class Rst2Html(object):
 
     @cherrypy.expose
     def index(self):
-        """show page with empty fields (and selectable filenames)"""
+        """show page with empty fields (and selectable filenames)
+        """
         rstfile, htmlfile, newfile, mld, rstdata, settings = self.state.index()
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
@@ -167,18 +167,15 @@ class Rst2Html(object):
         "create new" is deliberatily hidden by not providing a -- new -- option
         """
         mld, rstdata, settings, newfile = self.state.loadconf(settings, newfile)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """(re)save settings for selected site name
 
         if new name specified, use that"""
-        mld, rstdata, settings, newfile = self.state.saveconf(settings, newfile,
-                                                              rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        mld, rstdata, settings, newfile = self.state.saveconf(settings, newfile, rstdata)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     # @cherrypy.expose    # nog testen
     def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
@@ -187,16 +184,14 @@ class Rst2Html(object):
         if non-existent, create from template
         """
         mld, rstdata = self.state.loadxtra()
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     # @cherrypy.expose    # nog testen
     def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """(re)save directives file
         """
         mld, rstdata = self.state.savextra(rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
@@ -204,8 +199,7 @@ class Rst2Html(object):
 
         pre-builds save-filename by changing extension from rst to html"""
         mld, rstdata, htmlfile, newfile = self.state.loadrst(rstfile)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
@@ -218,8 +212,7 @@ class Rst2Html(object):
                                                                     rstdata)
         if clear:
             rstdata = ''
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
@@ -228,69 +221,63 @@ class Rst2Html(object):
         mld, previewdata, fname = self.state.convert(rstfile, newfile, rstdata)
         if mld == '':
             return format_previewdata(self.state, previewdata, fname, 'rst', settings)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """(re)save rst file, (re)convert to html and (re)save html file
-        using selected names
+        """(re)save rst file, (re)convert to html and (re)save html file using selected names
         """
-        mld, rstfile, htmlfile, newfile = self.state.saveall(rstfile, newfile,
-                                                             rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        mld, rstfile, htmlfile, newfile = self.state.saveall(rstfile, newfile, rstdata)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """load html file and show code"""
+        """load html file and show code
+        """
         mld, rstdata, rstfile, htmlfile = self.state.loadhtml(htmlfile)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """preview the loaded HTML"""
+        """preview the loaded HTML
+        """
         mld, previewdata, fname = self.state.showhtml(rstdata)
         if mld == '':
             return format_previewdata(self.state, previewdata, fname, 'html', settings)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """save displayed (edited) html"""
+        """save displayed (edited) html
+        """
         mld, rstdata, newfile = self.state.savehtml(htmlfile, newfile, rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """copy html to mirror site
         """
         mld = self.state.copytoroot(htmlfile, rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """build references document"""
+        """build references document
+        """
         mld, rstdata = self.state.makerefdoc()
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        rstfile = htmlfile = ''
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """regenerate all html files
         """
         mld, rstdata = self.state.convert_all()
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-                             self.state)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
-        """output the site inventory to html, accentuating the most recently updated
-        items
+        """output the site inventory to html, accentuating the most recently updated items
         """
         data = self.state.overview()
         return format_progress_list(data).format(settings)
