@@ -669,7 +669,7 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False):
 
 
 # -- trefwoordenlijst --
-def get_reflinks_in_dir(sitename, dirname=''):
+def get_reflinks_in_dir(sitename, dirname='', sef=False):
     """search for keywords in source file and remember their locations
 
     NOTE: references are only valid if they're in files that have already been
@@ -691,24 +691,24 @@ def get_reflinks_in_dir(sitename, dirname=''):
                 refs = line.split("refkey::", 1)[1]
                 for ref in (x.split(":") for x in refs.split(";")):
                     word = ref[0].strip().capitalize()
-                    link = filename + '.html'
-                    try:
+                    prefix = '/{}/'.format(dirname).replace('//', '/')
+                    suffix = '/' if sef else '.html'
+                    link = prefix + filename + suffix
+                    if len(ref) > 1:
                         link += "#" + ref[1].strip()
-                    except IndexError:
-                        pass
                     reflinks.setdefault(word, [])
                     reflinks[word].append(link)
     return reflinks, errors
 
 
-def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
+def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang'], sef=False):
     """create a document from predefined reference links
     """
-    reflinks, errors = get_reflinks_in_dir(sitename)
+    reflinks, errors = get_reflinks_in_dir(sitename, sef=sef)
     all_dirs = dml.list_dirs(sitename, 'src')
     print(all_dirs)
     for dirname in all_dirs:
-        refs, errs = get_reflinks_in_dir(sitename, dirname)
+        refs, errs = get_reflinks_in_dir(sitename, dirname, sef)
         reflinks.update(refs)
         errors.extend(errs)
     ## print(reflinks, errors)
@@ -718,9 +718,9 @@ def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang']):
     data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
     if sitename == 'magiokis':
-        to_top = "+  `top <#header>`_"
+        to_top = "+   `top <#header>`_"
     else:
-        to+top = "+   top_"
+        to_top = "+   top_"
     for key in sorted(reflinks.keys()):
         if key[0] != current_letter:
             if titel:
@@ -1174,7 +1174,8 @@ class R2hState:
 
         (this would be the actual index of the site but hey, HTML conventions)
         """
-        rstdata = build_trefwoordenlijst(self.sitename, self.conf["lang"])
+        use_sef = self.conf.get('seflinks', False)
+        rstdata = build_trefwoordenlijst(self.sitename, self.conf["lang"], use_sef)
         dirname, docname = '', 'reflist'
         mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata,
                             new=True)
