@@ -55,7 +55,7 @@ Requirements
 - Docutils for the restsructured text stuff
 - CherryPy for the web application
 - yaml for the config parsing stuff
-- PyQt(5) for the gui version
 - CodeMirror(.js) for the syntax highlighting (you can do without it I think)
 - MongoDB/Pymongo if you choose that backend for your data storage
 - PostgreSQL/Psycopg2 if you choose that backend for your data storage
+- PyQt(5) for the gui apps
