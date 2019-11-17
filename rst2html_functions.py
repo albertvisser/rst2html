@@ -229,12 +229,21 @@ def init_css(sitename):
     """copy css files to site root and update config
     """
     conf = dml.read_settings(sitename)
+    updated = False
     for cssfile in BASIC_CSS:
-        src = str(HERE / 'static' / cssfile)
-        dest = str(WEBROOT / sitename / cssfile)
-        shutil.copyfile(src, dest)
-        conf['css'].append('url + ' + cssfile)
-    dml.update_settings(sitename, conf)
+        got_css = False
+        for entry in conf[css]:
+            if entry.endswith(cssfile):
+                got_css = True
+                break
+        if not got_css:
+            src = str(HERE / 'static' / cssfile)
+            dest = str(WEBROOT / sitename / cssfile)
+            shutil.copyfile(src, dest)
+            conf['css'].append('url + ' + cssfile)
+            updated = True
+    if updated:
+        dml.update_settings(sitename, conf)
 
 
 def list_confs(sitename='', lang=DFLT_CONF['lang']):
