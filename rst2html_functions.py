@@ -232,7 +232,7 @@ def init_css(sitename):
     updated = False
     for cssfile in BASIC_CSS:
         got_css = False
-        for entry in conf[css]:
+        for entry in conf['css']:
             if entry.endswith(cssfile):
                 got_css = True
                 break
@@ -828,9 +828,9 @@ class R2hState:
     def index(self):
         """create landing page
         """
-        # config defaults so we can always show the first page
-        ## self.conf = DFLT_CONF
-        mld = self.get_conf(self.sitename)
+        mld = get_text('no_confs', self.conf["lang"])
+        if self.sitename:
+            mld = self.get_conf(self.sitename)
         if mld == '':
             self.settings = self.sitename
             self.rstdata = conf2text(self.conf)

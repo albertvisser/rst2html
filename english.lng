@@ -89,6 +89,7 @@ c_qref = Quick reStructuredText
 
 # notifications and such
 
+no_confs = No sites created yet - push "Load" to create initial settings
 conf_init = Settings file is {}
 new_conf_made = New site will be created on save - don't forget to provide a name for it
 conf_loaded = Settings loaded from {}

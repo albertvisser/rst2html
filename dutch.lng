@@ -89,8 +89,9 @@ c_qref = Quick reStructuredText
 
 # notifications and such
 
+no_confs = Nog geen sites aanwezig - Kies "Laden" om initiële instelllingen op te halen
 conf_init = Configuratiebestand is {}
-new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de settings - vergeet de naam niet
+new_conf_made = De nieuwe site wordt gecreëerd bij opslaan van de instellingen - vergeet niet een naam op te geven
 conf_loaded = Settings geladen van {}
 fname_invalid = Geen geldige bestandsnaam
 supply_text = Tekstveld invullen s.v.p.
