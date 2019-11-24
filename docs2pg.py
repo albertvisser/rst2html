@@ -421,6 +421,23 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     cur.close()
     return doclist  # returns all documents of the given type
 
+
+def list_templates(sitename):
+    """return a list of template names for this site"""
+    return []  # TODO: make this actually return something
+
+
+def read_template(sitename, docname):
+    """get the source of a specific template"""
+    return ''  # TODO: make this actually return something
+
+
+def write_template(sitename, fnaam, data):
+    """store the source for a template"""
+    mld = ''  # TODO: make this actually do something
+    return mld
+
+
 ## def _add_doc(doc):
     ## cur = conn.cursor()
     ## cur.execute('insert into {} (currtext, previous) values (%s, %s) '
@@ -430,8 +447,6 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     ## cur.close()
     ## return new_id
     ## return cur.fetchone()[0]
-
-
 def _add_doc():
     """create new document
     """
