@@ -292,6 +292,16 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
 
     also check settings for correctness (valid locations)
     """
+    def check_url(value):
+        try:
+            urllib.request.urlopen(value)
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            value = value.rsplit('/', 1)[0]
+            if value != 'http:/':
+                check_url(value)
+            else:
+                raise
+
     invalid = get_text('sett_invalid', lang)
     does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
     # verplichte keys zitten in DFLT_CONF
@@ -324,9 +334,11 @@ def save_conf(sitename, text, lang=DFLT_CONF['lang']):
             if not value.startswith('http'):
                 return invalid.format('url')
             else:  # simple check for valid url setting
+                if value.endswith('/'):
+                    value = value[:-1]
                 try:
-                    urllib.request.urlopen(value)
-                except urllib.error.HTTPError:
+                    check_url(value)
+                except (urllib.error.HTTPError, urllib.error.URLError):
                     return invalid.format('url')
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
