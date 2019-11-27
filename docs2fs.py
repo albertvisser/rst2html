@@ -6,7 +6,7 @@ import datetime
 import shutil
 import pathlib
 import yaml
-from app_settings import FS_WEBROOT, LOC2EXT, LOCS, Stats
+from app_settings import FS_WEBROOT, DB_WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
@@ -54,13 +54,17 @@ def read_data(fname):   # to be used for actual file system data
     return mld, data
 
 
-def save_to(fullname, data):  # to be used for actual file system data
+def save_to(fullname, data, settings=None):  # to be used for actual file system data
     """backup file, then write data to file
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
     """
-    sitename = fullname.relative_to(FS_WEBROOT).parts[0]
-    if read_settings(sitename).get('seflinks', False):
+    if settings:
+        sitename = fullname.relative_to(DB_WEBROOT).parts[0]
+    else:
+        settings = read_settings(sitename)
+        sitename = fullname.relative_to(FS_WEBROOT).parts[0]
+    if settings.get('seflinks', False):
         if fullname.suffix == '.html' and fullname.stem != 'index':
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():

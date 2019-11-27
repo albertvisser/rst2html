@@ -714,7 +714,7 @@ def update_mirror(site_name, doc_name, data, directory=''):
         path = path.with_suffix(ext)
     if not path.exists():
         path.touch()
-    save_to(path, data)
+    save_to(path, data), read_settings(site_name)
 
 
 def apply_deletions_mirror(site_name, directory=''):
