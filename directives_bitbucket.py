@@ -76,7 +76,7 @@ class TextHeader(Directive):
             title_text = self.arguments[0]
         except IndexError:
             title_text = "&nbsp;"
-        text.append('<h1 class="title">{}</h1>'.format(title_text))
+        text.append('<h1 class="page-title">{}</h1>'.format(title_text))
         # datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
         # text.append('<p class="date">last modified on {}</p>'.format(datum))
         text_node = nodes.raw('', ''.join(text), format='html')
