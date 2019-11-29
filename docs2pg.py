@@ -6,10 +6,10 @@ import functools
 import pathlib
 import psycopg2 as pg
 import psycopg2.extras as pgx
-from app_settings_postgres import user, password, DB_WEBROOT, LOC2EXT, LOCS, Stats
+from app_settings_postgres import user, password, Stats, DB_WEBROOT, LOC2EXT  # , LOCS
 from docs2fs import save_to
 conn = pg.connect(database="rst2html", user=user, password=password)
-TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents')
+TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents', 'templates')
 
 
 # originally I had the idea to factor out database boilerplate code using a decorator
@@ -422,19 +422,39 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     return doclist  # returns all documents of the given type
 
 
-def list_templates(sitename):
+def list_templates(site_name):
     """return a list of template names for this site"""
-    return []  # TODO: make this actually return something
+    siteid = _get_site_id(site_name)
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('select id, name from {} where site_id = %s;'.format(TABLES[5]), (siteid,))
+    tplist = [row['name'] for row in cur]
+    conn.commit()
+    cur.close()
+    return tplist
 
 
-def read_template(sitename, docname):
+def read_template(site_name, doc_name):
     """get the source of a specific template"""
-    return ''  # TODO: make this actually return something
+    siteid = _get_site_id(site_name)
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('select text from {} where site_id = %s and name = %s;'.format(TABLES[5]),
+                (siteid, doc_name))
+    row = cur.fetchone()
+    result = row['text']
+    conn.commit()
+    cur.close()
+    return result
 
 
-def write_template(sitename, fnaam, data):
+def write_template(site_name, doc_name, data):
     """store the source for a template"""
-    mld = ''  # TODO: make this actually do something
+    mld = ''
+    siteid = _get_site_id(site_name)
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('insert into {} (site_id, name, text) values (%s, %s, %s)'.format(TABLES[5]),
+                (siteid, doc_name, data))
+    conn.commit()
+    cur.close()
     return mld
 
 
@@ -714,7 +734,7 @@ def update_mirror(site_name, doc_name, data, directory=''):
         path = path.with_suffix(ext)
     if not path.exists():
         path.touch()
-    save_to(path, data), read_settings(site_name)
+    save_to(path, data, read_settings(site_name))
 
 
 def apply_deletions_mirror(site_name, directory=''):
@@ -730,7 +750,7 @@ def apply_deletions_mirror(site_name, directory=''):
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute('select id, docname, target_docid from {} '
-                    'where target_deleted = %s'.format(TABLES[3]), (True,))
+                'where target_deleted = %s'.format(TABLES[3]), (True,))
     deleted = [row for row in cur]
     # docids = [(row['target_docid'],) for row in deleted]
     # cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
@@ -755,7 +775,7 @@ def apply_deletions_mirror(site_name, directory=''):
 def _get_stats(docinfo):
     """retrieve site stats from database"""
     stats = []
-    for ix, value in enumerate(docinfo):
+    for value in docinfo:
         if value:
             stats.append(value)
         else:
@@ -885,7 +905,7 @@ def list_site_data(site_name):
 
     data = []
     cur.execute('select id, currtext, previous from {} where id = any(%s)'.format(
-        TABLES[4]), ([x for x in docnames.keys()],))
+        TABLES[4]), ([x for x in docnames],))
     for row in cur:
         data.append({'_id': docnames[row['id']], 'current': row['currtext'],
                      'previous': row['previous']})

@@ -62,7 +62,7 @@ def create_new_site(site_name):
         raise FileExistsError('site_name_taken')
 
     # create sitedoc
-    new_site = {'name': site_name, 'settings': {}, 'docs': {'/': {}}}
+    new_site = {'name': site_name, 'settings': {}, 'docs': {'/': {}, 'templates': {}}}
     try:
         site_coll.insert_one(new_site)
     except TypeError:
@@ -76,7 +76,7 @@ def rename_site(site_name, newname):
     """change the site's name unconditionally
     """
     site_id = _get_site_id(site_name)
-    site_coll.update_one({'_id': site_id}, {'$set': {'name': site_name}})
+    site_coll.update_one({'_id': site_id}, {'$set': {'name': newname}})
 
 
 def read_settings(site_name):
@@ -119,7 +119,8 @@ def list_dirs(site_name, doctype=''):
         if dirname == '/':
             continue
         found = False
-        for docname, typelist in doclist.items():
+        # for docname, typelist in doclist.items():
+        for typelist in doclist.values():
             found = doctype in typelist
             if found:
                 dirlist.append(dirname)
@@ -149,7 +150,7 @@ def remove_dir(site_name, directory):  # untested - do I need/want this?
     """remove site directory and all documents in it
     """
     sitedoc = _get_site_doc(site_name)
-    sitedoc['docs'].pop('directory')
+    sitedoc['docs'].pop(directory)
     _update_site_doc(site_name, sitedoc['docs'])
 
 
@@ -178,20 +179,28 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     return doclist  # returns all documents of the given type
 
 
-def list_templates(sitename):
+def list_templates(site_name):
     """return a list of template names for this site"""
-    return []  # TODO: make this actually return something
+    sitedoc = _get_site_doc(site_name)
+    if 'templates' not in sitedoc:
+        return []
+    return sorted([x for x in sitedoc['templates'].keys()])
 
 
-def read_template(sitename, docname):
+def read_template(site_name, doc_name):
     """get the source of a specific template"""
-    return ''  # TODO: make this actually return something
+    sitedoc = _get_site_doc(site_name)
+    if doc_name in sitedoc['templates']:
+        return sitedoc['templates'][doc_name]
+    return ''
 
 
-def write_template(sitename, fnaam, data):
+def write_template(site_name, doc_name, data):
     """store the source for a template"""
-    mld = ''  # TODO: make this actually do something
-    return mld
+    sitedoc = _get_site_doc(site_name)
+    sitedoc['templates'][doc_name] = data
+    site_coll.update_one({'name': site_name}, {'$set': {'templates': sitedoc['templates']}})
+    return ''
 
 
 def _add_doc(doc):
@@ -492,9 +501,12 @@ def clear_site_data(site_name):
 
     if sitedoc:
         id_list = []
-        for dirname, diritem in sitedoc['docs'].items():
-            for docname, docitem in diritem.items():
-                for locname, locitem in docitem.items():
+        # for dirname, diritem in sitedoc['docs'].items():
+        for diritem in sitedoc['docs'].values():
+            # for docname, docitem in diritem.items():
+            for docitem in diritem.values():
+                # for locname, locitem in docitem.items():
+                for locitem in docitem.values():
                     if 'docid' in locitem:
                         id_list.append(locitem['docid'])
         ## try:
