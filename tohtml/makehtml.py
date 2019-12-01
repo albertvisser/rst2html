@@ -11,11 +11,8 @@ from docutils.core import publish_string
 import markdown
 
 
-def zetom_rest(input):
+def zetom_rest(data):
     """rst naar html omzetten en resultaat teruggeven"""
-    f_in = open(input) if sys.version < '3' else open(input, encoding='utf-8')
-    with f_in:
-        data = ''.join([x for x in f_in])
     overrides = {
         "embed_stylesheet": True,
         "stylesheet_path": '/usr/share/docutils/writers/html4css1/html4css1.css',
@@ -26,11 +23,8 @@ def zetom_rest(input):
                               settings_overrides=overrides), encoding='utf-8')
 
 
-def zetom_markdown(input):
+def zetom_markdown(data):
     """md naar html omzetten en resultaat teruggeven"""
-    f_in = open(input) if sys.version < '3' else open(input, encoding='utf-8')
-    with f_in:
-        data = ''.join([x for x in f_in])
     return markdown.markdown(data, extensions=['codehilite'])
 
 
@@ -52,15 +46,31 @@ class MainFrame(qtw.QMainWindow):
         self.setCentralWidget(self.html)
         title = '{} via htmlfrom{}.py'.format(input, mode)
         self.setWindowTitle(title)
-        self.refresh_display()
+        failed = self.refresh_display(input, mode)
+        if failed:
+            sys.exit()
         self.show()
         sys.exit(self.app.exec_())
 
-    def refresh_display(self):
+    def refresh_display(self, input, mode):
         """(re)show the converted input"""
+        failed = False
         self.app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
-        self.html.setHtml(zetom[self.mode](self.input))
+        try:
+            f_in = open(input)
+        except FileNotFoundError:
+            failed = True
+            self.app.restoreOverrideCursor()
+            qtw.QMessageBox.critical(self, '{}view'.format(mode),
+                                     'File {} does not exist'.format(input))
+            return failed
+        except UnicodeDecodingError:
+            f_in = open(input, encoding='latin-1')
+        with f_in:
+            data = ''.join([x for x in f_in])
+        self.html.setHtml(zetom[self.mode](data))
         self.app.restoreOverrideCursor()
+        return failed
 
     def keyPressEvent(self, event):
         """reimplementation of event handler"""
