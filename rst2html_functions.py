@@ -16,7 +16,7 @@ import yaml
 ## import gettext
 ## import collections
 
-from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS
+from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG
 if DML == 'fs':
     import docs2fs as dml
 elif DML == 'mongo':
@@ -77,8 +77,8 @@ custom_directives = HERE / 'custom_directives.py'
 custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
-DFLT_CONF = {'wid': 100, 'hig': 32, 'lang': 'en', 'url': '', 'css': []}
-FULL_CONF = {'starthead': [], 'endhead': [], 'seflinks': 0}
+DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': []}
+FULL_CONF = {'lang': 'en', 'starthead': [], 'endhead': [], 'seflinks': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 # constants for loaded data
@@ -104,7 +104,7 @@ for name, code in language_map:
         languages[code] = infodict
 
 
-def get_text(keyword, lang=DFLT_CONF['lang']):
+def get_text(keyword, lang=LANG):
     """look up text in language data"""
     data = languages[lang]
     return data[keyword]
@@ -246,7 +246,7 @@ def init_css(sitename):
         dml.update_settings(sitename, conf)
 
 
-def list_confs(sitename='', lang=DFLT_CONF['lang']):
+def list_confs(sitename='', lang=LANG):
     """build list of options containing all possible site settings
 
     if site name provided, show as "selected"""
@@ -257,16 +257,18 @@ def list_confs(sitename='', lang=DFLT_CONF['lang']):
     return "".join(out)
 
 
-def read_conf(sitename, lang=DFLT_CONF['lang']):
+def read_conf(sitename, lang=LANG):
     """read a config file; returns a dictionary of options
     """
     try:
-        return '', dml.read_settings(sitename)
+        sett = dml.read_settings(sitename)
     except FileNotFoundError:
         return 'no_such_sett', None
+    else:
+        return '', sett
 
 
-def conf2text(conf, lang=DFLT_CONF['lang']):
+def conf2text(conf, lang=LANG):
     """convert settings to dict and then to yaml structure"""
     ## if 'mirror_url' in conf:
         ## # compatibilty with old settings files
@@ -287,7 +289,7 @@ def conf2text(conf, lang=DFLT_CONF['lang']):
     return yaml.dump(confdict, default_flow_style=False)
 
 
-def save_conf(sitename, text, lang=DFLT_CONF['lang']):
+def save_conf(sitename, text, lang=LANG):
     """convert text (from input area) to settings dict and return it
 
     also check settings for correctness (valid locations)
@@ -363,7 +365,7 @@ def list_subdirs(sitename, ext=''):
     return [x + '/' for x in sorted(test)]
 
 
-def list_files(sitename, current='', naam='', ext='', lang=DFLT_CONF['lang'], deleted=False):
+def list_files(sitename, current='', naam='', ext='', lang=LANG, deleted=False):
     """build list of options from filenames, with `naam` selected"""
     ext = ext or 'src'  # default
     try:
@@ -722,7 +724,7 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
     return reflinks, errors
 
 
-def build_trefwoordenlijst(sitename, lang=DFLT_CONF['lang'], sef=False):
+def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
     """create a document from predefined reference links
     """
     reflinks, errors = get_reflinks_in_dir(sitename, sef=sef)
@@ -813,6 +815,11 @@ class R2hState:
             fname = '/'.join((self.current, fname))
         return fname
 
+    def get_lang(self):
+        if 'lang' not in self.conf:
+            return LANG
+        return self.conf["lang"]
+
     def get_conf(self, settings):
         """retrieve site config and set some variables
         """
@@ -834,19 +841,19 @@ class R2hState:
                 self.subdirs = list_subdirs(settings, 'src')
                 self.loaded = CONF
             else:
-                mld = get_text(mld, self.conf["lang"]).format(settings)
+                mld = get_text(mld, self.get_lang()).format(settings)
         return mld
 
     def index(self):
         """create landing page
         """
-        mld = get_text('no_confs', self.conf["lang"])
+        mld = get_text('no_confs', self.get_lang())
         if self.sitename:
             mld = self.get_conf(self.sitename)
         if mld == '':
             self.settings = self.sitename
             self.rstdata = conf2text(self.conf)
-            mld = get_text('conf_init', self.conf["lang"]).format(self.sitename)
+            mld = get_text('conf_init', self.get_lang()).format(self.sitename)
         return (self.rstfile, self.htmlfile, self.newfile, mld, self.rstdata,
                 self.sitename)
 
@@ -858,7 +865,7 @@ class R2hState:
         ## rstdata = self.rstdata
         if newfile and newfile != settings:
             settings = newfile
-        if settings == get_text('c_newitem', self.conf["lang"]):
+        if settings == get_text('c_newitem', self.get_lang()):
             self.newconf = True
             okmeld = 'new_conf_made'
         else:
@@ -870,7 +877,7 @@ class R2hState:
                 self.newfile = ''
             self.settings = self.sitename = settings
             self.rstdata = conf2text(self.conf)
-            mld = get_text(okmeld, self.conf["lang"]).format(self.settings)
+            mld = get_text(okmeld, self.get_lang()).format(self.settings)
             self.sitename = self.settings
         return mld, self.rstdata, self.settings, self.newfile
 
@@ -882,20 +889,20 @@ class R2hState:
         mld = ""
         newsett = settings
         if rstdata == "":
-            mld = get_text('supply_text', self.conf["lang"])
+            mld = get_text('supply_text', self.get_lang())
         elif self.loaded != CONF:
-            mld = get_text('conf_invalid', self.conf["lang"])
+            mld = get_text('conf_invalid', self.get_lang())
         if mld == '':
             if newfile and newfile != newsett:
                 newsett = newfile
-            if newsett == get_text('c_newitem', self.conf["lang"]):
-                mld = get_text('fname_invalid', self.conf["lang"])
+            if newsett == get_text('c_newitem', self.get_lang()):
+                mld = get_text('fname_invalid', self.get_lang())
             elif self.newconf:
                 ## rstdata = rstdata.replace("url: ''",
                     ## "url: /rst2html-data/{}".format(newsett))
                 mld = new_conf(newsett)
         if mld == "":
-            mld = save_conf(newsett, rstdata, self.conf["lang"])
+            mld = save_conf(newsett, rstdata, self.get_lang())
             if mld == '' and self.newconf:
                 init_css(newsett)
         if mld == "":
@@ -905,7 +912,7 @@ class R2hState:
             mld = self.get_conf(self.settings)
             self.rstdata = rstdata = conf2text(self.conf)
         if mld == '':
-            mld = get_text('conf_saved', self.conf["lang"]).format(self.settings)
+            mld = get_text('conf_saved', self.get_lang()).format(self.settings)
             if self.conf['url'] == '':
                 mld += "; note that previews won't work with empty url setting"
         return mld, rstdata, self.settings, self.newfile
@@ -922,7 +929,7 @@ class R2hState:
         if not mld:
             self.rstdata = data
             self.loaded = XTRA
-            mld = get_text('dirs_loaded', self.conf["lang"]).format(verb, fname)
+            mld = get_text('dirs_loaded', self.get_lang()).format(verb, fname)
         return mld, self.rstdata
 
     def savextra(self, rstdata):
@@ -932,13 +939,13 @@ class R2hState:
         # but itś effectively deactivated for now
         mld = ''
         if rstdata == "":
-            mld = get_text('supply_text', self.conf["lang"])
+            mld = get_text('supply_text', self.get_lang())
         elif self.loaded != XTRA:
-            mld = get_text('dirs_invalid', self.conf["lang"])
+            mld = get_text('dirs_invalid', self.get_lang())
         if mld == "":
             mld = save_to(custom_directives, rstdata)  # standard file name
         if mld == "":
-            mld = get_text('dirs_saved', self.conf["lang"])
+            mld = get_text('dirs_saved', self.get_lang())
         return mld
 
     def loadrst(self, rstfile):
@@ -948,7 +955,7 @@ class R2hState:
         if rstfile == "":
             mld = 'unlikely_1'
         elif rstfile.startswith('--'):
-            if rstfile == get_text('c_newitem', self.conf["lang"]):
+            if rstfile == get_text('c_newitem', self.get_lang()):
                 self.rstdata = ''
             else:
                 self.rstdata = read_tpl_data(self.sitename, rstfile.split()[1])
@@ -969,7 +976,7 @@ class R2hState:
             mld, data = read_src_data(self.sitename, self.current, rstfile)
         if mld:
             self.oldtext = self.rstdata
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
             if '{}' in mld:
                 mld = mld.format(fmtdata)
         else:
@@ -978,7 +985,7 @@ class R2hState:
             self.rstfile = rstfile
             self.htmlfile = pathlib.Path(rstfile).stem + ".html"
             self.newfile = ""
-            mld = get_text('src_loaded', self.conf["lang"]).format(rstfile)
+            mld = get_text('src_loaded', self.get_lang()).format(rstfile)
         return mld, self.rstdata, self.htmlfile, self.newfile
 
     def saverst(self, rstfile, newfile, action, rstdata):
@@ -1051,7 +1058,7 @@ class R2hState:
             self.newfile = ""
         if mld:
             try:
-                mld = get_text(mld, self.conf["lang"])
+                mld = get_text(mld, self.get_lang())
             except KeyError:
                 pass
             if '{}' in mld:
@@ -1076,7 +1083,7 @@ class R2hState:
         if mld == "":
             previewdata = rst2html(rstdata, self.conf['css'])
         else:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
             previewdata = fname = ''
         return mld, previewdata, fname
 
@@ -1105,7 +1112,7 @@ class R2hState:
                     mld = 'rst_2_html'
                 self.newfile = ""
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
             if '{}' in mld:
                 mld = mld.format(self.currentify(self.htmlfile))
         return mld, self.rstfile, self.htmlfile, self.newfile
@@ -1116,19 +1123,19 @@ class R2hState:
         mld = ""
         # perhaps we want the same changing directory behaviour as in loadrst?
         if htmlfile.endswith("/") or htmlfile in (
-                "", "..", get_text('c_newitem', self.conf["lang"])):
+                "", "..", get_text('c_newitem', self.get_lang())):
             mld = 'html_name_missing'
         if mld == "":
             mld, data = read_html_data(self.sitename, self.current, htmlfile)
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
         else:
             path = pathlib.Path(htmlfile)
             self.htmlfile = path.stem + '.html'
             self.rstfile = path.stem + ".rst"
             self.oldhtml = data.replace("&nbsp", "&amp;nbsp")
             self.rstdata = self.oldhtml
-            mld = get_text('html_loaded', self.conf["lang"]).format(
+            mld = get_text('html_loaded', self.get_lang()).format(
                 self.currentify(self.htmlfile))
             self.loaded = HTML
         return mld, self.rstdata, self.rstfile, self.htmlfile
@@ -1146,7 +1153,7 @@ class R2hState:
             if mld == '':
                 mld = save_html_data(self.sitename, self.current, fname, rstdata)
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
             newdata = fname = ''
         else:
             newdata = rstdata
@@ -1160,16 +1167,16 @@ class R2hState:
         else:
             mld = check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
         else:
             newdata = rstdata  # striplines(rstdata)
             mld = save_html_data(self.sitename, self.current, htmlfile, newdata)
             if mld:
-                mld = get_text(mld, self.conf["lang"])
+                mld = get_text(mld, self.get_lang())
             else:
                 self.rstdata = newdata.replace("&nbsp", "&amp;nbsp")
                 self.htmlfile = htmlfile
-                mld = get_text('html_saved', self.conf["lang"]).format(
+                mld = get_text('html_saved', self.get_lang()).format(
                     self.currentify(self.htmlfile))
             self.newfile = ""
         return mld, self.rstdata, self.newfile
@@ -1181,12 +1188,12 @@ class R2hState:
         """
         mld = check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
-            mld = get_text(mld, self.conf["lang"])
+            mld = get_text(mld, self.get_lang())
         else:
             mld = save_to_mirror(self.sitename, self.current, htmlfile, self.conf)
             if not mld:
                 self.htmlfile = htmlfile
-                mld = get_text('copied_to', self.conf["lang"]).format(
+                mld = get_text('copied_to', self.get_lang()).format(
                     'siteroot/' + self.currentify(self.htmlfile))
         return mld
 
@@ -1196,7 +1203,7 @@ class R2hState:
         (this would be the actual index of the site but hey, HTML conventions)
         """
         use_sef = self.conf.get('seflinks', False)
-        rstdata = build_trefwoordenlijst(self.sitename, self.conf["lang"], use_sef)
+        rstdata = build_trefwoordenlijst(self.sitename, self.get_lang(), use_sef)
         dirname, docname = '', 'reflist'
         mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata,
                             new=True)
@@ -1209,7 +1216,7 @@ class R2hState:
                 mld = save_to_mirror(self.sitename, dirname, docname + '.html',
                                      self.conf)
         if not mld:
-            mld = get_text('index_built', self.conf["lang"])
+            mld = get_text('index_built', self.get_lang())
         return mld, rstdata
 
     def convert_all(self):
@@ -1217,12 +1224,12 @@ class R2hState:
         results = update_all(self.sitename, self.conf)
         data = []
         for fname, msgtype in results:
-            msg = get_text(msgtype, self.conf["lang"])
+            msg = get_text(msgtype, self.get_lang())
             if '{}' in msg:
                 data.append(msg.format(fname))
             else:
                 data.append(fname + ': ' + msg)
-        mld = get_text('docs_converted', self.conf["lang"])
+        mld = get_text('docs_converted', self.get_lang())
         return mld, '\n'.join(data)
 
     def overview(self):

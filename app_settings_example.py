@@ -17,6 +17,7 @@ FS_WEBROOT = pathlib.Path('<webroot>')  # as configured in web server
 DB_WEBROOT = pathlib.Path(__file__).parent / 'rst2html-data'    # database versions
 # css files that are always needed, will be copied to every new site
 BASIC_CSS = ['reset.css', 'html4css1.css', '960.css']
+LANG = 'en'
 
 #
 # the following settings are not meant to be modified for a user-installation

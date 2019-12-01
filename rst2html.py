@@ -31,9 +31,9 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
         all_source, all_html = [], []
     else:
         all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
-                                     state.conf["lang"])
+                                     state.get_lang())
         all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
-                                   state.conf["lang"])
+                                   state.get_lang())
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []
@@ -41,7 +41,7 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
             while '_(' in line:
                 start, rest = line.split('_(', 1)
                 keyword, end = rest.split(')', 1)
-                line = rhfn.get_text(keyword, state.conf["lang"]).join(
+                line = rhfn.get_text(keyword, state.get_lang()).join(
                     (start, end))
             output.append(line)
         output = ''.join(output)
