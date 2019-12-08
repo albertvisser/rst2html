@@ -288,12 +288,13 @@ def conf2text(conf, lang=LANG):
     return save_config_data(confdict, default_flow_style=False)
 
 
-def save_conf(sitename, text, lang=LANG):
+def text2conf(text, lang):
     """convert text (from input area) to settings dict and return it
 
     also check settings for correctness (valid locations)
     """
     def check_url(value):
+        "recursively try to find the url (we could be in a sub-site"
         try:
             urllib.request.urlopen(value)
         except (urllib.error.HTTPError, urllib.error.URLError):
@@ -303,26 +304,18 @@ def save_conf(sitename, text, lang=LANG):
             else:
                 raise
 
-    invalid = get_text('sett_invalid', lang)
-    does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
-    # verplichte keys zitten in DFLT_CONF
-    # controle: als int(FULL_CONF[x]) dan moet er een string waarde volgen
-    #   als FULL_CONF[x] == [] dan moet er een list volgen
-    #   anders moet het een enkele string zijn
-    conf = {}
-    try:
-        dml.read_settings(sitename)
-    except FileNotFoundError:
-        return get_text('no_such_sett', lang).format(sitename)
     # pass data through yaml to parse into a dict
     try:
-        conf = load_config_data(text)  # let's be paranoid
-    except ParserError:
-        return get_text('sett_no_good', lang)
+        conf = load_config_data(text)   # ik wil die error eigenlijk niet hoeven importeren
+    except ParserError:                 # maar dan moet ik load_config_html anders definiëren
+    # notok, conf = load_config_data(text)
+    # if notok:
+        return get_text('sett_no_good', lang), {}
+
     for key in DFLT_CONF:  # check if obligatory keys are present
         if key not in conf:
-            return does_not_exist.format(key, '')
-    ## for key, value in FULL_CONF.items(): # check value for each key
+            return does_not_exist.format(key, ''), {}
+
     for key in FULL_CONF:  # check value for each key
         if key not in conf:
             continue
@@ -331,26 +324,41 @@ def save_conf(sitename, text, lang=LANG):
             try:
                 int(value)
             except ValueError:
-                return invalid.format(key)
+                return invalid.format(key), {}
         elif key == 'lang' and value not in languages:
-            return invalid.format('lang')
+            return invalid.format('lang'), {}
         elif key == 'url' and value != '':
             if not value.startswith('http'):
-                return invalid.format('url')
+                return invalid.format('url'), {}
             else:  # simple check for valid url setting
                 if value.endswith('/'):
                     value = value[:-1]
                 try:
                     check_url(value)
                 except (urllib.error.HTTPError, urllib.error.URLError):
-                    return invalid.format('url')
+                    return invalid.format('url'), {}
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
             conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
         elif not item.startswith('http'):
-            conf['css'][ix] = 'http://' + item
-    dml.update_settings(sitename, conf)
-    return ''
+            conf['css'][ix] = 'https://' + item
+    return '', conf
+
+
+def save_conf(sitename, text, lang=LANG):
+    """save the given settings into the site
+    """
+    invalid = get_text('sett_invalid', lang)
+    does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
+    conf = {}
+    try:
+        dml.read_settings(sitename)
+    except FileNotFoundError:
+        return get_text('no_such_sett', lang).format(sitename)
+    not_ok, conf = text2conf(text, lang)
+    if conf:
+        dml.update_settings(sitename, conf)
+    return not_ok
 
 
 # -- content related --
