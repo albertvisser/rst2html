@@ -277,7 +277,7 @@ def conf2text(conf, lang=LANG):
         if key == 'css':
             items = []
             for item in conf['css']:
-                if item.startswith(conf['url']):
+                if conf['url'] and item.startswith(conf['url']):
                     item = item.replace(conf['url'] + '/', 'url + ')
                 items.append(item)
             confdict[key] = items
@@ -339,7 +339,8 @@ def text2conf(text, lang):
                     return invalid.format('url'), {}
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
-            conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
+            if conf['url']:
+                conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
         elif not item.startswith('http'):
             conf['css'][ix] = 'https://' + item
     return '', conf
