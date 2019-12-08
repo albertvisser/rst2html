@@ -11,7 +11,6 @@ import inspect
 import html
 import urllib.request
 import urllib.error
-import yaml
 ## import datetime
 ## import gettext
 ## import collections
@@ -23,7 +22,7 @@ elif DML == 'mongo':
     import docs2mongo as dml
 elif DML == 'postgres':
     import docs2pg as dml
-from docs2fs import read_data, save_to
+from docs2fs import read_data, save_to, load_config_data, ParserError, save_config_data
 #
 # docutils stuff (including directives
 #
@@ -286,7 +285,7 @@ def conf2text(conf, lang=LANG):
             confdict[key] = conf[key]
             ## if item.startswith(conf['mirror_url']):
                 ## confdict['css'][ix] = item.replace(confdict['url'], 'mirror_url + ')
-    return yaml.dump(confdict, default_flow_style=False)
+    return save_config_data(confdict, default_flow_style=False)
 
 
 def save_conf(sitename, text, lang=LANG):
@@ -317,8 +316,8 @@ def save_conf(sitename, text, lang=LANG):
         return get_text('no_such_sett', lang).format(sitename)
     # pass data through yaml to parse into a dict
     try:
-        conf = yaml.safe_load(text)  # let's be paranoid
-    except yaml.parser.ParserError:
+        conf = load_config_data(text)  # let's be paranoid
+    except ParserError:
         return get_text('sett_no_good', lang)
     for key in DFLT_CONF:  # check if obligatory keys are present
         if key not in conf:

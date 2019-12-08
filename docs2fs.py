@@ -85,7 +85,9 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
 
 ## def clear_db(): pass # alle directories onder SITEROOT met source/target erin weggooien?
 ## def read_db(): pass
-
+save_config_data = yaml.dump
+load_config_data = yaml.safe_load  # let's be paranoid
+ParserError = yaml.parser.ParserError
 
 def list_sites():
     """list all directories under FS_WEBROOT having subdirectories source en target
@@ -137,7 +139,7 @@ def read_settings(sitename):
     path = FS_WEBROOT / sitename / SETTFILE
     try:
         with path.open(encoding='utf-8') as _in:
-            conf = yaml.safe_load(_in)  # let's be paranoid
+            conf = load_config_data(_in)
     except FileNotFoundError:
         raise
     if conf is None:
@@ -152,7 +154,7 @@ def update_settings(sitename, conf):
     if path.exists():
         shutil.copyfile(str(path), str(path.with_suffix(path.suffix + '.bak')))
     with path.open('w', encoding='utf-8') as _out:
-        yaml.dump(conf, _out, default_flow_style=False)
+        save_config_data(conf, _out, default_flow_style=False)
     return 'ok'
 
 
