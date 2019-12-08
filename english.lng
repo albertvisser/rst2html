@@ -98,6 +98,7 @@ supply_text = Please provide content for text area
 conf_invalid = Not executed: text area doesn't contain settings data
 conf_saved = Settings opgeslagen als {}
 sett_missing = Config: please provide value for {}
+sett_no_good = Config: incorrect data (not readable with yaml)
 sett_invalid = Config: invalid value for {}
 no_such_sett = {} does not exist
 not_the_url = Please do not modify the url value

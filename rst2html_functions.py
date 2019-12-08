@@ -316,7 +316,10 @@ def save_conf(sitename, text, lang=LANG):
     except FileNotFoundError:
         return get_text('no_such_sett', lang).format(sitename)
     # pass data through yaml to parse into a dict
-    conf = yaml.safe_load(text)  # let's be paranoid
+    try:
+        conf = yaml.safe_load(text)  # let's be paranoid
+    except yaml.parser.ParserError:
+        return get_text('sett_no_good', lang)
     for key in DFLT_CONF:  # check if obligatory keys are present
         if key not in conf:
             return does_not_exist.format(key, '')
