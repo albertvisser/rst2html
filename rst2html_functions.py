@@ -212,11 +212,14 @@ def default_site():
     return result
 
 
-def new_conf(sitename):
+def new_conf(sitename, text, lang=LANG):
     """create a new site definition including settings
 
     returns '' on success, message on failure
     """
+    not_ok, conf = text2conf(text, lang)
+    if not_ok:
+        return ' '.join((get_text('not_created', lang).format(sitename), not_ok))
     try:
         dml.create_new_site(sitename)
     except FileExistsError as e:
@@ -288,7 +291,7 @@ def conf2text(conf, lang=LANG):
     return save_config_data(confdict, default_flow_style=False)
 
 
-def text2conf(text, lang):
+def text2conf(text, lang=LANG):
     """convert text (from input area) to settings dict and return it
 
     also check settings for correctness (valid locations)
@@ -910,7 +913,7 @@ class R2hState:
             elif self.newconf:
                 ## rstdata = rstdata.replace("url: ''",
                     ## "url: /rst2html-data/{}".format(newsett))
-                mld = new_conf(newsett)
+                mld = new_conf(newsett, rstdata, self.get_lang())
         if mld == "":
             mld = save_conf(newsett, rstdata, self.get_lang())
             if mld == '' and self.newconf:
