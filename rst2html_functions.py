@@ -304,9 +304,10 @@ def text2conf(text, lang):
             else:
                 raise
 
+    invalid = get_text('sett_invalid', lang)
     # pass data through yaml to parse into a dict
     try:
-        conf = load_config_data(text)   # ik wil die error eigenlijk niet hoeven importeren
+        conf = load_config_data(text)   # ik wil die parsererror eigenlijk niet hoeven importeren
     except ParserError:                 # maar dan moet ik load_config_html anders definiëren
     # notok, conf = load_config_data(text)
     # if notok:
@@ -314,7 +315,7 @@ def text2conf(text, lang):
 
     for key in DFLT_CONF:  # check if obligatory keys are present
         if key not in conf:
-            return does_not_exist.format(key, ''), {}
+            return invalid.format(key), {}
 
     for key in FULL_CONF:  # check value for each key
         if key not in conf:
@@ -349,8 +350,6 @@ def text2conf(text, lang):
 def save_conf(sitename, text, lang=LANG):
     """save the given settings into the site
     """
-    invalid = get_text('sett_invalid', lang)
-    does_not_exist = invalid + " - " + get_text('no_such_sett', lang)
     conf = {}
     try:
         dml.read_settings(sitename)
