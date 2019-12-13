@@ -341,6 +341,8 @@ def text2conf(text, lang=LANG):
                     check_url(value)
                 except (urllib.error.HTTPError, urllib.error.URLError):
                     return invalid.format('url'), {}
+    if isinstance(conf['css'], str):  # als string, dan list van maken met dit als enige element
+        conf['css'] = [conf['css']]
     for ix, item in enumerate(conf['css']):
         if item.startswith('url + '):
             if conf['url']:
