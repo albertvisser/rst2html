@@ -593,8 +593,9 @@ def complete_header(conf, rstdata):
             middle = os.linesep.join(conf['endhead'])
         rstdata = start + middle + split_on + end
     # replace references to local domain
-    rstdata = rstdata.replace(conf['url'] + '/', '/')
-    rstdata = rstdata.replace(conf['url'], '/')
+    if conf['url']:
+        rstdata = rstdata.replace(conf['url'] + '/', '/')
+        rstdata = rstdata.replace(conf['url'], '/')
     return rstdata
 
 
@@ -742,6 +743,7 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
 def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
     """create a document from predefined reference links
     """
+    has_errors = False
     reflinks, errors = get_reflinks_in_dir(sitename, sef=sef)
     all_dirs = dml.list_dirs(sitename, 'src')
     print(all_dirs)
@@ -752,12 +754,13 @@ def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
     ## print(reflinks, errors)
     current_letter = ""
     # produceer het begin van de pagina
-    hdr = get_text('index_header', lang)
-    data = [hdr, "=" * len(hdr), "", ""]
     titel, teksten, links, anchors = [], [], [], []
+    hdr = get_text('index_header', lang)
     if sitename == 'magiokis':
+        data = [hdr, "=" * len(hdr), "", ""]
         to_top = "+   `top <#header>`_"
     else:
+        data = ['.. _top:', '`back to root </>`_', '', '.. textheader:: Index', '']
         to_top = "+   top_"
     for key in sorted(reflinks.keys()):
         if key[0] != current_letter:
@@ -775,7 +778,8 @@ def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
                 titel, teksten, links, anchors = [], [], [], []
             # produceer het begin voor een letter
             current_letter = key[0]
-            data[3] += "{0}_ ".format(current_letter)
+            loc = 3 if sitename == 'magiokis' else 6
+            data[loc] += "{0}_ ".format(current_letter)
             data.append("")
             if sitename == 'magiokis':
                 titel = [".. _{0}:\n\n**{0}**".format(current_letter), ""]
@@ -804,11 +808,12 @@ def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
         data.extend(anchors)
         data.append(" ")
     if errors:
+        has_errors = True
         data.append('while creating this page, the following messages were generated:')
         data.append('----------------------------------------------------------------')
         for err in errors:
             data.append('. ' + err)
-    return "\n".join(data)
+    return "\n".join(data), has_errors
 
 
 class R2hState:
@@ -828,6 +833,8 @@ class R2hState:
         """
         if self.current:
             fname = '/'.join((self.current, fname))
+        if self.conf.get('seflinks', False):
+            fname = '/index'.join(os.path.splitext(fname))
         return fname
 
     def get_lang(self):
@@ -929,7 +936,7 @@ class R2hState:
         if mld == '':
             mld = get_text('conf_saved', self.get_lang()).format(self.settings)
             if self.conf['url'] == '':
-                mld += "; note that previews won't work with empty url setting"
+                mld += get_text('note_no_url', self.get_lang())
         return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
@@ -1218,21 +1225,24 @@ class R2hState:
         (this would be the actual index of the site but hey, HTML conventions)
         """
         use_sef = self.conf.get('seflinks', False)
-        rstdata = build_trefwoordenlijst(self.sitename, self.get_lang(), use_sef)
+        rstdata, has_err = build_trefwoordenlijst(self.sitename, self.get_lang(), use_sef)
         dirname, docname = '', 'reflist'
-        mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata,
-                            new=True)
-        if mld:  # might not be present yet, so try again
-            mld = save_src_data(self.sitename, dirname, docname + '.rst', rstdata)
+        rstfile = docname + '.rst'
+        htmlfile = docname + '.html'
+        mld = save_src_data(self.sitename, dirname, rstfile, rstdata, new=True)
+        if mld:  # if this goes wrong, simply try again
+            mld = save_src_data(self.sitename, dirname, rstfile, rstdata)
         if mld == "":
             newdata = rst2html(rstdata, self.conf['css'])
-            mld = save_html_data(self.sitename, dirname, docname + '.html', newdata)
+            mld = save_html_data(self.sitename, dirname, htmlfile, newdata)
             if mld == "":
-                mld = save_to_mirror(self.sitename, dirname, docname + '.html',
-                                     self.conf)
+                mld = save_to_mirror(self.sitename, dirname, htmlfile, self.conf)
         if not mld:
             mld = get_text('index_built', self.get_lang())
-        return mld, rstdata
+            if has_err:
+                mld += ' ' + get_text('with_err', self.get_lang())
+        self.loaded = RST
+        return mld, rstfile, htmlfile, rstdata
 
     def convert_all(self):
         """(re)generate all html documents and copy to mirror"""

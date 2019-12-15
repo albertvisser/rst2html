@@ -145,7 +145,7 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
     return previewdata
 
 
-class Rst2Html(object):
+class Rst2Html:
     "the actual webapp"
 
     def __init__(self):
@@ -264,8 +264,7 @@ class Rst2Html(object):
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """build references document
         """
-        mld, rstdata = self.state.makerefdoc()
-        rstfile = htmlfile = ''
+        mld, rstfile, htmlfile, rstdata = self.state.makerefdoc()
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose

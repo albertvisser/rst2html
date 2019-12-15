@@ -62,8 +62,8 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
     if settings:
         sitename = fullname.relative_to(DB_WEBROOT).parts[0]
     else:
-        settings = read_settings(sitename)
         sitename = fullname.relative_to(FS_WEBROOT).parts[0]
+        settings = read_settings(sitename)
     if settings.get('seflinks', False):
         if fullname.suffix == '.html' and fullname.stem != 'index':
             new_fname = fullname.with_suffix('')
@@ -87,6 +87,10 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
 ## def read_db(): pass
 save_config_data = yaml.dump
 load_config_data = yaml.safe_load  # let's be paranoid
+#    notok = False
+#    try:
+#        conf = load_config_data(text)
+#    except ParserError:
 ParserError = yaml.parser.ParserError
 
 def list_sites():
