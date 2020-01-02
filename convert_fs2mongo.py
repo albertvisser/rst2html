@@ -7,7 +7,7 @@ import argparse
 ## import pathlib
 import shutil
 from app_settings import FS_WEBROOT, DB_WEBROOT
-import rst2html_functions_all as rhfn
+import rst2html_functions as rhfn
 import docs2fs as fsys
 import docs2mongo as mongo
 
