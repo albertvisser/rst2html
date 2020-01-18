@@ -732,9 +732,10 @@ def update_mirror(site_name, doc_name, data, directory=''):
     ext = LOC2EXT['dest']
     if path.suffix != ext:
         path = path.with_suffix(ext)
-    if not path.exists():
+    sett = read_settings(site_name)
+    if not path.exists() and not sett.get('seflinks', False):
         path.touch()
-    save_to(path, data, read_settings(site_name))
+    save_to(path, data, sett)
 
 
 def apply_deletions_mirror(site_name, directory=''):
