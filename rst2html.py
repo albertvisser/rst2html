@@ -264,7 +264,13 @@ class Rst2Html:
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action=''):
         """build references document
         """
-        mld, rstfile, htmlfile, rstdata = self.state.makerefdoc()
+        savestuff = (rstfile, htmlfile, rstdata)
+        result = self.state.makerefdoc()
+        mld = result[0]
+        if len(result) == 1:
+            rstfile, htmlfile, rstdata = savestuff
+        else:
+            rstfile, htmlfile, rstdata = result[1:]
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose

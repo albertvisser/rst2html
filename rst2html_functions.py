@@ -718,7 +718,7 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
     reflinks, errors = {}, []
     items = dml.list_docs(sitename, 'src', directory=dirname)
     for filename in items:
-        stats = dml.get_doc_stats(sitename, filename, dirname='')
+        stats = dml.get_doc_stats(sitename, filename, dirname)
         if stats.src > stats.dest or stats.dest > stats.mirror:
             continue
         msg, rstdata = read_src_data(sitename, dirname, filename)
@@ -746,12 +746,12 @@ def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
     has_errors = False
     reflinks, errors = get_reflinks_in_dir(sitename, sef=sef)
     all_dirs = dml.list_dirs(sitename, 'src')
-    print(all_dirs)
     for dirname in all_dirs:
         refs, errs = get_reflinks_in_dir(sitename, dirname, sef)
         reflinks.update(refs)
         errors.extend(errs)
-    ## print(reflinks, errors)
+    if not reflinks and not errors:
+        return '', 'No index created: no reflinks found'
     current_letter = ""
     # produceer het begin van de pagina
     titel, teksten, links, anchors = [], [], [], []
@@ -1226,6 +1226,8 @@ class R2hState:
         """
         use_sef = self.conf.get('seflinks', False)
         rstdata, has_err = build_trefwoordenlijst(self.sitename, self.get_lang(), use_sef)
+        if not rstdata:
+            return (has_err, )
         dirname, docname = '', 'reflist'
         rstfile = docname + '.rst'
         htmlfile = docname + '.html'
