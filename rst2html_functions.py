@@ -650,36 +650,42 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_only=False):
-    """process all documents in a site directory
+def update_all(sitename, conf, missing_ok=False, missing_only=False):
+    """process all documents on the site
     """
-    errors = []
-    items = dml.list_docs(sitename, 'src', directory=dirname)
-    if DML == 'fs':
-        path = WEBROOT / sitename
-    else:
-        path = HERE / 'rst2html-data' / sitename
-    if dirname:
-        path /= dirname
-    for filename in items:
+    result = build_progress_list(sitename)
+    messages = []
+    root = WEBROOT / sitename
+    for dirname, filename, phase, stats in result:
+        if phase == 2:
+            continue
+        fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
+        path = root / dirname if dirname != '/' else root
+        rebuild_html = True if stats.src > stats.dest else False
         msg, rstdata = read_src_data(sitename, dirname, filename)
-        if not msg:
-            msg, htmldata = read_html_data(sitename, dirname, filename)
-            if msg:
-                if missing_ok or missing_only:
-                    msg = ''
-                    htmldata = rst2html(rstdata, conf['css'])
-                # else:
-                #     msg = 'target_missing'
+        if msg:
+            messages.append((fname, msg))
+            continue
+        msg, htmldata = read_html_data(sitename, dirname, filename)
+        if msg:
+            if missing_ok or missing_only:
+                htmldata = rst2html(rstdata, conf['css'])
             else:
-                if missing_only:
-                    msg = 'target_present'
-                else:
-                    htmldata = rst2html(rstdata, conf['css'])
-        if not msg:
+                messages.append((fname, msg))
+                continue
+        else:
+            if missing_only:
+                messages.append((fname, 'target_present'))
+                continue
+            else:
+                htmldata = rst2html(rstdata, conf['css'])
+        if rebuild_html:
             msg = save_html_data(sitename, dirname, filename, htmldata)
+            html_rebuilt = True
+        else:
+            html_rebuilt = False
         if not msg:
-            if conf.get('seflinks', False) and (dirname, filename) != ('', 'index.html'):
+            if conf.get('seflinks', False) and filename != 'index':
                 destfile = path / filename / 'index.html'
             else:
                 destfile = path / (filename + '.html')
@@ -688,23 +694,18 @@ def update_files_in_dir(sitename, conf, dirname='', missing_ok=False, missing_on
                 ## data = complete_header(conf, newdata)
                 complete_header(conf, htmldata)
                 msg = save_to_mirror(sitename, dirname, filename, conf)
+                mirror_rebuilt = False if msg else True
             else:
                 msg = 'mirror_missing'
-        if msg:
-            fname = filename if dirname in ('', '/') else '/'.join((dirname, filename))
-            errors.append((fname, msg))
-    return errors
-
-
-def update_all(sitename, conf, missing_ok=False, missing_only=False):
-    """process all documents on the site
-    """
-    errors = update_files_in_dir(sitename, conf, missing_ok=missing_ok, missing_only=missing_only)
-    all_dirs = dml.list_dirs(sitename, 'src')
-    for dirname in all_dirs:
-        errors.extend(update_files_in_dir(sitename, conf, dirname=dirname,
-                                          missing_ok=missing_ok, missing_only=missing_only))
-    return errors
+        if not msg:
+            if html_rebuilt:
+                msg = 'html_saved'  # 'target rebuilt'
+            if mirror_rebuilt:
+                if html_rebuilt:
+                    messages.append((fname, msg))
+                msg = 'copied_to'  # 'mirror_rebuilt'
+        messages.append((fname, msg))
+    return messages
 
 
 # -- trefwoordenlijst --
