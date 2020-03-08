@@ -37,7 +37,13 @@
             <input type="button" value="_(c_index)" title="_(t_index) [I]" accesskey="i"
               onclick="javascript: do_sub('makerefdoc'); return true;" />
             <input type="button" value="_(c_regen)" title="_(t_regen) [G]" accesskey="g"
-              onclick="javascript: do_sub('convert_all'); return true;" />
+              onclick="javascript: do_sub('convert_all'); return true;" />:
+	    <select name="regsubj" title="_(t_regsubj) [Q]" accesskey="q">
+	      <option value="1">_(c_regsubj1)</option>
+	      <option value="0">_(c_regsubj0)</option>
+	    </select>
+	    <input type="button" value="_(c_find)" title="_(t_find) [F]" accesskey="f" 
+              onclick="javascript: do_sub('search'); return true;" />
             <input type="button" value="_(c_overview)" title="_(t_overview) [V]" accesskey="v"
               onclick="javascript: do_sub('overview'); return true;" />
           </div>
@@ -132,6 +138,8 @@ X   _(t_activate) _(c_settings) selector
 Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
 I   _(c_index)
 G   _(c_regen)
+Q   _(t_activate) _(c_regen) selector
+F   _(c_find)/_(c_replace)
 V   _(c_overview)
 ">
             _(t_access)</span>
