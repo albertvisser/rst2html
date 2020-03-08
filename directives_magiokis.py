@@ -38,7 +38,7 @@ class Bottom(Directive):
     """genereert de page footer eventueel inclusief gridlayout
 
     optioneel: aantal eenheden (gridlayout) of -1 (geen gridlayout, wel volgende argumenten)
-               target voor lnk naar volgende document of None om ...
+               target voor link naar volgende document of None om ...
                tekst voor link naar volgende document"""
 
     required_arguments = 0
@@ -211,11 +211,23 @@ class MenuText(Directive):
 
     def run(self):
         "genereer de html"
+        lines = []
         try:
-            text = build_menu(self.content, title=self.arguments[0])
+            title = self.arguments[0]
         except IndexError:
+            title = ''
+        navmenu = title == 'is_navmenu'
+        if navmenu:
+            lines.append('<div id="navigation">')
+            title = '&nbsp;'
+        if title:
+            text = build_menu(self.content, title=title)
+        else:
             text = build_menu(self.content)
-        text_node = nodes.raw('', ''.join(text), format='html')
+        lines.extend(text)
+        if navmenu:
+            lines.append('</div>')
+        text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
 
