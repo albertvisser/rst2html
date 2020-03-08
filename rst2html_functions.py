@@ -650,7 +650,7 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_all(sitename, conf, missing_ok=False, missing_only=False):
+def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only=False):
     """process all documents on the site
     """
     result = build_progress_list(sitename)
@@ -661,7 +661,7 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False):
             continue
         fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
         path = root / dirname if dirname != '/' else root
-        rebuild_html = True if stats.src > stats.dest else False
+        rebuild_html = False if needed_only and stats.dest >= stats.src else True
         msg, rstdata = read_src_data(sitename, dirname, filename)
         if msg:
             messages.append((fname, msg))
@@ -1247,9 +1247,9 @@ class R2hState:
         self.loaded = RST
         return mld, rstfile, htmlfile, rstdata
 
-    def convert_all(self):
+    def convert_all(self, needed_only):
         """(re)generate all html documents and copy to mirror"""
-        results = update_all(self.sitename, self.conf)
+        results = update_all(self.sitename, self.conf, needed_only=needed_only)
         data = []
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
