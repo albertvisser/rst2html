@@ -657,7 +657,7 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
     messages = []
     root = WEBROOT / sitename
     for dirname, filename, phase, stats in result:
-        if phase == 2:
+        if needed_only and phase == 2:
             continue
         fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
         path = root / dirname if dirname != '/' else root
