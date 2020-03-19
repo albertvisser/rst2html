@@ -82,6 +82,7 @@ c_index = Maak index aan
 c_regen = Hergenereer
 c_regsubj0 = alles
 c_regsubj1 = nodig
+c_regsubj2 = nieuw
 c_find = Zoek
 c_replace = Vervang
 c_copytoroot = Kopieer naar mirror

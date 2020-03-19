@@ -82,6 +82,7 @@ c_index = Create index
 c_regen = Regenerate
 c_regsubj0 = all
 c_regsubj1 = needed
+c_regsubj2 = missing
 c_find = Find
 c_replace = Replace
 c_copytoroot = Copy to mirror

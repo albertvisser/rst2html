@@ -1247,9 +1247,10 @@ class R2hState:
         self.loaded = RST
         return mld, rstfile, htmlfile, rstdata
 
-    def convert_all(self, needed_only):
+    def convert_all(self, needed_only=False, missing_only=False):
         """(re)generate all html documents and copy to mirror"""
-        results = update_all(self.sitename, self.conf, needed_only=needed_only)
+        results = update_all(self.sitename, self.conf, needed_only=needed_only,
+                             missing_only=missing_only)
         data = []
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())

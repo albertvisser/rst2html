@@ -277,8 +277,9 @@ class Rst2Html:
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
         """regenerate all html files
         """
-        needed_only = bool(int(regsubj))
-        mld, rstdata = self.state.convert_all(needed_only)
+        needed_only = regsubj == '1'
+        missing_only = regsubj == '2'
+        mld, rstdata = self.state.convert_all(needed_only=needed_only, missing_only=missing_only)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
