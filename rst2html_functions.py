@@ -4,7 +4,6 @@ business logic layer; data storage and retrieval stuff is in the docs2xxx module
 """
 import os
 import shutil
-import subprocess
 import pathlib
 import importlib
 import inspect
@@ -293,6 +292,7 @@ def init_css(sitename):
     """
     conf = dml.read_settings(sitename)
     updated = False
+    cssdir = WEBROOT / sitename / 'css'
     for cssfile in BASIC_CSS:
         got_css = False
         for entry in conf['css']:
@@ -300,10 +300,11 @@ def init_css(sitename):
                 got_css = True
                 break
         if not got_css:
+            cssdir.mkdir(exist_ok=True)
             src = str(HERE / 'static' / cssfile)
-            dest = str(WEBROOT / sitename / cssfile)
+            dest = str(cssdir / cssfile)
             shutil.copyfile(src, dest)
-            conf['css'].append('url + ' + cssfile)
+            conf['css'].append('url + css/' + cssfile)
             updated = True
     if updated:
         dml.update_settings(sitename, conf)
