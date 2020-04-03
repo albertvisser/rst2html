@@ -106,6 +106,7 @@ supply_text = Please provide content for text area
 conf_invalid = Not executed: text area doesn't contain settings data
 conf_saved = Settings saved als {}
 note_no_url = ; note that CSS in previews won't work properly with empty url setting
+activate_url = ; activate the new site using `{}`
 sett_missing = Config: please provide value for {}
 sett_no_good = Config: incorrect data (not readable with yaml)
 sett_invalid = Config: invalid or no value given for {}

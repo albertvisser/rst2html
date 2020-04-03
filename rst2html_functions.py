@@ -4,6 +4,7 @@ business logic layer; data storage and retrieval stuff is in the docs2xxx module
 """
 import os
 import shutil
+import subprocess
 import pathlib
 import importlib
 import inspect
@@ -216,15 +217,75 @@ def new_conf(sitename, text, lang=LANG):
     """create a new site definition including settings
 
     returns '' on success, message on failure
+    also returns the new site url on success
     """
+    newurl = ''
     not_ok, conf = text2conf(text, lang)
     if not_ok:
-        return ' '.join((get_text('not_created', lang).format(sitename), not_ok))
+        return ' '.join((get_text('not_created', lang).format(sitename), not_ok)), newurl
+    if not conf['url']:
+        newurl = 'http://' + create_server_config(sitename)
     try:
         dml.create_new_site(sitename)
     except FileExistsError as e:
-        return str(e)
-    return ''
+        return str(e), newurl
+    return '', newurl
+
+
+def create_server_config(sitename):
+    """build a url for the mirror site and make it known to the system
+    """
+    url = '.'.join((sitename, get_tldname()))
+    add_to_hostsfile(url)
+    location = str(WEBROOT / sitename)
+    add_to_server(url, location)
+    return url
+
+
+def get_tldname():
+    """look in /etc/hosts or /etc/hostname to determine the top level domain to use
+    """
+    basename = tldname = ''
+    with open('/etc/hosts') as hostsfile:
+        for line in hostsfile:
+            if not line.strip().startswith('127.0.0.1'):
+                continue
+            ipaddr, name = line.strip().split(None, 1)
+            if '.' in name:
+                tldname = name
+                break
+            if not basename:
+                basename = name
+    if not tldname:
+        if not basename:
+            basename = pathlib.Path('/etc/hostname').read_text().strip()
+        tldname = basename + '.nl'
+    return tldname
+
+
+def add_to_hostsfile(url):
+    """map to localhost and add to /etc/hosts
+
+    update a local version and upload via a script
+    """
+    with pathlib.Path('~/nginx-config/misc/hosts').expanduser().open('a') as hostsfile:
+        print('127.0.0.1     {}'.format(url), file=hostsfile)
+
+
+def add_to_server(url, location):
+    """map to file system location and add to server configuration
+
+    update a local version and upload / restart server via a script
+    """
+    logloc = url.rsplit('.', 1)[0]
+    with pathlib.Path('~/nginx-config/nginx/flatpages').expanduser().open('a') as config:
+        for line in ('server {',
+                     '    server_name {};'.format(url),
+                     '    root {};'.format(location),
+                     '    error_log /var/log/nginx/{}-error.log error;'.format(logloc),
+                     '    access_log /var/log/nginx/{}-access.log ;'.format(logloc),
+                     '    }'):
+            print(line, file=config)
 
 
 def init_css(sitename):
@@ -272,9 +333,6 @@ def read_conf(sitename, lang=LANG):
 
 def conf2text(conf, lang=LANG):
     """convert settings to dict and then to yaml structure"""
-    ## if 'mirror_url' in conf:
-        ## # compatibilty with old settings files
-        ## conf['url'] = conf.pop('mirror_url')
     confdict = {}
     for key, value in conf.items():
         if key == 'css':
@@ -286,8 +344,6 @@ def conf2text(conf, lang=LANG):
             confdict[key] = items
         else:
             confdict[key] = conf[key]
-            ## if item.startswith(conf['mirror_url']):
-                ## confdict['css'][ix] = item.replace(confdict['url'], 'mirror_url + ')
     return save_config_data(confdict, default_flow_style=False)
 
 
@@ -909,7 +965,7 @@ class R2hState:
 
         if new name specified, use that
         """
-        mld = ""
+        command = mld = ""
         newsett = settings
         if rstdata == "":
             mld = get_text('supply_text', self.get_lang())
@@ -921,9 +977,10 @@ class R2hState:
             if newsett == get_text('c_newitem', self.get_lang()):
                 mld = get_text('fname_invalid', self.get_lang())
             elif self.newconf:
-                ## rstdata = rstdata.replace("url: ''",
-                    ## "url: /rst2html-data/{}".format(newsett))
-                mld = new_conf(newsett, rstdata, self.get_lang())
+                mld, newurl = new_conf(newsett, rstdata, self.get_lang())
+                if newurl:
+                    rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
+                    command = 'sudo fabsrv modconfb hosts nginx.modconfb flatpages nginx.restart'
         if mld == "":
             mld = save_conf(newsett, rstdata, self.get_lang())
             if mld == '' and self.newconf:
@@ -936,7 +993,9 @@ class R2hState:
             self.rstdata = rstdata = conf2text(self.conf)
         if mld == '':
             mld = get_text('conf_saved', self.get_lang()).format(self.settings)
-            if self.conf['url'] == '':
+            if command:
+                mld += get_text('activate_url', self.get_lang()).format(command)
+            elif self.conf['url'] == '':
                 mld += get_text('note_no_url', self.get_lang())
         return mld, rstdata, self.settings, self.newfile
 
