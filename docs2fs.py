@@ -69,8 +69,9 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():
                 new_fname.replace(new_fname.with_suffix('.bak'))
-            if not new_fname.exists():
-                new_fname.mkdir()
+            # if not new_fname.exists():
+            #     new_fname.mkdir()
+            new_fname.mkdir(exist_ok=True)
             fullname = new_fname / 'index.html'
     #
     mld = ''
@@ -241,6 +242,7 @@ def write_template(sitename, fnaam, data):
     """store the source for a template"""
     # moet eigenlijk met save_to maar dan moet ik die eerst geschikt maken
     fullname = FS_WEBROOT / sitename / '.templates' / fnaam
+    fullname.parent.mkdir(exist_ok=True)
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
     mld = ''
@@ -357,8 +359,7 @@ def update_html(sitename, doc_name, contents, directory=''):
     path = FS_WEBROOT / sitename / DEST_LOC
     if directory:
         path /= directory
-    if not path.exists():
-        path.mkdir()
+    path.mkdir(exist_ok=True)
     path = path / doc_name
     ext = LOC2EXT['dest']
     if path.suffix != ext:
@@ -402,8 +403,7 @@ def update_mirror(sitename, doc_name, data, directory=''):
     path = FS_WEBROOT / sitename
     if directory:
         path /= directory
-        if not path.exists():
-            path.mkdir(parents=True)
+        path.mkdir(exist_ok=True, parents=True)
     path /= doc_name
     ext = LOC2EXT['mirror']
     if path.suffix != ext:
