@@ -1084,6 +1084,8 @@ class R2hState:
             fname = newfile
         is_new_file = newfile != ""
         clear_text = is_tpl = False
+        if fname.startswith('-- ') and fname.endswith(' --'):
+            fname = fname[3:-3]
         if fname.endswith('/'):
             isfile = False
             mld = make_new_dir(self.sitename, fname[:-1])
