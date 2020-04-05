@@ -16,6 +16,8 @@ previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
                  '<a href={}><button accesskey="b">'
                  '<span style="text-decoration:underline">B</span>ack to editor'
                  '</button></a></div>')
+codemirror_stuff = ['<script src="/static/codemirror/lib/codemirror.js"></script>',
+                    '<link rel="stylesheet" href="/static/codemirror/lib/codemirror.css"/>']
 scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
 scriptdict = {'yaml': ('yaml/yaml',),
               'html': ('xml/xml', 'javascript/javascript', 'css/css',
@@ -46,13 +48,13 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
             output.append(line)
         output = ''.join(output)
     conflist = rhfn.list_confs(settings)
-    if not state.loaded:
-        txtlang = ''
-    else:
-        txtlang = '\n'.join(
-            scriptspec.format(x) for x in scriptdict[state.loaded])
+    format_stuff = ''
+    if state.conf.get('highlight', False):
+        format_stuff = ''.join(codemirror_stuff)
+        if state.loaded:
+            format_stuff += ''.join(scriptspec.format(x) for x in scriptdict[state.loaded])
     return output.format(all_source, all_html, newfile, mld, rstdata, state.conf['wid'],
-                         state.conf['hig'], conflist, state.loaded, txtlang)
+                         state.conf['hig'], conflist, state.loaded, format_stuff)
 
 
 def format_progress_list(timelist):

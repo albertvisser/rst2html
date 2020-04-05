@@ -19,6 +19,7 @@ There's also a version that can handle markdown (.md) files.
 As another small bonus to myself, I added a javascript library to provide code highlighting in the text area. I thought of it while building the directives stuff, because it makes it slightly easier to edit the Python code.
 It also makes editing the rest sources a bit easier because it highlights directives and shows some styles.
 
+Using codemirror has a few drawbacks though: because the original text field is overlayed with a restyled one, the site settings `width` and `height` cease to work, as does the access key for the text field.
 
 The latest addition is the possibility to easily plug in a different data storage mechanisms. In the process I also redesigned the way site settings are stored. It's currently possible to choose between storage on the file system or in a MongoDB or PostgreSQL database.
 
@@ -43,10 +44,15 @@ Use ``cherryd`` or similar to run ``start_rst2html.py`` with the .conf file in t
 
 In this configuration define the output to go to a specific port on localhost.
 
-Configure your local webserver to pick up the output from the port and assign it to a virtual domain. Have your hosts file translate the virtual domain to localhost.
+Configure your local webserver to pick up the output from the port and assign it to a virtual domain (see the examples included) . Have your hosts file translate the virtual domain to localhost.
 
 Of course you can also pick up the output directly in the web browser by specifying localhost:port.
 
+3. setting up codemirror
+
+Extract codemirror.zip nto the "static" directory - this creates a subdirectory codemirror-<versie>. You need to remove the version number to make it work.
+
+The actual highlighting is done by a couple of file named `<mode>editor.js`.
 
 Requirements
 ------------
@@ -58,4 +64,4 @@ Requirements
 - CodeMirror(.js) for the syntax highlighting (you can do without it I think)
 - MongoDB/Pymongo if you choose that backend for your data storage
 - PostgreSQL/Psycopg2 if you choose that backend for your data storage
-- PyQt(5) for the gui apps
+- PyQt(5) for the viewer apps

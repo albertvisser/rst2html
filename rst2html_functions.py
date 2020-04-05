@@ -77,7 +77,7 @@ custom_directives_template = HERE / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': []}
-FULL_CONF = {'lang': 'en', 'starthead': [], 'endhead': [], 'seflinks': 0}
+FULL_CONF = {'lang': 'en', 'starthead': [], 'endhead': [], 'seflinks': 0, 'highlight': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 # constants for loaded data
