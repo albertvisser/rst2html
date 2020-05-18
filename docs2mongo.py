@@ -196,7 +196,9 @@ def read_template(site_name, doc_name):
 
 
 def write_template(site_name, doc_name, data):
-    """store the source for a template"""
+    """store the source for a template
+    """
+    # TODO: backup tekst indien reeds aanwezig
     sitedoc = _get_site_doc(site_name)
     sitedoc['templates'][doc_name] = data
     site_coll.update_one({'name': site_name}, {'$set': {'templates': sitedoc['templates']}})

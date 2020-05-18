@@ -448,11 +448,18 @@ def read_template(site_name, doc_name):
 
 def write_template(site_name, doc_name, data):
     """store the source for a template"""
+    # TODO: backup tekst indien reeds aanwezig
     mld = ''
     siteid = _get_site_id(site_name)
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('insert into {} (site_id, name, text) values (%s, %s, %s)'.format(TABLES[5]),
-                (siteid, doc_name, data))
+    cur.execute('select text from {} where site_id = %s and name = %s'.format(TABLES[5]),
+                (siteid, doc_name))
+    if not cur.fetchone():
+        cur.execute('insert into {} (site_id, name, text) values (%s, %s, %s)'.format(TABLES[5]),
+                    (siteid, doc_name, data))
+    else:
+        cur.execute('update {} set text = %s where site_id = %s and name = %s'.format(TABLES[5]),
+                    (data, siteid, doc_name))
     conn.commit()
     cur.close()
     return mld
@@ -910,6 +917,12 @@ def list_site_data(site_name):
     for row in cur:
         data.append({'_id': docnames[row['id']], 'current': row['currtext'],
                      'previous': row['previous']})
+
+    cur.execute('select name, text from {} where site_id = %s;'.format(TABLES[5]),
+                (siteid,))
+    for row in cur:
+        data.append({'_id': row['name'], 'template contents': row['text']})
+
     conn.commit()
     cur.close()
     return sitedoc, sorted(data, key=lambda x: x['_id'])
@@ -952,6 +965,8 @@ def clear_site_data(site_name):
         cur.execute(sql, (dirids,))
 
         sel = 'site_id = %s'
+        sql = base_sql.format(TABLES[5], sel)
+        cur.execute(sql, (siteid,))
         sql = base_sql.format(TABLES[2], sel)
         cur.execute(sql, (siteid,))
         sql = base_sql.format(TABLES[1], sel)
