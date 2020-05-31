@@ -15,7 +15,7 @@ import urllib.error
 ## import gettext
 ## import collections
 
-from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG
+from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
 if DML == 'fs':
     import docs2fs as dml
 elif DML == 'mongo':
@@ -80,6 +80,7 @@ DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': []}
 FULL_CONF = {'lang': 'en', 'starthead': [], 'endhead': [], 'seflinks': 0, 'highlight': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
+SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
 # constants for loaded data
 RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
 #
@@ -267,7 +268,9 @@ def add_to_hostsfile(url):
 
     update a local version and upload via a script
     """
-    with pathlib.Path('~/nginx-config/misc/hosts').expanduser().open('a') as hostsfile:
+    # TODO: cater for not using fabsrv commands, so not having this location
+    # with pathlib.Path('~/nginx-config/misc/hosts').expanduser().open('a') as hostsfile:
+    with (SRV_CONFIG / 'misc/hosts').open('a') as hostsfile:
         print('127.0.0.1     {}'.format(url), file=hostsfile)
 
 
@@ -277,7 +280,9 @@ def add_to_server(url, location):
     update a local version and upload / restart server via a script
     """
     logloc = url.rsplit('.', 1)[0]
-    with pathlib.Path('~/nginx-config/nginx/flatpages').expanduser().open('a') as config:
+    # TODO: cater for not using fabsrv commands, so not having this location
+    # with pathlib.Path('~/nginx-config/nginx/flatpages').expanduser().open('a') as config:
+    with (SRV_CONFIG / 'nginx/flatpages').open('a') as config:
         for line in ('server {',
                      '    server_name {};'.format(url),
                      '    root {};'.format(location),
@@ -981,7 +986,9 @@ class R2hState:
                 mld, newurl = new_conf(newsett, rstdata, self.get_lang())
                 if newurl:
                     rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
-                    command = 'sudo fabsrv modconfb hosts nginx.modconfb flatpages nginx.restart'
+                    # TODO: cater for not using fabsrv commands
+                    # d.w.z. in dat geval zou hier een listje met commando's getoond moeten worden
+                    command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if mld == "":
             mld = save_conf(newsett, rstdata, self.get_lang())
             if mld == '' and self.newconf:

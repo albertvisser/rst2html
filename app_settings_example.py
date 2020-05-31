@@ -15,6 +15,9 @@ DFLT = '<sitename>'
 # note: home works from Python 3.5 onwards. If your Python is older, simply use the full path
 FS_WEBROOT = pathlib.Path('<webroot>')  # as configured in web server
 DB_WEBROOT = pathlib.Path(__file__).parent / 'rst2html-data'    # database versions
+# root for local webserver config mirror (used by 'fabsrv' command)
+# (leave empty or invalid if you don't use this)
+LOCAL_SERVER_CONFIG = '<server-config>'
 # css files that are always needed, will be copied to every new site
 BASIC_CSS = ['reset.css', 'html4css1.css', '960.css']
 LANG = 'en'
