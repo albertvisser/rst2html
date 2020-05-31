@@ -524,13 +524,14 @@ class FooterText(Directive):
 
     def run(self):
         "genereer de html"
-        text_node = nodes.raw('', '<p></p><div id="footer">include {}</div>'.format(self.arguments[0]),
+        text_node = nodes.raw('',
+                              '<p></p><div id="footer">include {}</div>'.format(self.arguments[0]),
                               format='html')
         return [text_node]
 
 
 class MyFooter(Directive):
-    """genereert een header die met de css om kan gaan (of andersom)
+    """genereert een footer die met de css om kan gaan (of andersom)
     """
 
     required_arguments = 0
