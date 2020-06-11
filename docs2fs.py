@@ -284,17 +284,13 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
         raise AttributeError('No name provided')
     path = FS_WEBROOT / sitename
     path = _locify(path, doctype)
-    if directory:
+    if directory and directory != '/':
         path /= directory
     path = path / docname
     ext = LOC2EXT[doctype]
     if path.suffix != ext:
         path = path.with_suffix(ext)
-    with open('get_doc_contents', 'w') as f:
-        print('in get_doc_contents - path =', path, file=f)
     mld, doc_data = read_data(path)
-    with open('get_doc_contents', 'a') as f:
-        print('in get_doc_contents - mld =', mld, file=f)
     if mld:
         raise FileNotFoundError(mld)
     return doc_data
