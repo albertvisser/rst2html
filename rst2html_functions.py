@@ -621,7 +621,7 @@ def save_html_data(sitename, current, fname, data):
     try:
         dml.update_html(sitename, path.stem, data, directory=current)
         return ''
-    except AttributeError as e:
+    except (AttributeError, FileNotFoundError) as e:
         if 'name' in str(e):
             return 'html_name_missing'
         if 'contents' in str(e):
@@ -718,10 +718,17 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
     result = build_progress_list(sitename)
     messages = []
     root = WEBROOT / sitename
+    files_to_skip = conf.get('do-not-generate', [])
+    with open('in_update_all', 'w') as f:
+        print(files_to_skip, file=f)
     for dirname, filename, phase, stats in result:
         if needed_only and phase == 2:
             continue
         fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
+        if fname in files_to_skip:
+            with open('in_update_all', 'a') as f:
+                print('skip' + fname, file=f)
+            continue
         path = root / dirname if dirname != '/' else root
         rebuild_html = False if needed_only and stats.dest >= stats.src else True
         msg, rstdata = read_src_data(sitename, dirname, filename)
