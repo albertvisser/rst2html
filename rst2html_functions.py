@@ -145,8 +145,6 @@ def rst2html(data, css):
                  "stylesheet_path": '',
                  "stylesheet": css,
                  "report_level": 3}
-    # TODO: de targets in .. include:: directives aanpassen zodat deze niet verwijzen naar de
-    # programmadirectory maar naar de server map (inclusief de geselecteerde subdirectory)
     # return publish_string(source=data,
     #                       destination_path="temp/omgezet.html",
     #                       writer_name='html',
@@ -719,8 +717,6 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
     messages = []
     root = WEBROOT / sitename
     files_to_skip = conf.get('do-not-generate', [])
-    with open('in_update_all', 'w') as f:
-        print(files_to_skip, file=f)
     for dirname, filename, phase, stats in result:
         if needed_only and phase == 2:
             continue
@@ -1168,13 +1164,10 @@ class R2hState:
         """convert rest source to html and show on page
         """
         fname = newfile or rstfile
+        rstdata = rstdata.replace('\r\n', '\n')
         if rstdata == self.oldtext:
             mld = check_if_rst(rstdata, self.loaded)  # alleen inhoud controleren
         else:
-            with open('/tmp/rstdata', 'w') as _o:
-                _o.write(rstdata)
-            with open('/tmp/self.oldtext', 'w') as _o:
-                _o.write(self.oldtext)
             mld = check_if_rst(rstdata, self.loaded, fname)
             if mld == '':
                 # only if current text type == previous text type?
