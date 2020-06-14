@@ -13,7 +13,7 @@ import urllib.request
 import urllib.error
 ## import datetime
 ## import gettext
-## import collections
+import collections
 
 from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
 if DML == 'fs':
@@ -713,12 +713,14 @@ def build_progress_list(sitename):
 def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only=False):
     """process all documents on the site
     """
+    regen_included = check_for_include_changes(sitename)
     result = build_progress_list(sitename)
     messages = []
     root = WEBROOT / sitename
     files_to_skip = conf.get('do-not-generate', [])
     for dirname, filename, phase, stats in result:
-        if needed_only and phase == 2:
+        must_generate = (dirname, filename) in regen_included
+        if needed_only and phase == 2 and not must_generate:
             continue
         fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
         if fname in files_to_skip:
@@ -726,7 +728,7 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
                 print('skip' + fname, file=f)
             continue
         path = root / dirname if dirname != '/' else root
-        rebuild_html = False if needed_only and stats.dest >= stats.src else True
+        rebuild_html = False if needed_only and stats.dest >= stats.src and not must_generate else True
         msg, rstdata = read_src_data(sitename, dirname, filename)
         if msg:
             messages.append((fname, msg))
@@ -755,8 +757,6 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
             else:
                 destfile = path / (filename + '.html')
             if destfile.exists() or missing_ok or missing_only:
-                ## newdata = read_html_data(sitename, dirname, filename)
-                ## data = complete_header(conf, newdata)
                 complete_header(conf, htmldata)
                 msg = save_to_mirror(sitename, dirname, filename, conf)
                 mirror_rebuilt = False if msg else True
@@ -771,6 +771,32 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
                 msg = 'copied_to'  # 'mirror_rebuilt'
         messages.append((fname, msg))
     return messages
+
+
+def check_for_include_changes(sitename):  # , conf):
+    """check welke sources er vanwege gewijzigde included files opnieuw gegenereerd moeten worden
+    """
+    results = set()
+    # zoekresultaten voor .. include:: verzamelen: document waar het in zit + wat er gevonden is
+    results_per_file = search_site(sitename, '.. include::')
+    # maak een mapping van included document op documenten waar het geinclude wordt
+    files_per_include = collections.defaultdict(list)
+    include_files = set()
+    for key, value in results_per_file.items():
+        source_spec = (key[0] or '/', key[1])
+        for lineno, line, pos in value:
+            include_name = line.rsplit('::', 1)[1].strip()
+            include_spec = include_name.split('.source/', 1)[1].split('/')
+            if len(include_spec) == 1:
+                include_datetime = dml.get_doc_stats(sitename, include_spec[0])
+            else:
+                include_datetime = dml.get_doc_stats(sitename, include_spec[1], include_spec[0])
+            # alleen de documenten die eerder gewijzigd zijn dan de include
+            if dml.get_doc_stats(sitename, key[1], key[0]).src < include_datetime.src:
+                files_per_include[include_name].append(source_spec)
+    for files in files_per_include.values():
+        results.update(files)
+    return results  # list van maken?
 
 
 # -- trefwoordenlijst --
@@ -882,6 +908,7 @@ def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
     return "\n".join(data), has_errors
 
 
+# -- global search --
 def search_site(sitename, find, replace=None):
     """return the results from the root and its subdirectories
 
