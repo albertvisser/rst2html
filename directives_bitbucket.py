@@ -10,10 +10,6 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
-header_text = ""  # "Albert Visser's programmer's blog"
-
-with open('/home/albert/www/bitbucket/directives_info.json') as f_in:
-    sitestuff = json.load(f_in)
 
 
 def align(argument):
@@ -25,36 +21,61 @@ class StartBody(Directive):
     """genereert de start van de container div en de header div
     """
     required_arguments = 0
+    optional_arguments = 1
     final_argument_whitespace = True
+    option_spec = {'header': directives.unchanged}
     has_content = False
 
     def run(self):
         "genereer de html"
-        text = '<div id="container"> <div id="header">{}</div>'.format(header_text)
+        header_text = self.options.get('header', '')   # "Albert Visser's programmer's blog"
+        text = '<div id="container">'
+        if header_text:
+            text += ' <div id="header">{}</div>'.format(header_text)
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
 
 class NavLinks(Directive):
     """Menuutje met links voor navigatie
+
+    Nu op basis van de content, bijvoorbeeld:
+    .. navlinks::
+
+       `linktekst <linkadres>`_
+       `linktekst <linkadres>`_
+       `menutekst`
+       . `linktekst <linkadres>`_
+       . `linktekst <linkadres>`_
+    let op: dit werkt alleen maar in combinatie met de bijbehorende CSS
     """
     required_arguments = 0
     optional_arguments = 0
     final_argument_whitespace = True
-    has_content = False
+    has_content = True
 
-    def run(self):
+    def run(self):  # nieuwe versie op basis van de directive content
         "genereer de html"
         text = ['<div id="navigation"><ul>']
-        for link, linktext in sitestuff['navlinks']:
-            if linktext != 'My projects':
-                text.append('<li class="menu"><a href="{}">{}</a></li>'.format(link,
-                                                                               linktext))
-                continue
-            text.append('<li class="menu">{}<ul>'.format(linktext))
-            for link, linktext in sitestuff['projlinks']:
-                text.append('<li><a href="{}">{}</a></li>'.format(link, linktext))
-            text.append('</ul></li>')
+        in_submenu = False
+        for line in self.content:
+            if line.startswith('`'):
+                if in_submenu:
+                    text.append('</ul></li>')
+                    in_submenu = False
+                line = line.strip()[1:-3]
+                if '<' in line:  # menuoptie met tekst en link
+                    menu, target = line.split('<')
+                    text.append('<li class="menu"><a href="{}">{}</a></li>'.format(target,
+                                                                                   menu.strip()))
+                else:            # alleen tekst: submenu
+                    text.append('<li class="menu">{}<ul>'.format(line))
+                    in_submenu = True
+            elif line.startswith('. `') and '<' in line:  # submenuoptie met tekst en link
+                menu, target = line.strip()[3:-3].split('<')
+                text.append('<li><a href="{}">{}</a></li>'.format(target, menu.strip()))
+            else:  # error in content
+                self.error('Illegal content: {}'.format(line.strip()))
         text.append('</ul></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]

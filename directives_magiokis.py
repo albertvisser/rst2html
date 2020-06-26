@@ -10,6 +10,7 @@ from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
 from app_settings import FS_WEBROOT
 
+
 def align(argument):
     """Conversion function for the "align" option."""
     return directives.choice(argument, ('left', 'center', 'right'))
@@ -98,25 +99,6 @@ class RefKey(Directive):
         return []
 
 
-# dit kan met een standaard rest directive, enige probleem is dat een absolute filenaam nodig is
-# die directive heet header en als argument kun je blijkbaar een include directive opgeven
-class HeaderText(Directive):
-    """genereert een verwijzing naar de pagina die de tekst voor de heading bevat
-    """
-
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = True
-    option_spec = {'href': directives.unchanged}
-    has_content = False
-
-    def run(self):
-        "genereer de html"
-        text = '<p></p><header id="header">include {}</header>'.format(self.arguments[0])
-        text_node = nodes.raw('', text, format='html')
-        return [text_node]
-
-
 class MyHeader(Directive):
     """genereert een header die met de css om kan gaan (of andersom)
     """
@@ -128,31 +110,31 @@ class MyHeader(Directive):
                    'href': directives.unchanged,
                    'image': directives.unchanged,
                    'text': directives.unchanged,
-                   'menu': directives.unchanged}
+                   'menu': directives.unchanged,
+                   'site': directives.unchanged}
     has_content = False
 
     def run(self):
         "genereer de html"
         lines = ['<header id="header" role="banner">']
-        href = self.options['href'] if 'href' in self.options else '/'
+        href = self.options.get('href', '/')
         lines.append('<a href="{}" id="logo" rel="home" title="Home">'.format(href))
-        src = self.options['image'] if 'image' in self.options else '/zing.gif'  # '/favicon.ico'
+        src = self.options.get('image', '/zing.gif')  # '/favicon.ico'
         lines.extend(['<img alt="Home" src="{}"/>'.format(src), '</a>'])
-        text = 'Magiokis Productions Proudly Presents!'
-        text = self.options['text'] if 'text' in self.options else text
+        text = self.options.get('text', 'Magiokis Productions Proudly Presents!')
         lines.extend(['<div id="name-and-slogan">', '<div id="site-slogan">', text, '</div>',
                       '</div>', '</header>', '<div id="main">', '<div id="navigation">'])
-        if 'menu' in self.options:
-            menufile = pathlib.Path(self.options['menu'])
+        menu = self.options.get('menu', '')
+        if menu:
+            menufile = pathlib.Path(menu)
         else:
-            # TODO: ipv "magiokis" variabele sitename gebruiken?
-            # beter: ophalen via correcte dml module
-            menufile = FS_WEBROOT / 'magiokis' / '.source' / 'hoofdmenu.rst'
+            sitename= self.options.get('site', 'magiokis')
+            menufile = FS_WEBROOT / sitename / '.source' / 'hoofdmenu.rst'
         if menufile.exists():
             text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
             lines.extend(build_menu(text))
         lines.extend(['</div>', '</div>', '<div id="content" class="column">'])
-        lines.append('<h1 class="page-title">{}</h1>'.format(self.options['title']))
+        lines.append('<h1 class="page-title">{}</h1>'.format(self.options.get('title', '')))
         text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
@@ -510,63 +492,32 @@ class EndSideBar(Directive):
         return [text_node]
 
 
-# dit kan met een standaard rest directive, enige probleem is dat een absolute filenaam nodig is
-# die directive heet footer en als argument kun je blijkbaar een include directive opgeven
-class FooterText(Directive):
-    """genereert een verwijzing naar de pagina die de tekst voor de footer bevat
-    """
-
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = True
-    option_spec = {'href': directives.unchanged}
-    has_content = False
-
-    def run(self):
-        "genereer de html"
-        text_node = nodes.raw('',
-                              '<p></p><div id="footer">include {}</div>'.format(self.arguments[0]),
-                              format='html')
-        return [text_node]
-
-
 class MyFooter(Directive):
     """genereert een footer die met de css om kan gaan (of andersom)
     """
 
     required_arguments = 0
-    optional_arguments = 0
+    optional_arguments = 2
     final_argument_whitespace = True
-    option_spec = {}
+    option_spec = {'text': directives.unchanged,
+                   'mailto': directives.unchanged}
     has_content = False
 
     def run(self):
         "genereer de html"
         # helaas, letterlijk overnemen van de footer code helpt ook niet om dit onderaan
         # te krijgen
+        text = self.options.get('text', "Please don't copy without source attribution. contact me")
+        mailto = self.options.get('mailto', 'info@magiokis.nl')
         lines = ('</div></div>',
                  '<div id="footer" class="region region-bottom">',
                  '<div id="block-block-1" class="block block-block first last odd">',
                  '<footer>',
-                 "<p>Please don't copy without source attribution. contact me: "
-                 '<a href="mailto:info@magiokis.nl">info@magiokis.nl</a></p></footer>')
+                 '<p>{0}: <a href="mailto:{1}">{1}</a></p></footer>'.format(text, mailto))
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]
         # lines = ['<p></p><div id="footer">']
         lines = ['</div></div><div class="region-bottom"><div class="block">']
-        # lines.extend(self.content)
-        for line in self.content:
-            try:
-                first, last = line.split('mailto:', 1)
-            except ValueError:
-                pass
-            else:
-                # first = linie[0]
-                last = last.split(None, 1)
-                mailto = last[0]
-                last = last[1] if len(last) > 1 else ''
-                line = ''.join((first, 'mailto', mailto, last))
-            lines.append('<p>{}</p>'.format(line))
         # lines.append('</div>')
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]

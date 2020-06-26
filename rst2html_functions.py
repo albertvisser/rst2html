@@ -36,31 +36,29 @@ standard_directives.update({"startc": StartCols,
                             "nextc": NextCol,
                             "clearc": ClearCol,
                             "spacer": Spacer})
-from directives_magiokis import Bottom, RefKey, HeaderText, ByLine, Audio, MenuText, MySidebar, \
-    FooterText, Transcript, MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst, \
-    StartBlock, EndBlock, RoleSpec, Scene, Anno
+from directives_magiokis import (Bottom, RefKey, ByLine, Audio, MenuText, MySidebar, Transcript,
+        MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst, StartBlock, EndBlock,
+        RoleSpec, Scene, Anno)
 standard_directives.update({"bottom": Bottom,
-                            "refkey": RefKey,
-                            'headertext': HeaderText,
-                            'myheader': MyHeader,
-                            'myfooter': MyFooter,
+                            'refkey': RefKey,
                             'byline': ByLine,
                             'audio': Audio,
                             'menutext': MenuText,
-                            'transcript': Transcript,
                             'mysidebar': MySidebar,
+                            'transcript': Transcript,
+                            'myheader': MyHeader,
+                            'startsidebar': StartSideBar,
+                            'endsidebar': EndSideBar,
+                            'myfooter': MyFooter,
                             'gedicht': Gedicht,
                             'songtekst': SongTekst,
                             'startblock': StartBlock,
                             'endblock': EndBlock,
                             'rollen': RoleSpec,
                             'scene': Scene,
-                            'anno': Anno,
-                            'startsidebar': StartSideBar,
-                            'endsidebar': EndSideBar,
-                            'footertext': FooterText})
-from directives_bitbucket import StartBody, NavLinks, TextHeader, EndBody, BottomNav, \
-    StartMarginless, EndMarginless
+                            'anno': Anno})
+from directives_bitbucket import (StartBody, NavLinks, TextHeader, StartMarginless, EndMarginless,
+        BottomNav, EndBody)
 standard_directives.update({"startbody": StartBody,
                             "navlinks": NavLinks,
                             "textheader": TextHeader,
