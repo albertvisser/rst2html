@@ -469,14 +469,17 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
                     check_item = item
                 else:
                     continue
-                result.append((docname, check_item.stat().st_mtime))
             else:
                 if not item.is_file():
                     continue
                 if item.suffix and item.suffix != ext:
                     continue
                 docname = item.relative_to(path).stem
-                result.append((docname, item.stat().st_mtime))
+                check_item = item
+            try:
+                result.append((docname, check_item.stat().st_mtime))
+            except FileNotFoundError:
+                continue
     return result
 
 
