@@ -443,7 +443,7 @@ def update_html(sitename, doc_name, contents, directory=''):
             sitename, 'src', directory)]:
         raise FileNotFoundError("no_document")
     path = FS_WEBROOT / sitename / DEST_LOC
-    if directory:
+    if directory and directory != '/':
         path /= directory
     path.mkdir(exist_ok=True)
     path = path / doc_name
@@ -457,14 +457,14 @@ def apply_deletions_target(sitename, directory=''):
     """Copy deletion markers from source to target environment
     """
     path = FS_WEBROOT / sitename / SRC_LOC
-    if directory:
+    if directory and directory != '/':
         path /= directory
     deleted = []
     for item in path.glob('*' + DELMARK):
         deleted.append(item.name)
         item.unlink()
     path = FS_WEBROOT / sitename / DEST_LOC
-    if directory:
+    if directory and directory != '/':
         path /= directory
     for item in deleted:
         newpath = path / item
@@ -487,7 +487,7 @@ def update_mirror(sitename, doc_name, data, directory=''):
     if not doc_name:
         raise AttributeError('no_name')
     path = FS_WEBROOT / sitename
-    if directory:
+    if directory and directory != '/':
         path /= directory
         path.mkdir(exist_ok=True, parents=True)
     path /= doc_name
@@ -501,14 +501,14 @@ def apply_deletions_mirror(sitename, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
     path = FS_WEBROOT / sitename / DEST_LOC
-    if directory:
+    if directory and directory != '/':
         path /= directory
     deleted = []
     for item in path.glob('*' + DELMARK):
         deleted.append(item.name)
         item.unlink()
     path = FS_WEBROOT / sitename
-    if directory:
+    if directory and directory != '/':
         path /= directory
     for item in deleted:
         newpath = path / item
