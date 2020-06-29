@@ -331,7 +331,7 @@ def mark_src_deleted(site_name, doc_name, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def update_html(site_name, doc_name, contents, directory=''):
+def update_html(site_name, doc_name, contents, directory='', dry_run=False):
     """update a converted document in the given directory
 
     create a new entry if it's the first-time conversion
@@ -348,6 +348,8 @@ def update_html(site_name, doc_name, contents, directory=''):
     sitedoc = _get_site_doc(site_name)
     if doc_name not in sitedoc['docs'][directory]:
         raise FileNotFoundError("no_document")
+    if dry_run:
+        return
     if 'dest' not in sitedoc['docs'][directory][doc_name]:
         htmldoc = {'current': '', 'previous': ''}
         doc_id = _add_doc(htmldoc)
@@ -382,7 +384,7 @@ def apply_deletions_target(site_name, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def update_mirror(site_name, doc_name, data, directory=''):
+def update_mirror(site_name, doc_name, data, directory='', dry_run=False):
     """administer promoting the converted document in the given directory
     to the mirror site
     some additions are only saved in the mirror html hence the data argument
@@ -393,6 +395,8 @@ def update_mirror(site_name, doc_name, data, directory=''):
     """
     if not doc_name:
         raise AttributeError('no_name')
+    if dry_run:
+        return
     if not directory:
         directory = '/'
     sitedoc = _get_site_doc(site_name)

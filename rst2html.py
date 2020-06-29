@@ -281,7 +281,9 @@ class Rst2Html:
         """
         needed_only = regsubj == '1'
         missing_only = regsubj == '2'
-        mld, rstdata = self.state.convert_all(needed_only=needed_only, missing_only=missing_only)
+        show_only = regsubj in ('3', '4', '5')
+        mld, rstdata = self.state.convert_all(needed_only=needed_only, missing_only=missing_only,
+                                              show_only=show_only)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose

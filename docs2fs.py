@@ -428,7 +428,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
     path.rename(path.with_suffix(DELMARK))
 
 
-def update_html(sitename, doc_name, contents, directory=''):
+def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     """update a converted document in the given directory
 
     create a new entry if it's the first-time conversion
@@ -441,7 +441,11 @@ def update_html(sitename, doc_name, contents, directory=''):
         raise AttributeError('load_html')
     if doc_name not in [x.replace('.rst', '.html') for x in list_docs(
             sitename, 'src', directory)]:
+        with open('/tmp/in_update_all', 'a') as _o:
+            print('doc_name', doc_name, 'not found in list_docs for directory', directory, file=_o)
         raise FileNotFoundError("no_document")
+    if dry_run:
+        return
     path = FS_WEBROOT / sitename / DEST_LOC
     if directory and directory != '/':
         path /= directory
@@ -450,6 +454,8 @@ def update_html(sitename, doc_name, contents, directory=''):
     ext = LOC2EXT['dest']
     if path.suffix != ext:
         path = path.with_suffix(ext)
+    with open('/tmp/in_update_all', 'a') as _o:
+        print('saving to', path, file=_o)
     save_to(path, contents)
 
 
@@ -475,7 +481,7 @@ def apply_deletions_target(sitename, directory=''):
             newpath.touch()
 
 
-def update_mirror(sitename, doc_name, data, directory=''):
+def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
     """administer promoting the converted document in the given directory
     to the mirror site
     some additions are only saved in the mirror html hence the data argument
@@ -486,6 +492,8 @@ def update_mirror(sitename, doc_name, data, directory=''):
     """
     if not doc_name:
         raise AttributeError('no_name')
+    if dry_run:
+        return
     path = FS_WEBROOT / sitename
     if directory and directory != '/':
         path /= directory

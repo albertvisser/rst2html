@@ -608,14 +608,14 @@ def mark_deleted(sitename, current, fname):
         return 'src_file_missing'
 
 
-def save_html_data(sitename, current, fname, data):
+def save_html_data(sitename, current, fname, data, dry_run=False):
     "save the converted data on the server"
     dml.apply_deletions_target(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'html_filename_error'
     try:
-        dml.update_html(sitename, path.stem, data, directory=current)
+        dml.update_html(sitename, path.stem, data, directory=current, dry_run=dry_run)
         return ''
     except (AttributeError, FileNotFoundError) as e:
         if 'name' in str(e):
@@ -657,7 +657,7 @@ def complete_header(conf, rstdata):
     return rstdata
 
 
-def save_to_mirror(sitename, current, fname, conf):
+def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     """store the actual html on the server
     """
     dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
@@ -673,16 +673,14 @@ def save_to_mirror(sitename, current, fname, conf):
     if mld:
         return mld
     data = complete_header(conf, data)
+    sitename = conf.get("mirror", sitename)
     try:
-        if "mirror" in conf:
-            dml.update_mirror(conf["mirror"], path.stem, data, directory=current)
-        else:
-            dml.update_mirror(sitename, path.stem, data, directory=current)
+        dml.update_mirror(sitename, path.stem, data, directory=current)
+        return ''
     except AttributeError as e:
         if 'name' in str(e):
             return 'html_name_missing'
         return str(e)
-    return mld
 
 
 # -- progress list --
@@ -708,7 +706,8 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only=False):
+def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only=False,
+               show_only=False):
     """process all documents on the site
     """
     regen_included = check_for_include_changes(sitename)
@@ -722,17 +721,27 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
             continue
         fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
         if fname in files_to_skip:
-            with open('in_update_all', 'a') as f:
-                print('skip' + fname, file=f)
+            with open('/tmp/in_update_all', 'a') as f:
+                print('skip ' + fname, file=f)
             continue
         path = root / dirname if dirname != '/' else root
         rebuild_html = False if needed_only and stats.dest >= stats.src and not must_generate else True
+        with open('/tmp/in_update_all', 'a') as _o:
+            print('read_src_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
+                                                             fname), file=_o)
         msg, rstdata = read_src_data(sitename, dirname, filename)
         if msg:
+            with open('/tmp/in_update_all', 'a') as _o:
+                print(msg, file=_o)
             messages.append((fname, msg))
             continue
+        with open('/tmp/in_update_all', 'a') as _o:
+            print('read_html_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
+                                                              fname), file=_o)
         msg, htmldata = read_html_data(sitename, dirname, filename)
         if msg:
+            with open('/tmp/in_update_all', 'a') as _o:
+                print(msg, file=_o)
             if missing_ok or missing_only:
                 htmldata = rst2html(rstdata, conf['css'])
             else:
@@ -745,7 +754,13 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
             else:
                 htmldata = rst2html(rstdata, conf['css'])
         if rebuild_html:
-            msg = save_html_data(sitename, dirname, filename, htmldata)
+            with open('/tmp/in_update_all', 'a') as _o:
+                print('save_html_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
+                                                                  fname), file=_o)
+            if show_only:
+                msg = save_html_data(sitename, dirname, filename, htmldata, dry_run=True)
+            else:
+                msg = save_html_data(sitename, dirname, filename, htmldata)
             html_rebuilt = True
         else:
             html_rebuilt = False
@@ -755,8 +770,11 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
             else:
                 destfile = path / (filename + '.html')
             if destfile.exists() or missing_ok or missing_only:
-                complete_header(conf, htmldata)
-                msg = save_to_mirror(sitename, dirname, filename, conf)
+                if show_only:
+                    msg = save_to_mirror(sitename, dirname, filename, conf, dry_run=True)
+                else:
+                    complete_header(conf, htmldata)
+                    msg = save_to_mirror(sitename, dirname, filename, conf)
                 mirror_rebuilt = False if msg else True
             else:
                 msg = 'mirror_missing'
@@ -767,6 +785,8 @@ def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only
                 if html_rebuilt:
                     messages.append((fname, msg))
                 msg = 'copied_to'  # 'mirror_rebuilt'
+        with open('/tmp/in_update_all', 'a') as _o:
+            print(msg, file=_o)
         messages.append((fname, msg))
     return messages
 
@@ -1384,10 +1404,10 @@ class R2hState:
         self.loaded = RST
         return mld, rstfile, htmlfile, rstdata
 
-    def convert_all(self, needed_only=False, missing_only=False):
+    def convert_all(self, needed_only=False, missing_only=False, show_only=False):
         """(re)generate all html documents and copy to mirror"""
         results = update_all(self.sitename, self.conf, needed_only=needed_only,
-                             missing_only=missing_only)
+                             missing_only=missing_only, show_only=show_only)
         data = []
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
