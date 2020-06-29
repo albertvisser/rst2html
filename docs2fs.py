@@ -1,20 +1,25 @@
 """Data processing routines for plain file system version
 """
-# import datetime
 from collections import defaultdict
 import datetime
 import shutil
 import pathlib
+
 import yaml
+save_config_data = yaml.dump
+load_config_data = yaml.safe_load  # let's be paranoid
+ParserError = yaml.parser.ParserError
+
 from app_settings import FS_WEBROOT, DB_WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
 SRC_LOC, DEST_LOC = '.source', '.target'
 
-# zelfde API als docs2mongo plus:
 
-
+#
+# dml-specifieke subroutines:
+#
 def _locify(path, loc=''):
     """append the location to save the file to to the path
     """
@@ -25,6 +30,84 @@ def _locify(path, loc=''):
     elif loc != LOCS[2]:
         raise ValueError('invalid type')
     return path
+
+
+def _get_dir_ftype_stats(sitename, ftype, dirname=''):
+    """get statistics for all documents of a certain type in a site subdirectory"""
+    do_seflinks = read_settings(sitename).get('seflinks')
+    ext = '.rst' if not ftype else LOC2EXT[ftype]
+    result = []
+    path = _locify(FS_WEBROOT / sitename, ftype)
+    if dirname:
+        path = path / dirname
+    if path.exists():
+        for item in path.iterdir():
+            if item.name.startswith('.') or item.name in ('css', SRC_LOC, DEST_LOC):
+                continue
+            if ftype in LOCS[1:] and do_seflinks:
+                docname = item.stem
+                if item.is_dir():
+                    check_item = item / 'index.html'
+                elif item.name == 'index.html' and not dirname:
+                    check_item = item
+                else:
+                    continue
+            else:
+                if not item.is_file():
+                    continue
+                if item.suffix and item.suffix != ext:
+                    continue
+                docname = item.relative_to(path).stem
+                check_item = item
+            try:
+                result.append((docname, check_item.stat().st_mtime))
+            except FileNotFoundError:
+                continue
+    return result
+
+
+def _get_dir_stats(site_name, dirname=''):
+    """get statistics for all documents in a site subdirectory"""
+    result = defaultdict(lambda: [datetime.datetime.min, datetime.datetime.min,
+                                  datetime.datetime.min])
+    for ix, ftype in enumerate(LOCS):
+        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
+        for name, mtime in statslist:
+            result[name][ix] = datetime.datetime.fromtimestamp(mtime)
+    return sorted([(x, Stats(*y)) for x, y in result.items()])
+
+
+def _get_dir_stats_for_docitem(site_name, dirname=''):
+    """get statistics for a document and return in a specific format
+    """
+    docid = 0
+    result_dict = defaultdict(
+        lambda: {x: {'updated': datetime.datetime.min} for x in LOCS})
+    for ftype in LOCS:
+        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
+        for name, mtime in statslist:
+            if ftype != 'mirror':  # for comparability with other backends
+                docid += 1
+                result_dict[name][ftype]['docid'] = docid
+            result_dict[name][ftype]['updated'] = datetime.datetime.fromtimestamp(mtime)
+    result = {}
+    for name in result_dict:
+        value = {}
+        for ftype in result_dict[name]:
+            if result_dict[name][ftype]['updated'] != datetime.datetime.min:
+                value[ftype] = result_dict[name][ftype]
+        result[name] = value
+    ## return sorted((x, y) for x, y in result.items())
+
+    return result
+
+
+def _get_sitedoc_data(sitename):
+    """build a "sitedoc" for processing in list_site_data"""
+    filedict = {'/': _get_dir_stats_for_docitem(sitename)}
+    for item in list_dirs(sitename, 'src'):
+        filedict[item] = _get_dir_stats_for_docitem(sitename, item)
+    return filedict
 
 
 def read_data(fname):   # to be used for actual file system data
@@ -84,15 +167,22 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
             mld = str(err)
     return mld
 
-## def clear_db(): pass # alle directories onder SITEROOT met source/target erin weggooien?
-## def read_db(): pass
-save_config_data = yaml.dump
-load_config_data = yaml.safe_load  # let's be paranoid
-#    notok = False
-#    try:
-#        conf = load_config_data(text)
-#    except ParserError:
-ParserError = yaml.parser.ParserError
+
+#
+# zelfde API als de andere dml-modules:
+#
+def clear_db():
+    """remove all data from the "database"
+    (alle directories onder SITEROOT met source/target erin weggooien?)
+    """
+    raise NotImplementedError('Heb ik dit nodig als ik dit direct in het filesystem kan doen?')
+
+
+def read_db():
+    """read and return all data from the "database"
+    """
+    raise NotImplementedError('Heb ik dit nodig als ik dit direct uit het file system kan halen?')
+
 
 def list_sites():
     """list all directories under FS_WEBROOT having subdirectories source en target
@@ -449,51 +539,6 @@ def get_doc_stats(sitename, docname, dirname=''):
     return Stats(*mtimes)
 
 
-def _get_dir_ftype_stats(sitename, ftype, dirname=''):
-    """get statistics for all documents of a certain type in a site subdirectory"""
-    do_seflinks = read_settings(sitename).get('seflinks')
-    ext = '.rst' if not ftype else LOC2EXT[ftype]
-    result = []
-    path = _locify(FS_WEBROOT / sitename, ftype)
-    if dirname:
-        path = path / dirname
-    if path.exists():
-        for item in path.iterdir():
-            if item.name.startswith('.') or item.name in ('css', SRC_LOC, DEST_LOC):
-                continue
-            if ftype in LOCS[1:] and do_seflinks:
-                docname = item.stem
-                if item.is_dir():
-                    check_item = item / 'index.html'
-                elif item.name == 'index.html' and not dirname:
-                    check_item = item
-                else:
-                    continue
-            else:
-                if not item.is_file():
-                    continue
-                if item.suffix and item.suffix != ext:
-                    continue
-                docname = item.relative_to(path).stem
-                check_item = item
-            try:
-                result.append((docname, check_item.stat().st_mtime))
-            except FileNotFoundError:
-                continue
-    return result
-
-
-def _get_dir_stats(site_name, dirname=''):
-    """get statistics for all documents in a site subdirectory"""
-    result = defaultdict(lambda: [datetime.datetime.min, datetime.datetime.min,
-                                  datetime.datetime.min])
-    for ix, ftype in enumerate(LOCS):
-        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
-        for name, mtime in statslist:
-            result[name][ix] = datetime.datetime.fromtimestamp(mtime)
-    return sorted([(x, Stats(*y)) for x, y in result.items()])
-
-
 def get_all_doc_stats(sitename):
     """get statistics for all site subdirectories"""
     filelist = [('/', _get_dir_stats(sitename))]
@@ -503,47 +548,11 @@ def get_all_doc_stats(sitename):
 
 
 # deze worden niet gebruikt door de applicatie, maar wel door de testroutines
-def _get_dir_stats_for_docitem(site_name, dirname=''):
-    """get statistics for a document and return in a specific format
-    """
-    docid = 0
-    result_dict = defaultdict(
-        lambda: {x: {'updated': datetime.datetime.min} for x in LOCS})
-    for ftype in LOCS:
-        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
-        for name, mtime in statslist:
-            if ftype != 'mirror':  # for comparability with other backends
-                docid += 1
-                result_dict[name][ftype]['docid'] = docid
-            result_dict[name][ftype]['updated'] = datetime.datetime.fromtimestamp(mtime)
-    result = {}
-    for name in result_dict:
-        value = {}
-        for ftype in result_dict[name]:
-            if result_dict[name][ftype]['updated'] != datetime.datetime.min:
-                value[ftype] = result_dict[name][ftype]
-        result[name] = value
-    ## return sorted((x, y) for x, y in result.items())
-
-    return result
-
-
-def _get_sitedoc_data(sitename):
-    """build a "sitedoc" for processing in list_site_data"""
-    filedict = {'/': _get_dir_stats_for_docitem(sitename)}
-    for item in list_dirs(sitename, 'src'):
-        filedict[item] = _get_dir_stats_for_docitem(sitename, item)
-    return filedict
-
-
 def list_site_data(sitename):
     """list all data on the site in a readable form
 
     for testing purposes and such
     """
-    # caveat: we can't 100% derive the settings file name from the site name
-    ## test = SETTFILE.format(sitename)
-    ## settings = test if test in list_sites() else 'settings.yml'
     _id = 0
     sitedoc = {'_id': _id,
                'name': sitename,

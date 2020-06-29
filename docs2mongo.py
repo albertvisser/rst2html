@@ -21,6 +21,61 @@ except AttributeError:
     Collection.delete_many = Collection.remove
 
 
+#
+# dml-specifieke subroutines:
+#
+def _get_site_id(site_name):
+    """returns the id of the document for the site with the given name
+    """
+    return site_coll.find_one({'name': site_name})['_id']
+
+
+def _get_site_doc(site_name):
+    """returns the stats document for the site with the given name
+    """
+    return site_coll.find_one({'name': site_name})
+
+
+def _update_site_doc(site_name, site_docs):
+    """(re)save the document containing the site data
+    """
+    site_coll.update_one({'name': site_name}, {'$set': {'docs': site_docs}})
+
+
+def _add_doc(doc):
+    """create new document in the site document
+    """
+    try:
+        id_ = site_coll.insert_one(doc).inserted_id
+    except TypeError:
+        id_ = site_coll.insert(doc)
+    return id_
+
+
+def _update_doc(docid, doc):
+    """change a document in the site document
+    """
+    site_coll.update({'_id': docid}, doc)
+
+
+def _get_stats(docinfo):
+    """retrieve site stats from database"""
+    stats = []
+    for key in LOCS:
+        if key in docinfo and 'updated' in docinfo[key]:
+            stats.append(docinfo[key]['updated'])
+        else:
+            stats.append(datetime.datetime.min)
+    return Stats(*stats)
+
+
+## def _add_sitecoll_doc(data):
+    ## site_coll.insert_one(data)
+
+
+#
+# zelfde API als de andere dml-modules:
+#
 def clear_db():
     """remove all data from the database
     """
@@ -32,26 +87,11 @@ def read_db():
     """
     return site_coll.find()
 
-## def _add_sitecoll_doc(data):
-    ## site_coll.insert_one(data)
-
 
 def list_sites():
     """list all sites registered in the database
     """
     return [doc['name'] for doc in site_coll.find() if 'name' in doc]
-
-
-def _get_site_id(site_name):
-    """returns the id of the document for the site with the given name
-    """
-    return site_coll.find_one({'name': site_name})['_id']
-
-
-def _get_site_doc(site_name):
-    """returns the stats document for the site with the given name
-    """
-    return site_coll.find_one({'name': site_name})
 
 
 def create_new_site(site_name):
@@ -98,12 +138,6 @@ def clear_settings(site_name):  # untested - do I need/want this?
     """update settings to empty dict instead of initialized)
     """
     return update_settings(site_name, {})
-
-
-def _update_site_doc(site_name, site_docs):
-    """(re)save the document containing the site data
-    """
-    site_coll.update_one({'name': site_name}, {'$set': {'docs': site_docs}})
 
 
 def list_dirs(site_name, doctype=''):
@@ -203,22 +237,6 @@ def write_template(site_name, doc_name, data):
     sitedoc['templates'][doc_name] = data
     site_coll.update_one({'name': site_name}, {'$set': {'templates': sitedoc['templates']}})
     return ''
-
-
-def _add_doc(doc):
-    """create new document in the site document
-    """
-    try:
-        id_ = site_coll.insert_one(doc).inserted_id
-    except TypeError:
-        id_ = site_coll.insert(doc)
-    return id_
-
-
-def _update_doc(docid, doc):
-    """change a document in the site document
-    """
-    site_coll.update({'_id': docid}, doc)
 
 
 def create_new_doc(site_name, doc_name, directory=''):
@@ -422,17 +440,6 @@ def apply_deletions_mirror(site_name, directory=''):
             path = path.with_suffix(ext)
         if path.exists():
             path.unlink()
-
-
-def _get_stats(docinfo):
-    """retrieve site stats from database"""
-    stats = []
-    for key in LOCS:
-        if key in docinfo and 'updated' in docinfo[key]:
-            stats.append(docinfo[key]['updated'])
-        else:
-            stats.append(datetime.datetime.min)
-    return Stats(*stats)
 
 
 def get_doc_stats(site_name, docname, dirname=''):

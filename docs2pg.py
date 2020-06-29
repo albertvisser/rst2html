@@ -12,6 +12,9 @@ conn = pg.connect(database="rst2html", user=user, password=password)
 TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents', 'templates')
 
 
+#
+# dml-specifieke subroutines:
+#
 # originally I had the idea to factor out database boilerplate code using a decorator
 class DbWrapper:
     """boilerplate code for doing work on the database
@@ -47,70 +50,6 @@ def wrapit(f):
 def _is_equal(x, y):
     """special comparison used in get_all_doc_starts"""
     return x[0] == y
-
-
-def clear_db():
-    """remove all data from the database
-    """
-    cur = conn.cursor()
-    for name in TABLES:
-        ## sql = 'truncate table {};'.format(name)
-        ## cur.execute(sql)
-        cur.execute('truncate table {};'.format(name))
-    conn.commit()
-    cur.close()
-
-
-def read_db():
-    """read and return all data from the database
-    """
-    result = []
-    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-
-    cur.execute('select sitename, id from {} order by sitename;'.format(TABLES[0]))
-    sites = [(x['sitename'], x['id']) for x in cur.fetchall()]
-    for sitename, site_id in sites:
-
-        sitedict = {'name': sitename}
-
-        cur.execute('select settname, settval from {} order by settname'
-                    'where site_id = %s;'.format(TABLES[1]), (site_id,))
-        sitedict['settings'] = {x: y for x, y in cur.fetchall()}
-
-        cur.execute('select dirname, id from {} order by dirname'
-                    'where site_id = %s;'.format(TABLES[2]), (site_id,))
-        sitedirs = [(x['dirname'], x['id']) for x in cur.fetchall()]
-        sitedict['docs'] = []
-        # if we keep the site_id in the docstats table we could restrict this to one db-query
-        # and filter the result set inside the loop
-        # although this should also be possible with a subselect or something like that
-        for dirname, dir_id in sitedirs:
-
-            dirlist = []
-            cur.execute('select * from {} order by docname'
-                        'where dir_id = %s;'.format(TABLES[3]), (dir_id,))
-            for result in cur:
-                result['dirname'] = dirname
-                dirlist.append(result)
-            sitedict['docs'].append(dirlist)
-
-        result.append(sitedict)
-
-    conn.commit()
-    cur.close()
-    return result
-
-
-def list_sites():
-    """list all sites registered in the database
-    """
-    result = []
-    cur = conn.cursor()
-    cur.execute('select sitename from {};'.format(TABLES[0]))
-    result = [x[0] for x in cur.fetchall()]
-    conn.commit()
-    cur.close()
-    return result
 
 
 def _get_site_id(site_name):
@@ -206,6 +145,96 @@ def _get_settings(site_id):
         settings[row['settname']] = row['settval']
     cur.close()
     return settings
+
+
+def _add_doc():
+    """create new document
+    """
+    cur = conn.cursor()
+    cur.execute('insert into {} (currtext, previous) values (%s, %s) '
+                'returning id'.format(TABLES[4]), ('', ''))
+    new_doc_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    return new_doc_id
+
+
+def _get_stats(docinfo):
+    """retrieve site stats from database"""
+    stats = []
+    for value in docinfo:
+        if value:
+            stats.append(value)
+        else:
+            stats.append(datetime.datetime.min)
+    return Stats(*stats)
+
+
+#
+# zelfde API als de andere dml-modules:
+#
+def clear_db():
+    """remove all data from the database
+    """
+    cur = conn.cursor()
+    for name in TABLES:
+        ## sql = 'truncate table {};'.format(name)
+        ## cur.execute(sql)
+        cur.execute('truncate table {};'.format(name))
+    conn.commit()
+    cur.close()
+
+
+def read_db():
+    """read and return all data from the database
+    """
+    result = []
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+
+    cur.execute('select sitename, id from {} order by sitename;'.format(TABLES[0]))
+    sites = [(x['sitename'], x['id']) for x in cur.fetchall()]
+    for sitename, site_id in sites:
+
+        sitedict = {'name': sitename}
+
+        cur.execute('select settname, settval from {} order by settname'
+                    'where site_id = %s;'.format(TABLES[1]), (site_id,))
+        sitedict['settings'] = {x: y for x, y in cur.fetchall()}
+
+        cur.execute('select dirname, id from {} order by dirname'
+                    'where site_id = %s;'.format(TABLES[2]), (site_id,))
+        sitedirs = [(x['dirname'], x['id']) for x in cur.fetchall()]
+        sitedict['docs'] = []
+        # if we keep the site_id in the docstats table we could restrict this to one db-query
+        # and filter the result set inside the loop
+        # although this should also be possible with a subselect or something like that
+        for dirname, dir_id in sitedirs:
+
+            dirlist = []
+            cur.execute('select * from {} order by docname'
+                        'where dir_id = %s;'.format(TABLES[3]), (dir_id,))
+            for result in cur:
+                result['dirname'] = dirname
+                dirlist.append(result)
+            sitedict['docs'].append(dirlist)
+
+        result.append(sitedict)
+
+    conn.commit()
+    cur.close()
+    return result
+
+
+def list_sites():
+    """list all sites registered in the database
+    """
+    result = []
+    cur = conn.cursor()
+    cur.execute('select sitename from {};'.format(TABLES[0]))
+    result = [x[0] for x in cur.fetchall()]
+    conn.commit()
+    cur.close()
+    return result
 
 
 def create_new_site(site_name):
@@ -463,27 +492,6 @@ def write_template(site_name, doc_name, data):
     conn.commit()
     cur.close()
     return mld
-
-
-## def _add_doc(doc):
-    ## cur = conn.cursor()
-    ## cur.execute('insert into {} (currtext, previous) values (%s, %s) '
-        ## 'returning id'.format(TABLES[4]), ('', '')
-    ## new_id = cur.fetchone()[0]
-    ## conn.commit()
-    ## cur.close()
-    ## return new_id
-    ## return cur.fetchone()[0]
-def _add_doc():
-    """create new document
-    """
-    cur = conn.cursor()
-    cur.execute('insert into {} (currtext, previous) values (%s, %s) '
-                'returning id'.format(TABLES[4]), ('', ''))
-    new_doc_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    return new_doc_id
 
 
 def create_new_doc(site_name, doc_name, directory=''):
@@ -778,17 +786,6 @@ def apply_deletions_mirror(site_name, directory=''):
             path = path.with_suffix(ext)
         if path.exists():
             path.unlink()
-
-
-def _get_stats(docinfo):
-    """retrieve site stats from database"""
-    stats = []
-    for value in docinfo:
-        if value:
-            stats.append(value)
-        else:
-            stats.append(datetime.datetime.min)
-    return Stats(*stats)
 
 
 def get_doc_stats(site_name, docname, dirname=''):
