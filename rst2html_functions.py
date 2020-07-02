@@ -1404,11 +1404,16 @@ class R2hState:
         self.loaded = RST
         return mld, rstfile, htmlfile, rstdata
 
-    def convert_all(self, needed_only=False, missing_only=False, show_only=False):
+    def convert_all(self, option='3'):
         """(re)generate all html documents and copy to mirror"""
+        needed_only = option in ('1', '4')
+        missing_only = option in ('2', '5')
+        show_only = option in ('3', '4', '5')
+        optdict = {'0': 'all' , '1': 'needed', '2': 'missing',
+                   '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
         results = update_all(self.sitename, self.conf, needed_only=needed_only,
                              missing_only=missing_only, show_only=show_only)
-        data = []
+        data = ['Documents generated with option `{}`'.format(optdict[option]), '']
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
             if '{}' in msg:

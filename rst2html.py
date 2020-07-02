@@ -279,15 +279,7 @@ class Rst2Html:
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
         """regenerate all html files
         """
-        needed_only = regsubj in ('1', '4')
-        missing_only = regsubj in ('2', '5')
-        show_only = regsubj in ('3', '4', '5')
-        optdict = {'0': 'all' , '1': 'needed', '2': 'missing',
-                   '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
-        first_message = 'Documents generated with option `{}`'.format(optdict[regsubj])
-        mld, rstdata = self.state.convert_all(needed_only=needed_only, missing_only=missing_only,
-                                              show_only=show_only)
-        rstdata = '\n\n'.join((first_message, rstdata))
+        mld, rstdata = self.state.convert_all(option=regsubj)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
