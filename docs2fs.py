@@ -531,11 +531,14 @@ def remove_doc(sitename, docname, directory=''):
 
 def get_doc_stats(sitename, docname, dirname=''):
     """get statistics for a document in a site subdirectory"""
+    do_seflinks = read_settings(sitename).get('seflinks')
     mtimes = [datetime.datetime.min, datetime.datetime.min, datetime.datetime.min]
     for ix, ftype in enumerate(LOCS):
         path = _locify(FS_WEBROOT / sitename, ftype)
         path = path / dirname if dirname else path
         path /= docname
+        if ix > 0:
+            path /= 'index'
         ext = LOC2EXT[ftype]
         if path.suffix != ext:
             path = path.with_suffix(ext)
