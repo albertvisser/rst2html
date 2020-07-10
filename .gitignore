@@ -10,3 +10,6 @@ logs/
 
 # on-demand
 app_settings*
+
+# data
+rst2html-data/
