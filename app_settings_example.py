@@ -12,8 +12,7 @@ password = '<password>'
 # default site to start the application with
 DFLT = '<sitename>'
 # physical path for mirror root
-# note: home works from Python 3.5 onwards. If your Python is older, simply use the full path
-FS_WEBROOT = pathlib.Path('<webroot>')  # as configured in web server
+FS_WEBROOT = pathlib.Path('<webroot>')  # file-system version: as configured in web server
 DB_WEBROOT = pathlib.Path(__file__).parent / 'rst2html-data'    # database versions
 # root for local webserver config mirror (used by 'fabsrv' command)
 # (leave empty or invalid if you don't use this)
