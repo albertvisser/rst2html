@@ -111,7 +111,7 @@ class ClearCol(Directive):
 class Spacer(Directive):
     """genereert een lege regel of kolom
 
-    optionol: aantal kolomeenheden. Bij niet opgeven hiervan wrdt de spacer genereneerd
+    optional: aantal kolomeenheden. Bij niet opgeven hiervan wrdt de spacer genereneerd
     binnen de huidige kolom; anders vergelijkbaar met firstcol/nextcol"""
 
     required_arguments = 0

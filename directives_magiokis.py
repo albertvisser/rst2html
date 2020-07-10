@@ -272,6 +272,8 @@ class MySidebar(Directive):
     def run(self):
         "genereer de html"
         text = '<p></p><aside><section>include {}</section></aside>'.format(self.arguments[0])
+        # TODO dit werkt zo niet: je moet de inhoud van het aangegeven file tussenvoegen, niet
+        # de verwijzing ernaar
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -452,7 +454,8 @@ class EndBlock(Directive):
 
     def run(self):
         "genereer de html"
-        text_node = nodes.raw('', '</div> <!-- end {} -->\n'.format(self.arguments[0]), format='html')
+        text_node = nodes.raw('', '</div> <!-- end {} -->\n'.format(self.arguments[0]),
+                              format='html')
         return [text_node]
 
 
@@ -497,7 +500,7 @@ class MyFooter(Directive):
     """
 
     required_arguments = 0
-    optional_arguments = 2
+    optional_arguments = 0  # was 2 maar dat slaat op het aantal options
     final_argument_whitespace = True
     option_spec = {'text': directives.unchanged,
                    'mailto': directives.unchanged}
