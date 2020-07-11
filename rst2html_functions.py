@@ -703,89 +703,135 @@ def build_progress_list(sitename):
 
 
 # -- convert all --
-def update_all(sitename, conf, missing_ok=False, missing_only=False, needed_only=False,
-               show_only=False):
-    """process all documents on the site
+class UpdateAll:
+    """Regenerate documents om a site according to parameters
     """
-    regen_included = check_for_include_changes(sitename)
-    result = build_progress_list(sitename)
-    messages = []
-    root = WEBROOT / sitename
-    files_to_skip = conf.get('do-not-generate', [])
-    for dirname, filename, phase, stats in result:
-        must_generate = (dirname, filename) in regen_included
-        if needed_only and phase == 2 and not must_generate:
-            continue
-        fname = dirname + filename if dirname == '/' else '/'.join((dirname, filename))
-        if fname in files_to_skip:
-            with open('/tmp/in_update_all', 'a') as f:
-                print('skip ' + fname, file=f)
-            continue
-        path = root / dirname if dirname != '/' else root
-        rebuild_html = False if needed_only and stats.dest >= stats.src and not must_generate else True
-        with open('/tmp/in_update_all', 'a') as _o:
-            print('read_src_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
-                                                             fname), file=_o)
-        msg, rstdata = read_src_data(sitename, dirname, filename)
-        if msg:
-            with open('/tmp/in_update_all', 'a') as _o:
-                print(msg, file=_o)
-            messages.append((fname, msg))
-            continue
-        with open('/tmp/in_update_all', 'a') as _o:
-            print('read_html_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
-                                                              fname), file=_o)
-        msg, htmldata = read_html_data(sitename, dirname, filename)
-        if msg:
-            with open('/tmp/in_update_all', 'a') as _o:
-                print(msg, file=_o)
-            if missing_ok or missing_only:
-                htmldata = rst2html(rstdata, conf['css'])
+
+    def __init__(self, sitename, conf, missing_ok=False, missing_only=False, needed_only=False,
+                   show_only=False):
+        """process all documents on the site
+        """
+        self.sitename = sitename
+        self.conf = conf
+        self.include_timestamps = {}
+        self.missing_ok = missing_ok
+        self.missing_only = missing_only
+        self.needed_only = needed_only
+        self.show_only = show_only
+
+    def go(self):
+        "main line"
+        messages = []
+        result = build_progress_list(self.sitename)
+
+        files_to_skip = self.conf.get('do-not-generate', [])
+        for dirname, filename, phase, stats in result:
+            # dit geldt niet meer omdat we nu ook naar gewijzigde includes kijken
+            # if phase == 2 and self.needed_only:  # meest recent is mirror, geen actie meer nodig
+            #     continue
+            self.path = WEBROOT / self.sitename
+            if dirname == '/':
+                self.fname = dirname + filename
             else:
-                messages.append((fname, msg))
+                self.fname = '/'.join((dirname, filename))
+                self.path /= dirname
+            if self.fname in files_to_skip:
                 continue
-        else:
-            if missing_only:
-                messages.append((fname, 'target_present'))
+
+            msg, self.rstdata = read_src_data(self.sitename, dirname, filename)
+            if msg:
+                messages.append((self.fname, msg))
                 continue
+
+            target_needed = mirror_needed = True
+            if self.needed_only:
+                if stats.dest >= stats.src:
+                    target_needed = False
+                if stats.mirror >= stats.dest:
+                    mirror_needed = False
+            if target_needed:
+                mirror_needed = True
             else:
-                htmldata = rst2html(rstdata, conf['css'])
-        if rebuild_html:
-            with open('/tmp/in_update_all', 'a') as _o:
-                print('save_html_data({}, {}, {}) voor {}'.format(sitename, dirname, filename,
-                                                                  fname), file=_o)
-            if show_only:
-                msg = save_html_data(sitename, dirname, filename, htmldata, dry_run=True)
-            else:
-                msg = save_html_data(sitename, dirname, filename, htmldata)
-            html_rebuilt = True
-        else:
-            html_rebuilt = False
-        if not msg:
-            if conf.get('seflinks', False) and filename != 'index':
-                destfile = path / filename / 'index.html'
-            else:
-                destfile = path / (filename + '.html')
-            if destfile.exists() or missing_ok or missing_only:
-                if show_only:
-                    msg = save_to_mirror(sitename, dirname, filename, conf, dry_run=True)
-                else:
-                    complete_header(conf, htmldata)
-                    msg = save_to_mirror(sitename, dirname, filename, conf)
-                mirror_rebuilt = False if msg else True
-            else:
-                msg = 'mirror_missing'
-        if not msg:
-            if html_rebuilt:
-                msg = 'html_saved'  # 'target rebuilt'
-            if mirror_rebuilt:
+                saved = mirror_needed
+                target_needed, mirror_needed = self.check_for_updated_includes(stats)
+                if saved and not mirror_needed:
+                    mirror_needed = saved
+            if target_needed:
+                msg, html_rebuilt = self.rebuild_html(dirname, filename)
+                if msg:
+                    messages.append((self.fname, msg))
+                    continue
                 if html_rebuilt:
-                    messages.append((fname, msg))
-                msg = 'copied_to'  # 'mirror_rebuilt'
-        with open('/tmp/in_update_all', 'a') as _o:
-            print(msg, file=_o)
-        messages.append((fname, msg))
-    return messages
+                    msg = 'html_saved'
+                messages.append((self.fname, msg))
+            if mirror_needed:
+                msg, mirror_rebuilt = self.rebuild_mirror(dirname, filename, mirror_needed)
+                if not msg and mirror_rebuilt:
+                    msg = 'copied_to'
+                if msg:
+                    messages.append((self.fname, msg))
+        return messages
+
+    def check_for_updated_includes(self, doc_timestamp):
+        contained_includes = check_for_includes(self.sitename, self.rstdata)
+        target_needed = mirror_needed = False
+        for item in contained_includes:
+            inc_timestamp = self.include_timestamps.get(item, '')
+            if not inc_timestamp:
+                inc_timestamp = dml.get_doc_stats(self.sitename, item)
+                self.include_timestamps[item] = inc_timestamp
+            if doc_timestamp.dest < inc_timestamp.src:
+                target_needed = mirror_needed = True
+            elif doc_timestamp.mirror < inc_timestamp.src:
+                mirror_needed = True
+        return target_needed, mirror_needed
+
+    def rebuild_html(self, dirname, filename):
+        "regenerate target html if needed / possible"
+        msg, htmldata = read_html_data(self.sitename, dirname, filename)
+        if msg:
+            build_html = True if self.missing_ok or self.missing_only else False
+        else:
+            build_html = False if self.missing_only else True
+        if build_html:
+            htmldata = rst2html(self.rstdata, self.conf['css'])
+        else:
+            return msg, False
+        if self.show_only:
+            msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
+        else:
+            msg = save_html_data(self.sitename, dirname, filename, htmldata)
+        return msg, True   # html_rebuilt = True
+
+    def rebuild_mirror(self, dirname, filename, mirror_needed):
+        "regenerate mirror file if needed / possible"
+        if self.conf.get('seflinks', False) and filename != 'index':
+            destfile = self.path / filename / 'index.html'
+        else:
+            destfile = self.path / (filename + '.html')
+        if destfile.exists() or self.missing_ok or self.missing_only or mirror_needed:
+            if self.show_only:
+                msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
+            else:
+                complete_header(self.conf, self.htmldata)
+                msg = save_to_mirror(self.sitename, dirname, filename, self.conf)
+            if msg:
+                return msg, False
+            return msg, True
+        else:
+            return 'mirror_missing', False
+
+
+def check_for_includes(sitename, rstdata):
+    "gebruikte includes afleiden uit source"
+    includenames = []
+    # NB: het `.. include::` directive werkt eigenlijk alleen voor file-based sites...
+    includes = [x.lstrip().split(None, 1)[0] for x in rstdata.split('.. include::')[1:]]
+    for item in includes:
+        path =  pathlib.Path(item)
+        if path.parent == WEBROOT / sitename / '.source':
+            includenames.append(path.stem)
+    return includenames
 
 
 def check_for_include_changes(sitename):  # , conf):
@@ -973,8 +1019,7 @@ class R2hState:
     def __init__(self):
         self.sitename = default_site()
         self.rstfile = self.htmlfile = self.newfile = self.rstdata = ""
-        self.current = self.loaded = ""
-        self.oldtext = self.oldhtml = ""
+        self.current = self.oldtext = self.oldhtml = ""
         self.conf = DFLT_CONF
         self.newconf = False
         self.loaded = RST
@@ -1406,9 +1451,11 @@ class R2hState:
         show_only = option in ('3', '4', '5')
         optdict = {'0': 'all' , '1': 'needed', '2': 'missing',
                    '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
-        results = update_all(self.sitename, self.conf, needed_only=needed_only,
-                             missing_only=missing_only, show_only=show_only)
+        results = UpdateAll(self.sitename, self.conf, needed_only=needed_only,
+                            missing_only=missing_only, show_only=show_only).go()
         data = ['Documents generated with option `{}`'.format(optdict[option]), '']
+        with open('/tmp/rhfn_convert_all', 'w') as f:
+            f.write(results)
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
             if '{}' in msg:
