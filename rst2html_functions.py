@@ -763,7 +763,7 @@ class UpdateAll:
                     continue
                 if html_rebuilt:
                     msg = 'html_saved'
-                messages.append((self.fname, msg))
+                    messages.append((self.fname, msg))
             if mirror_needed:
                 msg, mirror_rebuilt = self.rebuild_mirror(dirname, filename, mirror_needed)
                 if not msg and mirror_rebuilt:
@@ -813,7 +813,6 @@ class UpdateAll:
             if self.show_only:
                 msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
             else:
-                complete_header(self.conf, self.htmldata)
                 msg = save_to_mirror(self.sitename, dirname, filename, self.conf)
             if msg:
                 return msg, False
@@ -1455,7 +1454,8 @@ class R2hState:
                             missing_only=missing_only, show_only=show_only).go()
         data = ['Documents generated with option `{}`'.format(optdict[option]), '']
         with open('/tmp/rhfn_convert_all', 'w') as f:
-            f.write(results)
+            for item in results:
+                print(item, file=f)
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
             if '{}' in msg:
