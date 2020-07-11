@@ -200,11 +200,12 @@ def get_custom_directives_filename():
 # -- site / conf related --
 def default_site():
     """return the first entry in the sites list to provide as default
+
+    check if it exists for this application
     """
-    try:
-        result = DFLT
-    except NameError:
-        all_sites = dml.list_sites()
+    result = DFLT
+    all_sites = dml.list_sites()
+    if result not in all_sites:
         result = all_sites[0] if all_sites else ''
     return result
 
@@ -264,8 +265,6 @@ def add_to_hostsfile(url):
 
     update a local version and upload via a script
     """
-    # TODO: cater for not using fabsrv commands, so not having this location
-    # with pathlib.Path('~/nginx-config/misc/hosts').expanduser().open('a') as hostsfile:
     with (SRV_CONFIG / 'misc/hosts').open('a') as hostsfile:
         print('127.0.0.1     {}'.format(url), file=hostsfile)
 
@@ -276,8 +275,6 @@ def add_to_server(url, location):
     update a local version and upload / restart server via a script
     """
     logloc = url.rsplit('.', 1)[0]
-    # TODO: cater for not using fabsrv commands, so not having this location
-    # with pathlib.Path('~/nginx-config/nginx/flatpages').expanduser().open('a') as config:
     with (SRV_CONFIG / 'nginx/flatpages').open('a') as config:
         for line in ('server {',
                      '    server_name {};'.format(url),
@@ -1077,8 +1074,6 @@ class R2hState:
                 mld, newurl = new_conf(newsett, rstdata, self.get_lang())
                 if newurl:
                     rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
-                    # TODO: cater for not using fabsrv commands
-                    # d.w.z. in dat geval zou hier een listje met commando's getoond moeten worden
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if mld == "":
             mld = save_conf(newsett, rstdata, self.get_lang())
