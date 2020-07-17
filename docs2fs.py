@@ -46,14 +46,14 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
                 continue
             if ftype in LOCS[1:] and do_seflinks:
                 docname = item.stem
-                if item.is_dir():
+                if item.is_dir() and not item.is_symlink():
                     check_item = item / 'index.html'
                 elif item.name == 'index.html' and not dirname:
                     check_item = item
                 else:
                     continue
             else:
-                if not item.is_file():
+                if not item.is_file() or item.is_symlink():
                     continue
                 if item.suffix and item.suffix != ext:
                     continue
