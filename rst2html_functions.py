@@ -11,7 +11,7 @@ import inspect
 import html
 import urllib.request
 import urllib.error
-## import datetime
+import datetime
 ## import gettext
 import collections
 
@@ -672,7 +672,7 @@ def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     data = complete_header(conf, data)
     sitename = conf.get("mirror", sitename)
     try:
-        dml.update_mirror(sitename, path.stem, data, directory=current)
+        dml.update_mirror(sitename, path.stem, data, directory=current, dry_run=dry_run)
         return ''
     except AttributeError as e:
         if 'name' in str(e):
@@ -726,9 +726,6 @@ class UpdateAll:
 
         files_to_skip = self.conf.get('do-not-generate', [])
         for dirname, filename, phase, stats in result:
-            # dit geldt niet meer omdat we nu ook naar gewijzigde includes kijken
-            # if phase == 2 and self.needed_only:  # meest recent is mirror, geen actie meer nodig
-            #     continue
             self.path = WEBROOT / self.sitename
             if dirname == '/':
                 self.fname = dirname + filename
@@ -747,29 +744,27 @@ class UpdateAll:
             if self.needed_only:
                 if stats.dest >= stats.src:
                     target_needed = False
-                if stats.mirror >= stats.dest:
-                    mirror_needed = False
+                    if stats.mirror >= stats.dest:
+                        mirror_needed = False
+                    saved = mirror_needed
+                    target_needed, mirror_needed = self.check_for_updated_includes(stats)
+                    if not mirror_needed and saved:
+                        mirror_needed = True
+            elif self.missing_only:
+                if stats.dest != datetime.datetime.min:  # bestaat, dus overslaan
+                    target_needed = mirror_needed = False
             if target_needed:
-                mirror_needed = True
-            else:
-                saved = mirror_needed
-                target_needed, mirror_needed = self.check_for_updated_includes(stats)
-                if saved and not mirror_needed:
-                    mirror_needed = saved
-            if target_needed:
-                msg, html_rebuilt = self.rebuild_html(dirname, filename)
+                msg = self.rebuild_html(dirname, filename)
                 if msg:
                     messages.append((self.fname, msg))
                     continue
-                if html_rebuilt:
-                    msg = 'html_saved'
-                    messages.append((self.fname, msg))
+                msg = 'html_saved'
+                messages.append((self.fname, msg))
             if mirror_needed:
-                msg, mirror_rebuilt = self.rebuild_mirror(dirname, filename, mirror_needed)
-                if not msg and mirror_rebuilt:
+                msg = self.rebuild_mirror(dirname, filename)
+                if not msg:
                     msg = 'copied_to'
-                if msg:
-                    messages.append((self.fname, msg))
+                messages.append((self.fname, msg))
         return messages
 
     def check_for_updated_includes(self, doc_timestamp):
@@ -788,37 +783,20 @@ class UpdateAll:
 
     def rebuild_html(self, dirname, filename):
         "regenerate target html if needed / possible"
-        msg, htmldata = read_html_data(self.sitename, dirname, filename)
-        if msg:
-            build_html = True if self.missing_ok or self.missing_only else False
-        else:
-            build_html = False if self.missing_only else True
-        if build_html:
-            htmldata = rst2html(self.rstdata, self.conf['css'])
-        else:
-            return msg, False
+        htmldata = rst2html(self.rstdata, self.conf['css'])
         if self.show_only:
             msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
         else:
             msg = save_html_data(self.sitename, dirname, filename, htmldata)
-        return msg, True   # html_rebuilt = True
+        return msg
 
-    def rebuild_mirror(self, dirname, filename, mirror_needed):
+    def rebuild_mirror(self, dirname, filename):
         "regenerate mirror file if needed / possible"
-        if self.conf.get('seflinks', False) and filename != 'index':
-            destfile = self.path / filename / 'index.html'
+        if self.show_only:
+            msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
         else:
-            destfile = self.path / (filename + '.html')
-        if destfile.exists() or self.missing_ok or self.missing_only or mirror_needed:
-            if self.show_only:
-                msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
-            else:
-                msg = save_to_mirror(self.sitename, dirname, filename, self.conf)
-            if msg:
-                return msg, False
-            return msg, True
-        else:
-            return 'mirror_missing', False
+            msg = save_to_mirror(self.sitename, dirname, filename, self.conf)
+        return msg
 
 
 def check_for_includes(sitename, rstdata):
