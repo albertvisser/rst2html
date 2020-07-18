@@ -707,14 +707,12 @@ class UpdateAll:
     """Regenerate documents om a site according to parameters
     """
 
-    def __init__(self, sitename, conf, missing_ok=False, missing_only=False, needed_only=False,
-                   show_only=False):
+    def __init__(self, sitename, conf, missing_only=False, needed_only=False, show_only=False):
         """process all documents on the site
         """
         self.sitename = sitename
         self.conf = conf
         self.include_timestamps = {}
-        self.missing_ok = missing_ok
         self.missing_only = missing_only
         self.needed_only = needed_only
         self.show_only = show_only
