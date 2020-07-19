@@ -301,7 +301,13 @@ class Rst2Html:
         """regenerate all html files
         """
         mld, rstdata = self.state.convert_all(option=regsubj)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+        outdata = format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+        selector_text = 'select name="regsubj"'
+        begin, end = outdata.split(selector_text)
+        option_text = 'value="{}"'.format(regsubj)
+        new_end = end.replace(option_text, 'selected="selected" ' + option_text, 1)
+        outdata = selector_text.join((begin, new_end))
+        return outdata
 
     @cherrypy.expose
     def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):

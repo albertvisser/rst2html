@@ -1457,7 +1457,7 @@ class R2hState:
                    '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
         results = UpdateAll(self.sitename, self.conf, needed_only=needed_only,
                             missing_only=missing_only, show_only=show_only).go()
-        data = ['Documents generated with option `{}`'.format(optdict[option]), '']
+        data = []
         with open('/tmp/rhfn_convert_all', 'w') as f:
             for item in results:
                 print(item, file=f)
@@ -1467,7 +1467,8 @@ class R2hState:
                 data.append(msg.format(fname))
             else:
                 data.append(fname + ': ' + msg)
-        mld = get_text('docs_converted', self.get_lang())
+        txt = get_text('in_sim', self.get_lang()) if show_only else ''
+        mld = get_text('docs_converted', self.get_lang()).format(txt)
         return mld, '\n'.join(data)
 
     def search(self, search, replace):
