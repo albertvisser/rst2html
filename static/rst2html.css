@@ -16,3 +16,4 @@ span .small-indent { padding-left: 10px; }
 span .no-indent { width: 200px; }
 span .big-indent { padding-left: 100px; }
 #rstdata { display: inline; }
+.label-search { width: 200px; }

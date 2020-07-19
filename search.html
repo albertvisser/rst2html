@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Rst2Html Search in source documenten</title>
+    </head>
+    <body style="background-color: #C6E2FF; color: #3a5fcd">
+	<div id="search-args">
+        <a href="/loadconf?settings={}"><button accesskey="b">
+	    <span style="text-decoration:underline">B</span>ack to editor</button></a>
+	<form action="/find_results/" method="post" name="search_args">
+		<div style="margin-top: 5px">
+			<label for="search" style="display: inline-block; width: 100px;">
+				Zoek naar:</label>
+			<input type="text" name="search" id="search" value="{}"/></div>
+		<div style="margin-top: 5px">
+			<label for="replace" style="display: inline-block; width: 100px;">
+				Vervang door:</label>
+			<input type="text" name="replace" id="replace" value="{}"/></div>
+		<div style="margin-top: 5px">
+			<button type="submit" accesskey="g">
+			    <span style="text-decoration:underline">G</span>o</button></div>
+	</form>
+	</div>
+	<div id="message">
+		<p><strong>{}</strong></p>
+	</div>
+	<div id="search-results">
+	<hr>
+	{% if results %}
+        <table summary="overzicht">
+            <thead>
+            <tr>
+                <th>pagina</th>
+                <th>regel</th>
+                <th>tekst</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{row.0}</td>
+                <td>{row.1}</td>
+                <td>{row.2}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+	{% endif %}
+	</div>
+    </body>
+</html>

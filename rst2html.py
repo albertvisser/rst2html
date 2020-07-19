@@ -147,6 +147,27 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
     return previewdata
 
 
+def format_search(results=None):
+    "build search screen data"
+    template = HERE / 'search.html'
+    with template.open() as _in:
+        output = _in.read()
+    first_part, rest = output.split('{% if results %}')
+    start, rest = rest.split('{% for row in data %}')
+    line, rest = rest.split('{% endfor %}')
+    end, last_part = rest.split('{% endif %}')
+    output = [first_part]
+    if results:
+        output.append(start)
+        for page, lineno, text in results:
+            out = line.replace('{row.0}', page).replace('{row.1}', str(lineno)).replace('{row.2}',
+                                                                                        text)
+            output.append(out)
+        output.append(end)
+    output.append(last_part)
+    return ''.join(output)
+
+
 class Rst2Html:
     "the actual webapp"
 
@@ -283,26 +304,30 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def search(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj = ''):
-        """start find/replace action
+    def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+        """start find/replace action: enter arguments
         """
-        mld = "Deze functie is in aanbouw"  #TODO: build this
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+        mld = "Deze functie is in aanbouw, maar probeer maar"
+        return format_search().format(settings, '', '', mld)
 
     @cherrypy.expose
-    def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def find_results(self, search="", replace=""):
+        """execute find/replace action and show the results
+        """
+        if search:
+            mld, results = self.state.search(search, replace)
+        else:
+            mld, results = 'At least tell me what to search for', []
+        return format_search(results).format(self.state.settings, search, replace, mld)
+
+    @cherrypy.expose
+    def overview(self, settings=""):
         """output the site inventory to html, accentuating the most recently updated items
         """
         data = self.state.overview()
         return format_progress_list(data).format(settings)
-        ## if not mld:
-            ## return rstdata.format(settings)
-        ## return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings,
-            ## self.state)
 
 if __name__ == "__main__":
-    ## domain = "pythoneer" if len(sys.argv) == 1 else sys.argv[1]
-    ## cherrypy.quickstart(Rst2Html())
     cherrypy.quickstart(Rst2Html(), config={
         "global": {'server.socket_host': '127.0.0.1',
                    'server.socket_port': 8099},

@@ -951,25 +951,24 @@ def search_site(sitename, find, replace=None):
     walk the root to get results from it
     then walk the subdirectories to add the results from there
     """
-    results = read_dir(dml, sitename, find, replace)
+    results = read_dir(sitename, find, replace)
     for dirname in dml.list_dirs(sitename, 'src'):
-        results.update(read_dir(dml, sitename, find, replace, dirname))
+        results.update(read_dir(sitename, find, replace, dirname))
     return results
 
 
-def read_dir(dml, sitename, search, replace, dirname=''):
+def read_dir(sitename, search, replace, dirname=''):
     """return the results by walking a directory and getting results from the files in it
 
     results in this case being search results (and replacements) in each document
     """
     results = collections.defaultdict(list)
     for filename in dml.list_docs(sitename, 'src', directory=dirname):
-        results[(dirname, filename)] = process_file(dml, sitename, dirname, filename,
-                                                    search, replace)
+        results[(dirname, filename)] = process_file(sitename, dirname, filename, search, replace)
     return results
 
 
-def process_file(dml, sitename, dirname, filename, search, replace):
+def process_file(sitename, dirname, filename, search, replace):
     """do the finds and if needed the replacements
     """
     results = []
@@ -986,6 +985,36 @@ def process_file(dml, sitename, dirname, filename, search, replace):
             new_contents = contents.replace(search, replace)
             dml.update_rst(sitename, filename, new_contents, dirname)
     return results
+
+
+def searchdict2list(inputdict, search):
+    """transfrom the search output to a list displayable on the site
+    """
+    outputlist = []
+    for filespec, lines in sorted([x for x in inputdict.items()]):
+        if not lines:
+            continue
+        dirname, filename = filespec
+        if dirname:
+            filespec = '/'.join((dirname, filename))
+        else:
+            filespec = '/' + filename
+        for lineno, linetext, locs in lines:
+            maxlen = 80
+            if len(linetext) <= maxlen:
+                text = linetext.replace(search, search.join(('<strong>', '</strong>')))
+                outputlist.append((filespec, lineno, text))
+                continue
+            for pos in locs:
+                start = pos - 20 if pos > 9 else 0
+                text = linetext[start:start + maxlen]
+                text = text.replace(search, search.join(('<strong>', '</strong>')), 1)
+                if start > 0:
+                    text = '...' + text
+                if start + maxlen < len(linetext):
+                    text += '...'
+                outputlist.append((filespec, lineno, text))
+    return outputlist
 
 
 class R2hState:
@@ -1440,6 +1469,24 @@ class R2hState:
                 data.append(fname + ': ' + msg)
         mld = get_text('docs_converted', self.get_lang())
         return mld, '\n'.join(data)
+
+    def search(self, search, replace):
+        "do a search and optionally replace action for all documents on the site"
+        # TODO: wat te doen bij een achterlijk groot aantal zoekresultaten (bv. bij zoeken op "de")?
+        if replace:
+            items_found = {}  # nog even geen wijzigingen
+            # items_found = search_site(self.sitename, search, replace)
+        else:
+            items_found = search_site(self.sitename, search)
+        results = searchdict2list(items_found, search)
+        if results:
+            mld = 'de onderstaande regels/regeldelen zijn {}:'
+            hlp = 'vervangen' if replace else 'gevonden'
+            mld = mld.format(hlp)
+        else:
+            mld = 'nothing found, no replacements' if replace else 'search phrase not found'
+        return mld, results
+
 
     def overview(self):
         """show the state of all site documents"""
