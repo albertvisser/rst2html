@@ -626,7 +626,7 @@ def complete_header(conf, rstdata):
         if isinstance(conf['starthead'], str):
             middle = conf['starthead']
         else:
-            middle = os.linesep.join(conf['starthead'])
+            middle = ''.join(conf['starthead'])
         rstdata = start + split_on + middle + end
     if conf.get('endhead', ''):
         if '</head>' in rstdata:
@@ -637,7 +637,7 @@ def complete_header(conf, rstdata):
         if isinstance(conf['endhead'], str):
             middle = conf['endhead']
         else:
-            middle = os.linesep.join(conf['endhead'])
+            middle = ''.join(conf['endhead'])
         rstdata = start + middle + split_on + end
     # replace references to local domain
     if conf['url']:
