@@ -683,13 +683,15 @@ def build_progress_list(sitename):
     """build a list of the conversion state of all site documents
     """
     result = []
+    rootitem = None
     data = dml.get_all_doc_stats(sitename)
     for ix, diritem in enumerate(data):
         if diritem[0] == '/':
             rootitem = data.pop(ix)
             break
     data.sort()
-    data.insert(0, rootitem)
+    if not rootitem:
+        data.insert(0, rootitem)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
             maxval = max(stats)
