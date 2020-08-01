@@ -470,15 +470,6 @@ def list_files(sitename, current='', naam='', ext='', lang=LANG, deleted=False):
     return "".join(out)
 
 
-def _get_data(sitename, current, fname, origin):
-    """returns the contents or propagates an exception
-    """
-    try:
-        return dml.get_doc_contents(sitename, fname, origin, directory=current)
-    except (AttributeError, FileNotFoundError):
-        raise
-
-
 def read_src_data(sitename, current, fname):
     """get source data from wherever it's been stored
     """
@@ -486,7 +477,7 @@ def read_src_data(sitename, current, fname):
     if path.suffix not in ('', '.rst'):
         return 'rst_filename_error', ''
     try:
-        return '', _get_data(sitename, current, path.stem, 'src')
+        return '', dml.get_doc_contents(sitename, path.stem, 'src', current)
     except AttributeError:
         return 'src_name_missing', ''
     except FileNotFoundError:
@@ -500,7 +491,7 @@ def read_html_data(sitename, current, fname):
     if path.suffix not in ('', '.html'):
         return 'html_filename_error', ''
     try:
-        return '', _get_data(sitename, current, path.stem, 'dest')
+        return '', dml.get_doc_contents(sitename, path.stem, 'dest', current)
     except AttributeError:
         return 'html_name_missing', ''
     except FileNotFoundError:
