@@ -114,7 +114,7 @@ def get_text(keyword, lang=LANG):
     ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 
 
-def post_process_magiokis(data):
+def post_process_title(data):
     """replace generated title with title from document
     """
     try:
@@ -150,7 +150,7 @@ def rst2html(data, css):
     newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
                                  writer_name='html', settings_overrides=overrides),
                   encoding='utf-8')
-    newdata = post_process_magiokis(newdata)
+    newdata = post_process_title(newdata)
     return newdata
 
 
