@@ -351,17 +351,6 @@ def text2conf(text, lang=LANG):
 
     also check settings for correctness (valid locations)
     """
-    def check_url(value):
-        "recursively try to find the url (we could be in a sub-site"
-        try:
-            urllib.request.urlopen(value)
-        except (urllib.error.HTTPError, urllib.error.URLError):
-            value = value.rsplit('/', 1)[0]
-            if value != 'http:/':
-                check_url(value)
-            else:
-                raise
-
     invalid = get_text('sett_invalid', lang)
     # pass data through yaml to parse into a dict
     try:
@@ -405,6 +394,18 @@ def text2conf(text, lang=LANG):
         elif not item.startswith('http'):
             conf['css'][ix] = 'https://' + item
     return '', conf
+
+
+def check_url(value):
+    "recursively try to find the url (we could be in a sub-site"
+    try:
+        urllib.request.urlopen(value)
+    except (urllib.error.HTTPError, urllib.error.URLError):
+        value = value.rsplit('/', 1)[0]
+        if value != 'http:/':
+            check_url(value)
+        else:
+            raise
 
 
 def save_conf(sitename, text, lang=LANG):
