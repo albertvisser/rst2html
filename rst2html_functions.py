@@ -661,9 +661,7 @@ def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'Not a valid html file name'
-    dirname = WEBROOT / sitename
     if current:
-        dirname /= current  # = dirname / current)
         mld, data = read_html_data(sitename, current, path.stem)
     else:
         mld, data = read_html_data(sitename, '', path.stem)
@@ -807,32 +805,6 @@ def check_for_includes(sitename, rstdata):
         if path.parent == WEBROOT / sitename / '.source':
             includenames.append(path.stem)
     return includenames
-
-
-def check_for_include_changes(sitename):  # , conf):
-    """check welke sources er vanwege gewijzigde included files opnieuw gegenereerd moeten worden
-    """
-    results = set()
-    # zoekresultaten voor .. include:: verzamelen: document waar het in zit + wat er gevonden is
-    results_per_file = search_site(sitename, '.. include::')
-    # maak een mapping van included document op documenten waar het geinclude wordt
-    files_per_include = collections.defaultdict(list)
-    include_files = set()
-    for key, value in results_per_file.items():
-        source_spec = (key[0] or '/', key[1])
-        for lineno, line, pos in value:
-            include_name = line.rsplit('::', 1)[1].strip()
-            include_spec = include_name.split('.source/', 1)[1].split('/')
-            if len(include_spec) == 1:
-                include_datetime = dml.get_doc_stats(sitename, include_spec[0])
-            else:
-                include_datetime = dml.get_doc_stats(sitename, include_spec[1], include_spec[0])
-            # alleen de documenten die eerder gewijzigd zijn dan de include
-            if dml.get_doc_stats(sitename, key[1], key[0]).src < include_datetime.src:
-                files_per_include[include_name].append(source_spec)
-    for files in files_per_include.values():
-        results.update(files)
-    return results  # list van maken?
 
 
 # -- trefwoordenlijst --
@@ -1487,7 +1459,6 @@ class R2hState:
         else:
             mld = 'nothing found, no replacements' if replace else 'search phrase not found'
         return mld, results
-
 
     def overview(self):
         """show the state of all site documents"""
