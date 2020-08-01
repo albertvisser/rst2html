@@ -955,9 +955,9 @@ def process_file(sitename, dirname, filename, search, replace):
                 pos_list.append(pos)
                 pos = line.find(search, pos + 1)
             results.append((number + 1, line.strip(), [x + 1 for x in pos_list]))
-        if replace is not None:
-            new_contents = contents.replace(search, replace)
-            dml.update_rst(sitename, filename, new_contents, dirname)
+    if replace is not None:
+        new_contents = contents.replace(search, replace)
+        dml.update_rst(sitename, filename, new_contents, dirname)
     return results
 
 
