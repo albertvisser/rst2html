@@ -980,7 +980,7 @@ def searchdict2list(inputdict, search):
                 outputlist.append((filespec, lineno, text))
                 continue
             for pos in locs:
-                start = pos - 20 if pos > 9 else 0
+                start = pos - 20 if pos > 20 else 0
                 text = linetext[start:start + maxlen]
                 text = text.replace(search, search.join(('<strong>', '</strong>')), 1)
                 if start > 0:
