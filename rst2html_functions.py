@@ -968,13 +968,13 @@ def searchdict2list(inputdict, search):
         for lineno, linetext, locs in lines:
             maxlen = 80
             if len(linetext) <= maxlen:
-                text = linetext.replace(search, search.join(('<strong>', '</strong>')))
+                text = linetext.replace(search, search.join(('**', '**')))
                 outputlist.append((filespec, lineno, text))
                 continue
             for pos in locs:
                 start = pos - 20 if pos > 20 else 0
                 text = linetext[start:start + maxlen]
-                text = text.replace(search, search.join(('<strong>', '</strong>')), 1)
+                text = text.replace(search, search.join(('**', '**')), 1)
                 if start > 0:
                     text = '...' + text
                 if start + maxlen < len(linetext):
