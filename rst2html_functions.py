@@ -652,7 +652,7 @@ def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
-        return 'Not a valid html file name'
+        return 'Not a valid html file name'  # TODO: language string van maken
     if current:
         mld, data = read_html_data(sitename, current, path.stem)
     else:
@@ -682,7 +682,7 @@ def build_progress_list(sitename):
             rootitem = data.pop(ix)
             break
     data.sort()
-    if not rootitem:
+    if rootitem:
         data.insert(0, rootitem)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
@@ -808,6 +808,12 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
     NOTE: references are only valid if they're in files that have already been
     converted to html,
     so the html timestamp must be present and greater than the rst timestamp
+
+    Klopt deze redenatie wel? Als je een document met reflinks aanpast nadat het omgezet is
+    wil je de nieuwste versie met eventueel aangepaste referenties toch verwerken ook al
+    zijn de documenten waarnaar gerefereerd wordt nog niet opnieuw gegenereerd?
+    Uiteraard verdwijnt het probleem als je de index pas maakt nadat alle bestanden t/m mirror
+    bijgewerkt zijn
     """
     reflinks, errors = {}, []
     items = dml.list_docs(sitename, 'src', directory=dirname)
@@ -834,80 +840,97 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
     return reflinks, errors
 
 
-def build_trefwoordenlijst(sitename, lang=LANG, sef=False):
+class TrefwoordenLijst:
     """create a document from predefined reference links
     """
-    has_errors = False
-    reflinks, errors = get_reflinks_in_dir(sitename, sef=sef)
-    all_dirs = dml.list_dirs(sitename, 'src')
-    for dirname in all_dirs:
-        refs, errs = get_reflinks_in_dir(sitename, dirname, sef)
-        reflinks.update(refs)
-        errors.extend(errs)
-    if not reflinks and not errors:
-        return '', 'No index created: no reflinks found'
-    current_letter = ""
-    # produceer het begin van de pagina
-    titel, teksten, links, anchors = [], [], [], []
-    hdr = get_text('index_header', lang)
-    if sitename == 'magiokis':
-        data = [hdr, "=" * len(hdr), "", ""]
-        to_top = "+   `top <#header>`_"
-    else:
-        data = ['.. _top:', '`back to root </>`_', '', '.. textheader:: Index', '']
-        to_top = "+   top_"
-    for key in sorted(reflinks.keys()):
-        if key[0] != current_letter:
-            if titel:
-                data.extend(titel)
-                data.append("")
-                data.extend(teksten)
-                data.append(to_top)
-                to_top = "+   top_"
-                data.append("")
-                data.extend(links)
-                data.append("")
-                data.extend(anchors)
-                data.append("")
-                titel, teksten, links, anchors = [], [], [], []
-            # produceer het begin voor een letter
-            current_letter = key[0]
-            loc = 3 if sitename == 'magiokis' else 6
-            data[loc] += "{0}_ ".format(current_letter)
-            data.append("")
-            if sitename == 'magiokis':
-                titel = [".. _{0}:\n\n**{0}**".format(current_letter), ""]
-            else:
-                titel = ["{0}".format(current_letter), "-"]
-            linkno = 0
-        # produceer het begin voor een nieuw trefwoord
-        current_trefw = "+   {0}".format(key)
+    def __init__(self, sitename, lang=LANG, sef=False):
+        self.sitename = sitename
+        self.lang = lang
+        self.sef = sef
+        self.current_letter = ""
+        self.clear_containers()
+
+    def build(self):
+        "scan for references and build the result page"
+        has_errors = False
+        reflinks, errors = self.get_reflinks()
+        if not reflinks and not errors:
+            return '', 'No index created: no reflinks found'  # TODO: make translation
+        to_top = self.start_page()
+        for key in sorted(reflinks.keys()):
+            if key[0] != self.current_letter:
+                if self.titel:
+                    self.finish_letter(to_top)
+                    to_top = "+   top_"
+                    self.clear_containers()
+                self.current_letter = key[0]
+                self.start_new_letter()
+            self.start_new_keyword(reflinks, key)
+        if self.teksten:
+            self.finish_letter(to_top)
+        if errors:
+            has_errors = True
+            self.data.append('while creating this page, the following messages were generated:')
+            self.data.append('----------------------------------------------------------------')
+            for err in errors:
+                self.data.append('. ' + err)
+        return "\n".join(self.data), has_errors
+
+    def clear_containers(self):
+        self.titel, self.teksten, self.links, self.anchors = [], [], [], []
+
+    def get_reflinks(self):
+        reflinks, errors = get_reflinks_in_dir(self.sitename, sef=self.sef)
+        all_dirs = dml.list_dirs(self.sitename, 'src')
+        for dirname in all_dirs:
+            refs, errs = get_reflinks_in_dir(self.sitename, dirname, self.sef)
+            reflinks.update(refs)
+            errors.extend(errs)
+        return reflinks, errors
+
+    def start_page(self):
+        """produceer het begin van de pagina"""
+        hdr = get_text('index_header', self.lang)
+        if self.sitename == 'magiokis':
+            self.data = [hdr, "=" * len(hdr), "", ""]
+            to_top = "+   `top <#header>`_"
+        else:
+            self.data = ['.. _top:', '`back to root </>`_', '', '.. textheader:: Index', '']
+            to_top = "+   top_"
+        return to_top
+
+    def start_new_letter(self):
+        """produceer het begin voor een letter"""
+        loc = 3 if self.sitename == 'magiokis' else 6
+        self.data[loc] += "{}_ ".format(self.current_letter)
+        self.data.append("")
+        if self.sitename == 'magiokis':
+            self.titel = [".. _{0}:\n\n**{0}**".format(self.current_letter), ""]
+        else:
+            self.titel = ["{}".format(self.current_letter), "-"]
+        self.linkno = 0
+
+    def start_new_keyword(self, reflinks, key):
+        """produceer het begin en de links voor een nieuw trefwoord"""
+        current_trefw = "+   {}".format(key)
         for link in reflinks[key]:
-            # produceer de tekst voor een link
             current_trefw += " `#`__ "
-            linkno += 1
-            linknm = current_letter + str(linkno)
-            links.append("..  _{0}: {1}".format(linknm, link))
-            anchors.append("__ {0}_".format(linknm))
-        teksten.append(current_trefw)
-    # produceer het eind van de pagina
-    if teksten:
-        data.extend(titel)
-        data.append("")
-        data.extend(teksten)
-        data.append(to_top)
-        data.append(" ")
-        data.extend(links)
-        data.append(" ")
-        data.extend(anchors)
-        data.append(" ")
-    if errors:
-        has_errors = True
-        data.append('while creating this page, the following messages were generated:')
-        data.append('----------------------------------------------------------------')
-        for err in errors:
-            data.append('. ' + err)
-    return "\n".join(data), has_errors
+            self.linkno += 1
+            linknm = self.current_letter + str(self.linkno)
+            self.links.append("..  _{}: {}".format(linknm, link))
+            self.anchors.append("__ {}_".format(linknm))
+        self.teksten.append(current_trefw)
+
+    def finish_letter(self, to_top):
+        self.data.extend(self.titel)
+        self.data.append("")
+        self.data.extend(self.teksten)
+        self.data.append(to_top)
+        self.data.append("")
+        self.data.extend(self.links)
+        self.data.append("")
+        self.data.extend(self.anchors)
+        self.data.append("")
 
 
 # -- global search --
@@ -1019,12 +1042,9 @@ class R2hState:
             self.subdirs = []
             self.loaded = CONF
         else:
-            ## print('in readconf:', settings)
             mld, conf = read_conf(settings)
-            ## print('in readconf:', conf)
             if mld == '':
                 self.conf = conf
-                ## mld = conf
                 self.current = ""
                 self.subdirs = list_subdirs(settings, 'src')
                 self.loaded = CONF
@@ -1393,14 +1413,15 @@ class R2hState:
         (this would be the actual index of the site but hey, HTML conventions)
         """
         use_sef = self.conf.get('seflinks', False)
-        rstdata, has_err = build_trefwoordenlijst(self.sitename, self.get_lang(), use_sef)
+        rstdata, has_err = TrefwoordenLijst(self.sitename, self.get_lang(), use_sef).build()
         if not rstdata:
             return (has_err, )
         dirname, docname = '', 'reflist'
         rstfile = docname + '.rst'
         htmlfile = docname + '.html'
+        # assume it is new
         mld = save_src_data(self.sitename, dirname, rstfile, rstdata, new=True)
-        if mld:  # if this goes wrong, simply try again
+        if mld:  # if this goes wrong, simply try again assuming it is not new
             mld = save_src_data(self.sitename, dirname, rstfile, rstdata)
         if mld == "":
             newdata = rst2html(rstdata, self.conf['css'])
