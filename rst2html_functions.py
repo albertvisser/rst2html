@@ -114,6 +114,15 @@ def get_text(keyword, lang=LANG):
     ## 'en': gettext.translation(app_title, locale, languages=['en'])}
 
 
+def translate_action(action):
+    "translate action verb from UI to language-independent value"
+    for lang in languages:
+        for keyword in ('c_rename', 'c_delete'):
+            if action == get_text(keyword, lang):
+                action = keyword[2:]
+    return action
+
+
 def post_process_title(data):
     """replace generated title with title from document
     """
@@ -225,7 +234,7 @@ def new_conf(sitename, text, lang=LANG):
     try:
         dml.create_new_site(sitename)
     except FileExistsError as e:
-        return str(e), newurl
+        return str(e), newurl  # is newurl leegmaken hier niet beter ivm vervolg in save_conf ?
     return '', newurl
 
 
@@ -1123,9 +1132,9 @@ class R2hState:
         if mld == '':
             mld = get_text('conf_saved', self.get_lang()).format(self.settings)
             if command:
-                mld += get_text('activate_url', self.get_lang()).format(command)
+                mld += ' ' + get_text('activate_url', self.get_lang()).format(command)
             elif self.conf['url'] == '':
-                mld += get_text('note_no_url', self.get_lang())
+                mld += ' ' + get_text('note_no_url', self.get_lang())
         return mld, rstdata, self.settings, self.newfile
 
     def loadxtra(self, rstdata):
@@ -1135,7 +1144,7 @@ class R2hState:
         # but itś effectively deactivated for now
         mld = ''
         fname, verb = get_custom_directives_filename()
-        verb = get_text(verb, self.conf['lang'])
+        verb = get_text(verb, self.get_lang())
         mld, data = read_data(fname)
         if not mld:
             self.rstdata = data
@@ -1204,13 +1213,9 @@ class R2hState:
         TODO: implement rename/delete in source environment - methinks I already done that
         """
         fname = newfile or rstfile
-        for lang in languages:
-            for keyword in ('c_rename', 'c_delete'):
-                if action == get_text(keyword, lang):
-                    action = keyword[2:]
+        action = translate_action(action)
         if action == 'rename':
             fname = newfile
-        is_new_file = newfile != ""
         clear_text = is_tpl = False
         if fname.startswith('-- ') and fname.endswith(' --'):
             fname = fname[3:-3]
@@ -1226,38 +1231,8 @@ class R2hState:
             fmtdata = fname
         else:
             isfile = True
-            mld = ''
-            if action == "rename":
-                if newfile:
-                    mld, data = read_src_data(self.sitename, self.current, newfile)
-                    mld = "new_name_taken" if not mld else ''
-                else:
-                    mld = "new_name_missing"
-            if mld == '':
-                if action and not rstdata:
-                    if action == 'rename':
-                        mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
-                else:
-                    mld = check_if_rst(rstdata, self.loaded, fname)
-            if mld == '':
-                path = pathlib.Path(rstfile)
-                if action == 'delete':
-                    mld = mark_deleted(self.sitename, self.current, rstfile)
-                    mld = '{} deleted'.format(str(path))
-                    clear_text = True
-                else:
-                    oldpath = path
-                    path = pathlib.Path(fname)
-                    if path.suffix != ".rst":
-                        fname = fname + ".rst"
-                    mld = save_src_data(self.sitename, self.current, fname, rstdata,
-                                        is_new_file)
-                    if action == 'rename':
-                        if mld == "":
-                            mld = mark_deleted(self.sitename, self.current, rstfile)
-                            mld = '{} renamed to {}'.format(str(oldpath), str(path))
-                        else:
-                            mld = mld.replace('src_', 'new_')
+            # import pdb; pdb.set_trace()
+            mld, path = self.check_and_save_src(action, newfile, rstdata, rstfile, fname)
             fmtdata = fname
         if mld == "":
             self.oldtext = self.rstdata = rstdata
@@ -1277,6 +1252,42 @@ class R2hState:
             if '{}' in mld:
                 mld = mld.format(fmtdata)
         return mld, self.rstfile, self.htmlfile, self.newfile, clear_text
+
+    def check_and_save_src(self, action, newfile, rstdata, rstfile, fname):
+        mld = ''
+        is_new_file = newfile != ""
+        if action == "rename":
+            if newfile:
+                mld, data = read_src_data(self.sitename, self.current, newfile)
+                mld = "new_name_taken" if not mld else ''
+            else:
+                mld = "new_name_missing"
+        if mld == '':
+            if action and not rstdata:
+                if action == 'rename':
+                    mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
+            else:
+                mld = check_if_rst(rstdata, self.loaded, fname)
+        if mld == '':
+            path = pathlib.Path(rstfile)
+            if action == 'delete':
+                mld = mark_deleted(self.sitename, self.current, rstfile)
+                mld = '{} deleted'.format(str(path))
+                clear_text = True
+            else:
+                oldpath = path
+                path = pathlib.Path(fname)
+                if path.suffix != ".rst":
+                    fname = fname + ".rst"
+                mld = save_src_data(self.sitename, self.current, fname, rstdata,
+                                    is_new_file)
+                if action == 'rename':
+                    if mld == "":
+                        mld = mark_deleted(self.sitename, self.current, rstfile)
+                        mld = '{} renamed to {}'.format(str(oldpath), str(path))
+                    else:
+                        mld = mld.replace('src_', 'new_')
+        return mld, path
 
     def convert(self, rstfile, newfile, rstdata):
         """convert rest source to html and show on page
