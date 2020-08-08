@@ -1214,6 +1214,7 @@ class R2hState:
         """
         fname = newfile or rstfile
         action = translate_action(action)
+        clear_text = False
         if action == 'rename':
             fname = newfile
         clear_text = is_tpl = False
@@ -1225,16 +1226,17 @@ class R2hState:
             fmtdata = fname[:-1]
         elif fname.endswith('.tpl'):
             # TODO: ook rename en delete toestaan? Anders expliciet afkeuren (if action:)
-            # NOTE: geen controle op bestaat al, bestaande data wordt zonder meer overschreven
+            # NOTE: geen controle op `bestaat al`, bestaande data wordt zonder meer overschreven
             isfile = is_tpl = True
             mld = save_tpl_data(self.sitename, fname, rstdata)
             fmtdata = fname
         else:
             isfile = True
-            # import pdb; pdb.set_trace()
             mld, path = self.check_and_save_src(action, newfile, rstdata, rstfile, fname)
             fmtdata = fname
         if mld == "":
+            if action == 'delete':
+                clear_text = True
             self.oldtext = self.rstdata = rstdata
             mld = 'tpl_saved' if is_tpl else 'rst_saved' if isfile else 'new_subdir'
             if is_tpl:
@@ -1254,39 +1256,43 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile, clear_text
 
     def check_and_save_src(self, action, newfile, rstdata, rstfile, fname):
+        "uitvoeren save, rename of delete actie. Alleen bij de laatste twee is `action` gevuld"
         mld = ''
         is_new_file = newfile != ""
+        path = pathlib.Path(rstfile)
         if action == "rename":
+            # import pdb; pdb.set_trace()
             if newfile:
                 mld, data = read_src_data(self.sitename, self.current, newfile)
                 mld = "new_name_taken" if not mld else ''
             else:
                 mld = "new_name_missing"
-        if mld == '':
-            if action and not rstdata:
-                if action == 'rename':
-                    mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
-            else:
-                mld = check_if_rst(rstdata, self.loaded, fname)
-        if mld == '':
-            path = pathlib.Path(rstfile)
-            if action == 'delete':
+        if mld:
+            return mld, path
+
+        if action:
+            mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
+        else:
+            mld = check_if_rst(rstdata, self.loaded, fname)
+        if mld:
+            return mld, path
+
+        if action == 'delete':
+            mld = mark_deleted(self.sitename, self.current, rstfile)
+            mld = '{} deleted'.format(str(path))
+            return mld, path
+
+        oldpath = path
+        path = pathlib.Path(fname)
+        if path.suffix != ".rst":
+            fname = fname + ".rst"
+        mld = save_src_data(self.sitename, self.current, fname, rstdata, is_new_file)
+        if action == 'rename':
+            if mld == "":
                 mld = mark_deleted(self.sitename, self.current, rstfile)
-                mld = '{} deleted'.format(str(path))
-                clear_text = True
+                mld = '{} renamed to {}'.format(str(oldpath), str(path))
             else:
-                oldpath = path
-                path = pathlib.Path(fname)
-                if path.suffix != ".rst":
-                    fname = fname + ".rst"
-                mld = save_src_data(self.sitename, self.current, fname, rstdata,
-                                    is_new_file)
-                if action == 'rename':
-                    if mld == "":
-                        mld = mark_deleted(self.sitename, self.current, rstfile)
-                        mld = '{} renamed to {}'.format(str(oldpath), str(path))
-                    else:
-                        mld = mld.replace('src_', 'new_')
+                mld = mld.replace('src_', 'new_')
         return mld, path
 
     def convert(self, rstfile, newfile, rstdata):
