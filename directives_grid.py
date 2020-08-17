@@ -8,6 +8,12 @@ from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
 
+directive_selectors = {'startcols': (('div', '.container_nn'), ),
+                       'firstcol': (('div', '.grid_nn'), ),
+                       'nextcol': (('div', '.grid_nn'), ),
+                       'clearcol': (('div', ".clear"), ),
+                       'spacer': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer"))}
+
 
 def align(argument):
     """Conversion function for the "align" option."""

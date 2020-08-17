@@ -2,14 +2,18 @@
 """Directives for BitBucket site layout
 
 """
-import datetime
-import json
 # Import Docutils document tree nodes module.
 from docutils import nodes
 # Import ``directives`` module (contains conversion functions).
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
+
+directive_selectors = {'startbody': (('div', '#container'), ('div', '#header')),
+                       'navlinks': (('div', '#navigation'), ('li', '.menu')),
+                       'textheader': (('div', '#body'),),  # h1.page-title hoeft niet
+                       'endmarginless': (('div', '#container'),),
+                       'bottomnav': (('div', '#botnav'), ('li', '.menu'))}
 
 
 def align(argument):

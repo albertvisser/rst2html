@@ -29,16 +29,20 @@ from docs2fs import read_data, save_to, load_config_data, ParserError, save_conf
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
 standard_directives = {}
-from directives_grid import StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer
+directive_selectors = {}
+from directives_grid import (StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer,
+                             directive_selectors as dir_sel)
 standard_directives.update({"startc": StartCols,
                             "endc": EndCols,
                             "firstc": FirstCol,
                             "nextc": NextCol,
                             "clearc": ClearCol,
                             "spacer": Spacer})
+directive_selectors.update(dir_sel)
 from directives_magiokis import (Bottom, RefKey, ByLine, Audio, MenuText, MySidebar, Transcript,
-        MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst, StartBlock, EndBlock,
-        RoleSpec, Scene, Anno)
+                                 MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst,
+                                 StartBlock, EndBlock, RoleSpec, Scene, Anno,
+                                 directive_selectors as dir_sel)
 standard_directives.update({"bottom": Bottom,
                             'refkey': RefKey,
                             'byline': ByLine,
@@ -57,8 +61,9 @@ standard_directives.update({"bottom": Bottom,
                             'rollen': RoleSpec,
                             'scene': Scene,
                             'anno': Anno})
+directive_selectors.update(dir_sel)
 from directives_bitbucket import (StartBody, NavLinks, TextHeader, StartMarginless, EndMarginless,
-        BottomNav, EndBody)
+                                  BottomNav, EndBody, directive_selectors as dir_sel)
 standard_directives.update({"startbody": StartBody,
                             "navlinks": NavLinks,
                             "textheader": TextHeader,
@@ -66,6 +71,7 @@ standard_directives.update({"startbody": StartBody,
                             "endcenter": EndMarginless,
                             "bottomnav": BottomNav,
                             "endbody": EndBody})
+directive_selectors.update(dir_sel)
 #
 # internals
 #
@@ -89,17 +95,17 @@ language_map = (('english', 'en'),
                 ('dutch', 'nl'))
 # create dictionaries
 languages = {}
-for name, code in language_map:
-    path = HERE / '{}.lng'.format(name)
-    with path.open(encoding='utf-8') as _in:
-        infodict = {}
-        for line in _in:
-            line = line.strip()
-            if line == "" or line.startswith('#'):
+for _name, _code in language_map:
+    _path = HERE / '{}.lng'.format(_name)
+    with _path.open(encoding='utf-8') as _in:
+        _dict = {}
+        for _line in _in:
+            _line = _line.strip()
+            if _line == "" or _line.startswith('#'):
                 continue
-            key, value = line.split(' = ', 1)
-            infodict[key] = value
-        languages[code] = infodict
+            _key, _value = _line.split(' = ', 1)
+            _dict[_key] = _value
+        languages[_code] = _dict
 
 
 def get_text(keyword, lang=LANG):
@@ -137,9 +143,9 @@ def post_process_title(data):
         test2 = data.index('</head>', test)
         test3 = data.index('<title>', test)
         if test3 < test2:
-            len = test3
-            start = data[:len]
-            _, end = data[len:].split('</title>')
+            leng = test3
+            start = data[:leng]
+            _, end = data[leng:].split('</title>')
             data = ''.join((start, '<title>', title, '</title>', end))
     return data
 
@@ -204,6 +210,11 @@ def get_custom_directives_filename():
         fname = custom_directives_template
         verb = 'init'
     return fname, verb
+
+
+def check_directive_selectors():
+    """check if the used css files contain the ids / classes used in the directives
+    """
 
 
 # -- site / conf related --
@@ -317,7 +328,7 @@ def init_css(sitename):
         dml.update_settings(sitename, conf)
 
 
-def list_confs(sitename='', lang=LANG):
+def list_confs(sitename=''):
     """build list of options containing all possible site settings
 
     if site name provided, show as "selected"""
@@ -328,7 +339,7 @@ def list_confs(sitename='', lang=LANG):
     return "".join(out)
 
 
-def read_conf(sitename, lang=LANG):
+def read_conf(sitename):
     """read a config file; returns a dictionary of options
     """
     try:
@@ -339,7 +350,7 @@ def read_conf(sitename, lang=LANG):
         return '', sett
 
 
-def conf2text(conf, lang=LANG):
+def conf2text(conf):
     """convert settings to dict and then to yaml structure"""
     confdict = {}
     for key, value in conf.items():
@@ -351,7 +362,7 @@ def conf2text(conf, lang=LANG):
                 items.append(item)
             confdict[key] = items
         else:
-            confdict[key] = conf[key]
+            confdict[key] = value
     return save_config_data(confdict, default_flow_style=False)
 
 
@@ -445,7 +456,7 @@ def list_subdirs(sitename, ext=''):
     return [x + '/' for x in sorted(test)]
 
 
-def list_files(sitename, current='', naam='', ext='', lang=LANG, deleted=False):
+def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=LANG
     """build list of options from filenames, with `naam` selected"""
     ext = ext or 'src'  # default
     try:
@@ -767,6 +778,7 @@ class UpdateAll:
         return messages
 
     def check_for_updated_includes(self, doc_timestamp):
+        "find out which documents are not updated since included files were:"
         contained_includes = check_for_includes(self.sitename, self.rstdata)
         target_needed = mirror_needed = False
         for item in contained_includes:
@@ -804,7 +816,7 @@ def check_for_includes(sitename, rstdata):
     # NB: het `.. include::` directive werkt eigenlijk alleen voor file-based sites...
     includes = [x.lstrip().split(None, 1)[0] for x in rstdata.split('.. include::')[1:]]
     for item in includes:
-        path =  pathlib.Path(item)
+        path = pathlib.Path(item)
         if path.parent == WEBROOT / sitename / '.source':
             includenames.append(path.stem)
     return includenames
@@ -886,9 +898,13 @@ class TrefwoordenLijst:
         return "\n".join(self.data), has_errors
 
     def clear_containers(self):
+        """reset container attributes
+        """
         self.titel, self.teksten, self.links, self.anchors = [], [], [], []
 
     def get_reflinks(self):
+        """find the references in the sources
+        """
         reflinks, errors = get_reflinks_in_dir(self.sitename, sef=self.sef)
         all_dirs = dml.list_dirs(self.sitename, 'src')
         for dirname in all_dirs:
@@ -931,6 +947,7 @@ class TrefwoordenLijst:
         self.teksten.append(current_trefw)
 
     def finish_letter(self, to_top):
+        "produceer het eind voor een letter"
         self.data.extend(self.titel)
         self.data.append("")
         self.data.extend(self.teksten)
@@ -1036,6 +1053,7 @@ class R2hState:
         return fname
 
     def get_lang(self):
+        "return language setting or a default if not set"
         if 'lang' not in self.conf:
             return LANG
         return self.conf["lang"]
@@ -1137,7 +1155,7 @@ class R2hState:
                 mld += ' ' + get_text('note_no_url', self.get_lang())
         return mld, rstdata, self.settings, self.newfile
 
-    def loadxtra(self, rstdata):
+    def loadxtra(self):
         """load site directives file and show on page
         """
         # this data actually *does* come from the file system as itś code stored on the server
@@ -1263,7 +1281,7 @@ class R2hState:
         if action == "rename":
             # import pdb; pdb.set_trace()
             if newfile:
-                mld, data = read_src_data(self.sitename, self.current, newfile)
+                mld = read_src_data(self.sitename, self.current, newfile)[0]
                 mld = "new_name_taken" if not mld else ''
             else:
                 mld = "new_name_missing"
@@ -1454,11 +1472,11 @@ class R2hState:
 
     def convert_all(self, option='3'):
         """(re)generate all html documents and copy to mirror"""
+        # optdict = {'0': 'all', '1': 'needed', '2': 'missing',
+        #            '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
         needed_only = option in ('1', '4')
         missing_only = option in ('2', '5')
         show_only = option in ('3', '4', '5')
-        optdict = {'0': 'all' , '1': 'needed', '2': 'missing',
-                   '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
         results = UpdateAll(self.sitename, self.conf, needed_only=needed_only,
                             missing_only=missing_only, show_only=show_only).go()
         data = []

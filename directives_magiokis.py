@@ -10,6 +10,31 @@ from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
 from app_settings import FS_WEBROOT
 
+directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
+                       'myheader': (('a', "#logo"), ('div', "#name-and-slogan"), ('div',
+                                    "#site-slogan"), ('div' "#main"), ('div', "#navigation"),
+                                    ('div', "#content"), ('div', ".column"), ),
+                       'menutext': (('div', "#navigation")),
+                       'transcript': (('div', ".transcript"), ),
+                       'gedicht': (('div', ".gedicht"), ('div', ".couplet"), ('div', ".refrein"),
+                                   ('div', ".regel")),
+                       'songtekst': (('div', ".songtekst"), ('div', ".couplet"),
+                                     ('div', ".refrein"), ('div', ".regel")),
+                       'rolespec': (('div', ".rollen"), ('div', '.titel'), ('div', '.tekst'),
+                                    ('div', '.rol')),
+                       'scene': (('div', ".scene"), ('div', ".regel"), ('div', ".actie"),
+                                 ('div', ".claus"), ('div', ".spreker"), ('div', ".spraak"),
+                                 ('div', ".regel")),
+                       'anno': (('div', ".anno"), ),
+                       'startsidebar': (('section', ".region-sidebar-first"),
+                                        ('section', ".column"), ('div', "#block")),
+                       'endsidebar': (('section', "region-sidebar-second"), ('section', "column"),
+                                      ('section', "sidebar"), ('div', "#block")),
+                       'myfooter': (('div', "#footer"), ('div', ".region"),
+                                    ('div', ".region-bottom"), ('div', "#block-block-1"),
+                                    ('div', ".block"), ('div', ".block-block"), ('div', ".first"),
+                                    ('div', ".last"), ('div', ".odd"))}
+
 
 def align(argument):
     """Conversion function for the "align" option."""
@@ -128,7 +153,7 @@ class MyHeader(Directive):
         if menu:
             menufile = pathlib.Path(menu)
         else:
-            sitename= self.options.get('site', 'magiokis')
+            sitename = self.options.get('site', 'magiokis')
             menufile = FS_WEBROOT / sitename / '.source' / 'hoofdmenu.rst'
         if menufile.exists():
             text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
