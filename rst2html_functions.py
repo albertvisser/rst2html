@@ -1024,7 +1024,7 @@ class R2hState:
         self.current = self.oldtext = self.oldhtml = ""
         self.conf = DFLT_CONF
         self.newconf = False
-        self.loaded = RST
+        self.loaded = 'initial'
 
     def currentify(self, fname):
         """add site directory to document name
