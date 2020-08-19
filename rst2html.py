@@ -29,13 +29,14 @@ scriptdict = {'yaml': ('yaml/yaml',),
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
+    # import pdb;pdb.set_trace()
     if state.newfile:
         all_source, all_html = [], []
     else:
-        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src',
-                                     state.get_lang())
-        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest',
-                                   state.get_lang())
+        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')  # ,
+                                     # state.get_lang())
+        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')  # ,
+                                   # state.get_lang())
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []
@@ -184,16 +185,16 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def loadconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """load settings of indicated site
-
-        "create new" is deliberatily hidden by not providing a -- new -- option
         """
         mld, rstdata, settings, newfile = self.state.loadconf(settings, newfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def saveconf(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """(re)save settings for selected site name
 
         if new name specified, use that"""
@@ -201,7 +202,8 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     # @cherrypy.expose    # nog testen
-    def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """load directives file for editing
 
         if non-existent, create from template
@@ -210,14 +212,16 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     # @cherrypy.expose    # nog testen
-    def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """(re)save directives file
         """
         mld, rstdata = self.state.savextra(rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                regsubj=''):
         """load indicated .rst file
 
         pre-builds save-filename by changing extension from rst to html"""
@@ -225,7 +229,8 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def saverst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                regsubj=''):
         """(re)save rst file using selected name
 
         if new name specified, use that (extension must be .rst)
@@ -238,7 +243,8 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def convert(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                regsubj=''):
         """convert rst to html and show result
         """
         mld, previewdata, fname = self.state.convert(rstfile, newfile, rstdata)
@@ -247,21 +253,24 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def saveall(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                regsubj=''):
         """(re)save rst file, (re)convert to html and (re)save html file using selected names
         """
         mld, rstfile, htmlfile, newfile = self.state.saveall(rstfile, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def loadhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """load html file and show code
         """
         mld, rstdata, rstfile, htmlfile = self.state.loadhtml(htmlfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def showhtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """preview the loaded HTML
         """
         mld, previewdata, fname = self.state.showhtml(rstdata)
@@ -270,21 +279,24 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def savehtml(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """save displayed (edited) html
         """
         mld, rstdata, newfile = self.state.savehtml(htmlfile, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def copytoroot(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                   regsubj=''):
         """copy html to mirror site
         """
         mld = self.state.copytoroot(htmlfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                   regsubj=''):
         """build references document
         """
         savestuff = (rstfile, htmlfile, rstdata)
@@ -297,7 +309,8 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                    regsubj=''):
         """regenerate all html files
         """
         mld, rstdata = self.state.convert_all(option=regsubj)
@@ -310,7 +323,8 @@ class Rst2Html:
         return outdata
 
     @cherrypy.expose
-    def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='', regsubj=''):
+    def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                    regsubj=''):
         """start find/replace action: enter arguments
         """
         mld = "Deze functie is in aanbouw, maar probeer maar"
@@ -323,7 +337,7 @@ class Rst2Html:
         if search:
             mld, results = self.state.search(search, replace)
         else:
-            mld, results = 'At least tell me what to search for', []
+            mld, results = 'Please tell me what to search for', []
         return format_search(results).format(self.state.settings, search, replace, mld)
 
     @cherrypy.expose
@@ -332,6 +346,7 @@ class Rst2Html:
         """
         data = self.state.overview()
         return format_progress_list(data).format(settings)
+
 
 if __name__ == "__main__":
     cherrypy.quickstart(Rst2Html(), config={
