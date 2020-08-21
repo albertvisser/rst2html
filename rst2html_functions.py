@@ -13,6 +13,7 @@ import urllib.request
 import urllib.error
 import datetime
 ## import gettext
+import subprocess
 import collections
 
 from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
@@ -212,9 +213,48 @@ def get_custom_directives_filename():
     return fname, verb
 
 
-def check_directive_selectors():
+def check_directive_selectors(sitename):
     """check if the used css files contain the ids / classes used in the directives
     """
+    # find all directives used by the documents -> directives_used (list)
+    results = search_site(sitename, '.. ')
+    # return results
+    # (extra check: if first word is followed by '::' it's a directive)
+    # of vanwege dat toch maar een custom search?
+    directives_used = set()
+    for locations in results.values():
+        for line_results in locations:
+            line, text, locs = line_results
+            for loc in locs:
+                try:
+                    name, rest = text[loc + 2:].split('::', 1)
+                except ValueError:
+                    pass  # print(line, text, locs)
+                else:
+                    directives_used.add(name.lstrip())
+    # eigenlijk is het belangrijkste de ids en classes
+    # selectors_used = collections.defaultdict(set)
+    # selectors = set()
+    idcls = set()
+    for directive in directives_used:
+        print(directive)
+        if directive in directive_selectors:  # we don't check the standard docutils ones
+            print(directive_selectors[directive])
+            for selector, stuff in directive_selectors[directive]:
+                print(selector, stuff)
+                # selectors_used[selector].add(stuff)
+                idcls.add(stuff)
+                print('idcls updated to', idcls)
+    css_files = read_conf(sitename)[1]['css']
+    tmpfile = '/tmp/r2h_css.css'
+    command = ['wget'] + css_files + ['-O', tmpfile]
+    subprocess.run(command)
+    with open(tmpfile) as infile:
+        all_css = infile.read()
+    for text in idcls:
+        if text not in all_css:
+            return 'an id or class used in the directives was not found in the linked css files'
+    return ''
 
 
 # -- site / conf related --
@@ -995,7 +1035,8 @@ def process_file(sitename, dirname, filename, search, replace):
             while pos > -1:
                 pos_list.append(pos)
                 pos = line.find(search, pos + 1)
-            results.append((number + 1, line.strip(), [x + 1 for x in pos_list]))
+            # results.append((number + 1, line.strip(), [x + 1 for x in pos_list]))
+            results.append((number + 1, line, [x + 1 for x in pos_list]))
     if replace is not None:
         new_contents = contents.replace(search, replace)
         dml.update_rst(sitename, filename, new_contents, dirname)
