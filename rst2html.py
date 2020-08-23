@@ -341,6 +341,14 @@ class Rst2Html:
         return format_search(results).format(self.state.settings, search, replace, mld)
 
     @cherrypy.expose
+    def check(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+              regsubj=''):
+        """check classes and ids from directives in css
+        """
+        mld = self.state.check()
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+
+    @cherrypy.expose
     def overview(self, settings=""):
         """output the site inventory to html, accentuating the most recently updated items
         """

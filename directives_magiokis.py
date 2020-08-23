@@ -12,7 +12,7 @@ from app_settings import FS_WEBROOT
 
 directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
                        'myheader': (('a', "#logo"), ('div', "#name-and-slogan"), ('div',
-                                    "#site-slogan"), ('div' "#main"), ('div', "#navigation"),
+                                    "#site-slogan"), ('div', "#main"), ('div', "#navigation"),
                                     ('div', "#content"), ('div', ".column"), ),
                        'menutext': (('div', "#navigation"), ),
                        'transcript': (('div', ".transcript"), ),

@@ -19,6 +19,7 @@ t_showhtml = Render the html in the input area
 t_savehtml = Store the html in the input area
 t_copytoroot = Copy the stored html to the site mentioned in the config after editing the css link(s); also propagates renaming/deleting
 t_overview = Present an overview of the stages of the various site documents
+t_check = Check if all classes and ids the directives generate are in the associated css files
 t_loadxtra = Create or Load a file with user-defined directives for editing
 t_savextra = Save/update the input area's contents to the directives file
 t_rename = Check this and press `save source` to store the selected file under a new name and delete the original
@@ -89,13 +90,14 @@ c_regsubj5 = missing (view)
 c_find = Find
 c_replace = Replace
 c_copytoroot = Copy to mirror
-c_overview = Progress overview
+c_overview = Overview
 c_custom = Custom directives
 c_loadxtra = Load
 c_savextra = Save
 c_rename = Rename
 c_delete = Delete
 c_qref = Quick reStructuredText
+c_check = Check
 
 # notifications and such
 
@@ -161,3 +163,5 @@ index_header = Index
 index_built = Index created as reflist.html
 with_err = with messages (see end of document)
 tpl_saved = Template saved as {}
+clsid_missing = an id or class used in the directives was not found in the linked css files:
+clsid_ok = No issues detected

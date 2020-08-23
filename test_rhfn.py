@@ -134,6 +134,52 @@ class TestR2HRelated:
         assert rhfn.get_custom_directives_filename() == (rhfn.custom_directives, 'loaded')
         rhfn.custom_directives.unlink()
 
+    def test_get_directives_used(self):
+        assert rhfn.get_directives_used({}) == set()
+        data = {('', 'index'): [(1, '.. directive::', [1]), (2, '.. direct::', [1])],
+                ('dir', 'text'): [(1, '.. directive', [1])]}
+        assert rhfn.get_directives_used(data) == {'directive', 'direct'}
+
+    def test_get_idcls(self):
+        rhfn.directive_selectors = {'directive': [('selector', 'class_1'), ('selector', 'id_1')],
+                                    'direct': [('selector', 'class_2'), ('selector', 'id_2')]}
+        assert rhfn.get_idcls([]) == set()
+        assert rhfn.get_idcls({'directive', 'direct'}) == {'class_1', 'id_1', 'id_2', 'class_2'}
+
+    def test_check_directive_selectors(self, monkeypatch, capsys):
+        def mock_search_site(*args):
+            return {('', 'index'): [(1, 'directive', [1]), (2, 'direct', [1])]}
+        def mock_get_directives_used(*args):
+            print('called get_directives_used')
+            return {'directive', 'direct'}
+        def mock_get_idcls(*args):
+            print('called get_idcls')
+            return {'class_1', 'id_1', 'id_2', 'class_2'}
+        def mock_read_conf(*args):
+            return '', {'css': ['test1.css', 'test2.css']}
+        def mock_run_found_all(*args):
+            print('call subprocess with args', ' '.join(['`{}`'.format(x) for x in args[0]]))
+            with open('/tmp/r2h_css.css', 'w') as out:
+                out.write('selector.class_1 #id_1 .class_2 selector#id_2\n')
+        def mock_run_not_all(*args):
+            print('call subprocess with args', ' '.join(['`{}`'.format(x) for x in args[0]]))
+            with open('/tmp/r2h_css.css', 'w') as out:
+                out.write('selector.class_1 #id_1 \n')
+        monkeypatch.setattr(rhfn, 'search_site', mock_search_site)
+        monkeypatch.setattr(rhfn, 'get_directives_used', mock_get_directives_used)
+        monkeypatch.setattr(rhfn, 'get_idcls', mock_get_idcls)
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
+        monkeypatch.setattr(rhfn.subprocess, 'run', mock_run_found_all)
+        assert rhfn.check_directive_selectors('testsite') == ''
+        assert capsys.readouterr().out == ('called get_directives_used\ncalled get_idcls\n'
+                                           'call subprocess with args `wget` `test1.css`'
+                                           ' `test2.css` `-O` `/tmp/r2h_css.css`\n')
+        monkeypatch.setattr(rhfn.subprocess, 'run', mock_run_not_all)
+        assert rhfn.check_directive_selectors('testsite') == ('an id or class used in the'
+                                                              ' directives was not found in the'
+                                                              ' linked css files')
+        capsys.readouterr()  # swallow stdout/err
+
 
 class TestConfRelated:
     "tests for site / configuration related functions"
@@ -1199,7 +1245,7 @@ class TestR2hStateRelated:
         assert testsubj.current == testsubj.oldtext == testsubj.oldhtml == ""
         assert testsubj.conf == rhfn.DFLT_CONF
         assert testsubj.newconf == False
-        assert testsubj.loaded == rhfn.RST
+        assert testsubj.loaded == 'initial'  # rhfn.RST
 
     def test_currentify(self, monkeypatch):
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
@@ -1386,9 +1432,9 @@ class TestR2hStateRelated:
         monkeypatch.setattr(rhfn, 'get_custom_directives_filename',
                             mock_get_custom_directives_filename)
         monkeypatch.setattr(rhfn, 'read_data', mock_read_data_err)
-        assert testsubj.loadxtra('') == ('mld from read_data', '')
+        assert testsubj.loadxtra() == ('mld from read_data', '')
         monkeypatch.setattr(rhfn, 'read_data', mock_read_data)
-        assert testsubj.loadxtra('') ==('dirs_loaded', 'read data from `directives.py`')
+        assert testsubj.loadxtra() ==('dirs_loaded', 'read data from `directives.py`')
         assert testsubj.loaded == rhfn.XTRA
 
     def test_savextra(self, monkeypatch):
