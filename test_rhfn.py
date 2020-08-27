@@ -175,9 +175,7 @@ class TestR2HRelated:
                                            'call subprocess with args `wget` `test1.css`'
                                            ' `test2.css` `-O` `/tmp/r2h_css.css`\n')
         monkeypatch.setattr(rhfn.subprocess, 'run', mock_run_not_all)
-        assert rhfn.check_directive_selectors('testsite') == ('an id or class used in the'
-                                                              ' directives was not found in the'
-                                                              ' linked css files')
+        assert sorted(rhfn.check_directive_selectors('testsite')) == ['class_2', 'id_2']
         capsys.readouterr()  # swallow stdout/err
 
 
@@ -1910,6 +1908,21 @@ class TestR2hStateRelated:
         testsubj.search('not found', '') == ('search phrase not found', {})
         testsubj.search('not found', 'replaced') == ('nothing found, no replacements', {})
 
+    def test_check(self, monkeypatch):
+        def mock_check_directive_selectors(*args):
+            return []
+        def mock_check_directive_selectors_missing(*args):
+            return ['x', 'y']
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+
+        monkeypatch.setattr(rhfn, 'check_directive_selectors', mock_check_directive_selectors)
+        assert testsubj.check() == 'No issues detected'
+        monkeypatch.setattr(rhfn, 'check_directive_selectors',
+                            mock_check_directive_selectors_missing)
+        assert testsubj.check() == ('an id or class used in the directives was not found'
+                                    ' in the linked css files: x, y')
+
     def test_overview(self, monkeypatch):
         def mock_build_progress_list(*args):
             return 'called build_progress_list'
@@ -1917,3 +1930,16 @@ class TestR2hStateRelated:
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn, 'build_progress_list', mock_build_progress_list)
         assert testsubj.overview() == 'called build_progress_list'
+
+    def test_copystand(self, monkeypatch):
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        assert testsubj.copystand('', '', '') == 'Geen output filenaam opgegeven'
+        assert testsubj.copystand('x', '', '') == ('Overzicht geëxporteerd naar'
+                                                   ' {}/x'.format(pathlib.Path.home()))
+        testpath = pathlib.Path.home() / 'x'
+        assert testsubj.copystand('x', str(testpath), '') ==('Overzicht geëxporteerd naar'
+                                                             ' {}'.format(testpath))
+        assert testsubj.copystand('null', '/dev', 'testerdetest') == ('Overzicht geëxporteerd'
+                                                                      ' naar /dev/null')
+        return

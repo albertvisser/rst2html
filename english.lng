@@ -163,5 +163,5 @@ index_header = Index
 index_built = Index created as reflist.html
 with_err = with messages (see end of document)
 tpl_saved = Template saved as {}
-clsid_missing = an id or class used in the directives was not found in the linked css files:
+clsid_missing = an id or class used in the directives was not found in the linked css files: {}
 clsid_ok = No issues detected
