@@ -29,14 +29,11 @@ scriptdict = {'yaml': ('yaml/yaml',),
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
-    # import pdb;pdb.set_trace()
     if state.newfile:
         all_source, all_html = [], []
     else:
-        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')  # ,
-                                     # state.get_lang())
-        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')  # ,
-                                   # state.get_lang())
+        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')
+        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []
@@ -349,11 +346,20 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def overview(self, settings=""):
+    def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=''):
         """output the site inventory to html, accentuating the most recently updated items
         """
-        data = self.state.overview()
-        return format_progress_list(data).format(settings)
+        self.overviewdata = self.state.overview()
+        return format_progress_list(self.overviewdata).format(settings, '')
+
+    @cherrypy.expose
+    def copystand(self, outfile="", outdir=""):
+        """copy the overview to a file
+        """
+        msg = ">" + outfile + "< >" + outdir + "<"
+        # msg = self.state.copystand(outfile, outdir, self.overviewdata)
+        return format_progress_list(self.overviewdata).format(self.state.settings, msg)
 
 
 if __name__ == "__main__":

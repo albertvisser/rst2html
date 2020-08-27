@@ -1573,4 +1573,19 @@ class R2hState:
         """show the state of all site documents"""
         return build_progress_list(self.sitename)
 
+    def copystand(self, outfile, outdir, data):
+        """copy the overview to a file"""
+        if not outfile:
+            return 'Geen output filenaam opgegeven'
+        if not outdir:
+            outdir = pathlib.Path.home()
+        else:
+            outdir = pathlib.Path(outdir)
+            if outdir.is_file():
+                outdir = outdir.parent
+        outfile = outdir / outfile
+        with open(outfile, 'w') as out:
+            print('{}'.format(data), file=out)
+        return 'Overzicht geëxporteerd naar {}'.format(outfile)
+
 # -- eof

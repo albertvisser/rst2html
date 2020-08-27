@@ -4,8 +4,17 @@
         <title>Rst2Html stand van zaken overzicht</title>
     </head>
     <body style="background-color: #C6E2FF; color: #3a5fcd">
-        <a href="/loadconf?settings={}"><button accesskey="b">
-	    <span style="text-decoration:underline">B</span>ack to editor</button></a>
+        <a href="/loadconf?settings={}">
+	    <button accesskey="b">
+	        <span style="text-decoration:underline">B</span>ack to editor</button></a>
+	<form style="display:inline">
+	<a href="/copystand">
+	    <button accesskey="c">
+	        <span style="text-decoration:underline">C</span>opy to file:</button></a>
+	<input id="outfile" name="outfile" type="text" value="progress-overview.json" />
+	<label for="outdir">Choose directory:</label><input id="outdir" name="outdir" type="file"/>
+	</form>
+	<div><span style="color: red; text-decoration: bold;">{}&nbsp;</span><div/>
         <table summary="overzicht">
             <thead>
             <tr>
