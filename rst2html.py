@@ -349,7 +349,8 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def overview(self, settings=""):
+    def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
+                 regsubj=""):
         """output the site inventory to html, accentuating the most recently updated items
         """
         data = self.state.overview()
