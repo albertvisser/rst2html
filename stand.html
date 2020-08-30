@@ -7,12 +7,12 @@
         <a href="/loadconf?settings={}">
 	    <button accesskey="b">
 	        <span style="text-decoration:underline">B</span>ack to editor</button></a>
-	<form style="display:inline">
-	<a href="/copystand">
-	    <button accesskey="c">
+	<form style="display:inline" action="copystand" method="post">
+	    <button type="submit" accesskey="c">
 	        <span style="text-decoration:underline">C</span>opy to file:</button></a>
-	<input id="outfile" name="outfile" type="text" value="progress-overview.json" />
-	<label for="outdir">Choose directory:</label><input id="outdir" name="outdir" type="file"/>
+	    <input id="outfile" name="outfile" type="text" value="progress-overview.json" />
+	    <label for="outdir">Choose directory:</label>
+	    <input id="outdir" name="outdir" type="file"/>
 	</form>
 	<div><span style="color: red; text-decoration: bold;">{}&nbsp;</span><div/>
         <table summary="overzicht">
