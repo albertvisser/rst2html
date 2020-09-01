@@ -354,11 +354,10 @@ class Rst2Html:
         return format_progress_list(self.overviewdata).format(settings, '')
 
     @cherrypy.expose
-    def copystand(self, outfile="", outdir=""):
+    def copystand(self):
         """copy the overview to a file
         """
-        msg = ">" + outfile + "< >" + outdir + "<"
-        # msg = self.state.copystand(outfile, outdir, self.overviewdata)
+        msg = self.state.copystand(self.overviewdata)
         return format_progress_list(self.overviewdata).format(self.state.settings, msg)
 
 

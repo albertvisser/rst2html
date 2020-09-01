@@ -765,6 +765,12 @@ def build_progress_list(sitename):
     return result
 
 
+def get_copystand_filepath(sitename):
+    "determine filename to use for saving the progress overview data"
+    dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+    return  WEBROOT / sitename / 'voortgangsoverzicht-{}'.format(dts)
+
+
 # -- convert all --
 class UpdateAll:
     """Regenerate documents om a site according to parameters
@@ -1573,19 +1579,10 @@ class R2hState:
         """show the state of all site documents"""
         return build_progress_list(self.sitename)
 
-    def copystand(self, outfile, outdir, data):
+    def copystand(self, data):
         """copy the overview to a file"""
-        if not outfile:
-            return 'Geen output filenaam opgegeven'
-        if not outdir:
-            outdir = pathlib.Path.home()
-        else:
-            outdir = pathlib.Path(outdir)
-            if outdir.is_file():
-                outdir = outdir.parent
-        outfile = outdir / outfile
-        with open(outfile, 'w') as out:
-            print('{}'.format(data), file=out)
+        outfile = get_copystand_filepath(self.sitename)
+        outfile.write_text(data)
         return 'Overzicht geëxporteerd naar {}'.format(outfile)
 
 # -- eof
