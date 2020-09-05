@@ -70,19 +70,10 @@ def format_progress_list(timelist):
     output = [first_part]
     for docinfo in timelist:
         line = repeat_line
-        if docinfo[0] == '/':
-            docname = docinfo[1]
-        else:
-            docname = '/'.join(docinfo[:2])
-        maxidx, stats = docinfo[2:]
-        line = line.replace('{row.0}', docname)
-        for idx, dts in enumerate(stats):
-            if dts == datetime.datetime.min:
-                timestring = "n/a"
-            else:
-                timestring = dts.strftime('%d-%m-%Y %H:%M:%S')
-            if idx == maxidx:
-                timestring = timestring.join(('<strong>', '</strong>'))
+        items = rhfn.get_progress_line_values(docinfo)
+        line = line.replace('{row.0}', items[0])
+        for idx, timestring in enumerate(items[1:]):
+            timestring = timestring.replace('--> ', '<strong>').replace(' <--', '</strong>')
             line = line.replace('{row.%s}' % str(idx + 1), timestring)
         output.append(line)
     output.append(last_part)
@@ -358,7 +349,7 @@ class Rst2Html:
         """copy the overview to a file
         """
         msg = self.state.copystand(self.overviewdata)
-        return format_progress_list(self.overviewdata).format(self.state.settings, msg)
+        return format_progress_list(self.overviewdata).format(self.state.sitename, msg)
 
 
 if __name__ == "__main__":

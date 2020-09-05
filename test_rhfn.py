@@ -819,6 +819,17 @@ class TestProgressList:
         assert rhfn.get_copystand.filepath(s) == pathlib.Path(rhfn.WEBROOT / 's' /
                                                               'voortgangsoverzicht-x')
 
+    def test_get_progress_line_values(self):
+        mindate = rhfn.datetime.datetime.min
+        maxdate = rhfn.datetime.datetime.max
+        line = ('/', 'index', 0,  (maxdate, mindate, mindate))
+        expected = ['index', '--> 31-12-9999 23:59:59 <--', 'n/a', 'n/a']
+        assert rhfn.get_progress_line_values(line) == expected
+        line = ('dir', 'file', 2,  (maxdate, maxdate, maxdate))
+        expected = ['dir/file', '31-12-9999 23:59:59', '31-12-9999 23:59:59',
+                    '--> 31-12-9999 23:59:59 <--']
+        assert rhfn.get_progress_line_values(line) == expected
+
 
 class TestTrefwLijst:
     def test_get_reflinks_in_dir(self, monkeypatch):
@@ -1942,8 +1953,11 @@ class TestR2hStateRelated:
         path = pathlib.Path('/tmp/copystand')
         def mock_get_copystand_filepath(*args):
             return path
+        def mock_get_progress_line_values(*args):
+            return ['x', 'y', 'z', 'q']
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn, 'get_copystand_filepath', mock_get_copystand_filepath)
-        assert testsubj.copystand('x') == 'Overzicht geëxporteerd naar /tmp/copystand'
-        assert path.read_text() == 'x'
+        monkeypatch.setattr(rhfn, 'get_progress_line_values', mock_get_progress_line_values)
+        assert testsubj.copystand(['x']) == 'Overzicht geëxporteerd naar /tmp/copystand'
+        assert path.read_text() == 'x;y;z;q\n'
