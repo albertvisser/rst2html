@@ -765,6 +765,31 @@ def build_progress_list(sitename):
     return result
 
 
+def get_copystand_filepath(sitename):
+    "determine filename to use for saving the progress overview data"
+    dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+    return  WEBROOT / sitename / 'voortgangsoverzicht-{}'.format(dts)
+
+
+def get_progress_line_values(docinfo):
+    "convert a progress_list entry into a sequence of text items"
+    if docinfo[0] == '/':
+        docname = docinfo[1]
+    else:
+        docname = '/'.join(docinfo[:2])
+    result = [docname]
+    maxidx, stats = docinfo[2:]
+    for idx, dts in enumerate(stats):
+        if dts == datetime.datetime.min:
+            timestring = "n/a"
+        else:
+            timestring = dts.strftime('%d-%m-%Y %H:%M:%S')
+        if idx == maxidx:
+            timestring = timestring.join(('--> ', ' <--'))
+        result.append(timestring)
+    return result
+
+
 # -- convert all --
 class UpdateAll:
     """Regenerate documents om a site according to parameters
@@ -1572,5 +1597,14 @@ class R2hState:
     def overview(self):
         """show the state of all site documents"""
         return build_progress_list(self.sitename)
+
+    def copystand(self, data):
+        """copy the overview to a file"""
+        outfile = get_copystand_filepath(self.sitename)
+        with outfile.open('w') as out:
+            for docinfo in data:
+                docinfo = get_progress_line_values(docinfo)
+                print(';'.join(docinfo), file=out)
+        return 'Overzicht geëxporteerd naar {}'.format(outfile)
 
 # -- eof

@@ -29,14 +29,11 @@ scriptdict = {'yaml': ('yaml/yaml',),
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
-    # import pdb;pdb.set_trace()
     if state.newfile:
         all_source, all_html = [], []
     else:
-        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')  # ,
-                                     # state.get_lang())
-        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')  # ,
-                                   # state.get_lang())
+        all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')
+        all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')
     with TEMPLATE.open() as f_in:
         # eigengebakken language support
         output = []
@@ -73,19 +70,10 @@ def format_progress_list(timelist):
     output = [first_part]
     for docinfo in timelist:
         line = repeat_line
-        if docinfo[0] == '/':
-            docname = docinfo[1]
-        else:
-            docname = '/'.join(docinfo[:2])
-        maxidx, stats = docinfo[2:]
-        line = line.replace('{row.0}', docname)
-        for idx, dts in enumerate(stats):
-            if dts == datetime.datetime.min:
-                timestring = "n/a"
-            else:
-                timestring = dts.strftime('%d-%m-%Y %H:%M:%S')
-            if idx == maxidx:
-                timestring = timestring.join(('<strong>', '</strong>'))
+        items = rhfn.get_progress_line_values(docinfo)
+        line = line.replace('{row.0}', items[0])
+        for idx, timestring in enumerate(items[1:]):
+            timestring = timestring.replace('--> ', '<strong>').replace(' <--', '</strong>')
             line = line.replace('{row.%s}' % str(idx + 1), timestring)
         output.append(line)
     output.append(last_part)
@@ -350,11 +338,18 @@ class Rst2Html:
 
     @cherrypy.expose
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", action='',
-                 regsubj=""):
+                 regsubj=''):
         """output the site inventory to html, accentuating the most recently updated items
         """
-        data = self.state.overview()
-        return format_progress_list(data).format(settings)
+        self.overviewdata = self.state.overview()
+        return format_progress_list(self.overviewdata).format(settings, '')
+
+    @cherrypy.expose
+    def copystand(self):
+        """copy the overview to a file
+        """
+        msg = self.state.copystand(self.overviewdata)
+        return format_progress_list(self.overviewdata).format(self.state.sitename, msg)
 
 
 if __name__ == "__main__":

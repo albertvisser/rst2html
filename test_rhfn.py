@@ -13,6 +13,18 @@ import pytest
 import rst2html_functions as rhfn
 
 
+def mock_default_site():
+    return 'testsite'
+
+
+def mock_get_lang(*args):
+    return ''
+
+
+def mock_get_text(*args):
+    return args[0]
+
+
 class TestLangRelated:
     def test_get_text(self):
         "voorlopig even met hard gecodeerde verwachte uitkomsten"
@@ -800,6 +812,24 @@ class TestProgressList:
                                                 ('testdir2', 'index', 2, (1, 2, 3)),
                                                 ('testdir2', 'test', 0, (3, 2, 1))]
 
+    def get_copystand_filepath(self, monkeypatch):
+        def mock_strftime(*args):
+            return 'x'
+        monkeypatch.setattr(rhfn.datetimedatetimedatetime, 'strftime', 'mock_strftime')
+        assert rhfn.get_copystand.filepath(s) == pathlib.Path(rhfn.WEBROOT / 's' /
+                                                              'voortgangsoverzicht-x')
+
+    def test_get_progress_line_values(self):
+        mindate = rhfn.datetime.datetime.min
+        maxdate = rhfn.datetime.datetime.max
+        line = ('/', 'index', 0,  (maxdate, mindate, mindate))
+        expected = ['index', '--> 31-12-9999 23:59:59 <--', 'n/a', 'n/a']
+        assert rhfn.get_progress_line_values(line) == expected
+        line = ('dir', 'file', 2,  (maxdate, maxdate, maxdate))
+        expected = ['dir/file', '31-12-9999 23:59:59', '31-12-9999 23:59:59',
+                    '--> 31-12-9999 23:59:59 <--']
+        assert rhfn.get_progress_line_values(line) == expected
+
 
 class TestTrefwLijst:
     def test_get_reflinks_in_dir(self, monkeypatch):
@@ -1218,18 +1248,6 @@ class TestUpdateAllRelated:
         # testcase: no actions needed
         monkeypatch.setattr(rhfn, 'build_progress_list', mock_build_progress_list_2)
         assert testsubj.go() == []
-
-
-def mock_default_site():
-    return 'testsite'
-
-
-def mock_get_lang(*args):
-    return ''
-
-
-def mock_get_text(*args):
-    return args[0]
 
 
 class TestR2hStateRelated:
@@ -1932,14 +1950,14 @@ class TestR2hStateRelated:
         assert testsubj.overview() == 'called build_progress_list'
 
     def test_copystand(self, monkeypatch):
+        path = pathlib.Path('/tmp/copystand')
+        def mock_get_copystand_filepath(*args):
+            return path
+        def mock_get_progress_line_values(*args):
+            return ['x', 'y', 'z', 'q']
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
-        assert testsubj.copystand('', '', '') == 'Geen output filenaam opgegeven'
-        assert testsubj.copystand('x', '', '') == ('Overzicht geëxporteerd naar'
-                                                   ' {}/x'.format(pathlib.Path.home()))
-        testpath = pathlib.Path.home() / 'x'
-        assert testsubj.copystand('x', str(testpath), '') ==('Overzicht geëxporteerd naar'
-                                                             ' {}'.format(testpath))
-        assert testsubj.copystand('null', '/dev', 'testerdetest') == ('Overzicht geëxporteerd'
-                                                                      ' naar /dev/null')
-        return
+        monkeypatch.setattr(rhfn, 'get_copystand_filepath', mock_get_copystand_filepath)
+        monkeypatch.setattr(rhfn, 'get_progress_line_values', mock_get_progress_line_values)
+        assert testsubj.copystand(['x']) == 'Overzicht geëxporteerd naar /tmp/copystand'
+        assert path.read_text() == 'x;y;z;q\n'
