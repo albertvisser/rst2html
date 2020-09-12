@@ -154,7 +154,7 @@ def format_search(results=None):
             output.append(out)
         output.append(end)
     output.append(last_part)
-    return ''.join(output)
+    return ''.join(output).replace(' **', '<strong>').replace('** ', '</strong>')
 
 
 class Rst2Html:

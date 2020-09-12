@@ -41,8 +41,8 @@ standard_directives.update({"startc": StartCols,
                             "spacer": Spacer})
 directive_selectors.update(dir_sel)
 from directives_magiokis import (Bottom, RefKey, ByLine, Audio, MenuText, MySidebar, Transcript,
-                                 MyHeader, StartSideBar, EndSideBar, MyFooter, Gedicht, SongTekst,
-                                 StartBlock, EndBlock, RoleSpec, Scene, Anno,
+                                 MyHeader, StartSideBar, EndSideBar, MyFooter,
+                                 Gedicht, SongTekst, StartBlock, EndBlock, RoleSpec, Scene, Anno,
                                  directive_selectors as dir_sel)
 standard_directives.update({"bottom": Bottom,
                             'refkey': RefKey,
@@ -1094,13 +1094,13 @@ def searchdict2list(inputdict, search):
         for lineno, linetext, locs in lines:
             maxlen = 80
             if len(linetext) <= maxlen:
-                text = linetext.replace(search, search.join(('**', '**')))
+                text = linetext.replace(search, search.join((' **', '** ')))
                 outputlist.append((filespec, lineno, text))
                 continue
             for pos in locs:
                 start = pos - 20 if pos > 20 else 0
                 text = linetext[start:start + maxlen]
-                text = text.replace(search, search.join(('**', '**')), 1)
+                text = text.replace(search, search.join((' **', '** ')), 1)
                 if start > 0:
                     text = '...' + text
                 if start + maxlen < len(linetext):
