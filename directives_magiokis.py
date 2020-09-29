@@ -239,45 +239,63 @@ class MenuText(Directive):
 
 
 class Transcript(Directive):
-    """genereert een transcriptie
-    """
+    "genereert het begin van een blok met transcripts"
+
     required_arguments = 0
-    optional_arguments = 1
+    optional_arguments = 0
     final_argument_whitespace = True
-    option_spec = {'title': directives.unchanged}
     has_content = True
 
     def run(self):
         "genereer de html"
-        title = self.options['title'] if self.options else ''
-        first_line = '<div class="transcript">'
-        if title:
-            first_line += '<div>{}</div>'.format(title)
-        lines = []
-        last_line = ''
+        lines = [" <script type='text/javascript'>\n   function toggle_expander(id) {\n",
+                 "     var e = document.getElementById(id);\n",
+                 "     if (e.style.visibility == 'hidden') {\n",
+                 "       e.style.height = 'auto';\n",
+                 "       e.style.visibility = 'visible'; }\n",
+                 "     else {\n       e.style.height = '1px';\n"
+                 "       e.style.visibility = 'hidden'; }\n   }</script>\n",
+                 '<div class="transcript-border" style="border: solid"> <div id="transcript">',
+                 '<a href="javascript:toggle_expander(' "'transcript-content'" ');" ',
+                 'class="transcript-title">&darr; Transcript</a><div id="transcript-content">',
+                 '<div class="transcript">']
+        name = old_name = ''
+        paragraph_started = False
         for line in self.content:
-            try:
-                name, text = line.split('::')
-            except ValueError:
-                if lines:
-                    last_line += '<br>'
-                name, text = '', line
-                if self.content == [line]:
-                    name, text = text, name
+            line = line.strip()
+            if line == '::':
+                if paragraph_started:
+                    lines.append('</p>')
+                    paragraph_started = False
+                lines.append('<p>')
+                continue
+            if '::' not in line:
+                if paragraph_started:
+                    lines.append('<br>')
+                else:
+                    lines.append('<p>')
+                    paragraph_started = True
+                if line.startswith(':title:'):
+                    lines.append('<em>{}</em>'.format(line[7:].strip()))
+                else:
+                    lines.append(line)
+                continue
+            name, text = line.split('::')
+            if not name:
+                name = old_name
             else:
-                if lines:
-                    last_line += '</div><div style="clear: left"></div>'
-            lines.append(last_line)
-            if name:
-                delim = ':' if text else ''
-                last_line = ''.join(('<div style="float: left"><em>{}</em>{}&nbsp;</div>',
-                                     '<div style="float: left">{}')).format(name, delim, text)
+                old_name = name
+            if paragraph_started:
+                lines.append('<br>')
             else:
-                last_line = '{}'.format(text)
-        last_line += '</div><div style="clear: left"></div>'
-        lines.append(last_line)
-        lines.insert(0, first_line)
-        lines.append('<br></div>')
+                paragraph_started = True
+            lines.append('<em>{}: </em>{}'.format(name, text))
+        if paragraph_started:
+            lines.append('</p>')
+        lines.append(('</div></div> </div> </div> <script type=' "'text/javascript'" '>'
+                      "document.getElementById('transcript-content').style.visibility = 'hidden';"
+                      "document.getElementById('transcript-content').style.height = '1px';"
+                      '</script>'))
         text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
