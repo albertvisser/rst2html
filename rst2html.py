@@ -131,7 +131,7 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
         start, end = '', previewdata
     else:
         start, end = previewdata[:pos], previewdata[pos:]
-    loadrst = 'load{0}?{0}file={1}&settings={2}'.format(ftype, fname, settings)
+    loadrst = '/load{0}/?{0}file={1}&settings={2}'.format(ftype, fname, settings)
     previewdata = previewbutton.format(loadrst).join((start, end))
     return previewdata
 
@@ -315,7 +315,6 @@ class Rst2Html:
                     regsubj=''):
         """start find/replace action: enter arguments
         """
-        mld = "Deze functie is in aanbouw, maar probeer maar"
         return format_search().format(settings, '', '', mld)
 
     @cherrypy.expose
