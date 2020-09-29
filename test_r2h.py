@@ -53,3 +53,25 @@ def format_search():
     raw_data = (r2h.HERE / 'search.html').read_text()
     assert r2h.format_search() == ''
 
+class TestRst2Html:
+
+    def setup_class(self):
+        return r2h.Rst2Html()
+
+    def test_init(self, monkeypatch, capsys):
+        def mock_register_directives():
+            print('called register_directives')
+        monkeypatch.setattr(r2h.rhfn, 'register_directives', mock_register_directives)
+        testsubj = r2h.Rst2Html()   # self.setup_class(monkeypatch)
+        assert capsys.readouterr().out == 'called register_directives\n'
+        assert type(getattr(testsubj, 'state', None)) == r2h.rhfn.R2hState
+
+    def index(self, monkeypatch, capsys):
+        def mock_register_directives():
+            pass
+        def mock_format_output(*args):
+            return 'format_output for ' + ', '.join(['{}'.format(x) for x in args])
+        monkeypatch.setattr(r2h.rhfn, 'register_directives', mock_register_directives)
+        testsubj = r2h.Rst2Html()   # self.setup_class(monkeypatch)
+        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
+        assert testsubj.index() == ''
