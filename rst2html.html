@@ -4,16 +4,9 @@
   <title>ReStructured Text translator</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   {9}
-  <script type="text/javascript">
-    function do_sub(x) {{
-      document.forms[0].action = x;
-      document.forms[0].submit();
-      return true
-    }}
-  </script>
 </head>
 <body style="background-color: #C6E2FF; color: #3a5fcd">
-  <form action="/" method="post">
+  <form method="post">
     <div class="container-full table-full">
       <div class="row-full" style="display: inline; float:left">
         <div class="table-full" style="display: inline">
@@ -24,32 +17,32 @@
               <option>_(c_newitem)</option>
               {7}
             </select>
-            <input type="button" value="_(c_loadconf)" title="_(t_loadconf) [Y]" accesskey="y"
-              onclick="javascript:do_sub('loadconf'); return true;" />
-            <input type="button" value="_(c_saveconf)" title="_(t_saveconf) [Z]" accesskey="z"
-             onclick="javascript:do_sub('saveconf'); return true;" />
+            <input type="submit" value="_(c_loadconf)" title="_(t_loadconf) [Y]" accesskey="y"
+              formaction="/loadconf/" />
+            <input type="submit" value="_(c_saveconf)" title="_(t_saveconf) [Z]" accesskey="z"
+             formaction="/saveconf/" />
             <span style="width: 200px">&nbsp;&nbsp;</span>
           </div>
           <div class="table-column" style="float:left">
             <span style="padding-left: 100px">Site Actions:&nbsp;</span>
-            <input type="button" value="_(c_index)" title="_(t_index) [I]" accesskey="i"
-              onclick="javascript: do_sub('makerefdoc'); return true;" />
-            <input type="button" value="_(c_regen)" title="_(t_regen) [G]" accesskey="g"
-              onclick="javascript: do_sub('convert_all'); return true;" />:
-	    <select name="regsubj" title="_(t_regsubj) [Q]" accesskey="q">
-	      <option value="1">_(c_regsubj1)</option>
-	      <option value="0">_(c_regsubj0)</option>
-	      <option value="2">_(c_regsubj2)</option>
-	      <option value="4">_(c_regsubj4)</option>
-	      <option value="3">_(c_regsubj3)</option>
-	      <option value="5">_(c_regsubj5)</option>
-	    </select>
-	    <input type="button" value="_(c_find)" title="_(t_find) [F]" accesskey="f" 
-              onclick="javascript: do_sub('find_screen'); return true;" />
-            <input type="button" value="_(c_check)" title="_(t_check) [K]" accesskey="v"
-	      onclick="javascript: do_sub('check'); return true;" />
-            <input type="button" value="_(c_overview)" title="_(t_overview) [V]" accesskey="v"
-	      onclick="javascript: do_sub('overview'); return true;" />
+            <input type="submit" value="_(c_index)" title="_(t_index) [I]" accesskey="i"
+              formaction="/makerefdoc/" />
+            <input type="submit" value="_(c_regen)" title="_(t_regen) [G]" accesskey="g"
+              formaction="/convert_all/" />:
+            <select name="regsubj" title="_(t_regsubj) [Q]" accesskey="q">
+              <option value="1">_(c_regsubj1)</option>
+              <option value="0">_(c_regsubj0)</option>
+              <option value="2">_(c_regsubj2)</option>
+              <option value="4">_(c_regsubj4)</option>
+              <option value="3">_(c_regsubj3)</option>
+              <option value="5">_(c_regsubj5)</option>
+            </select>
+            <input type="submit" value="_(c_find)" title="_(t_find) [F]" accesskey="f" 
+              formaction="/find_screen/" />
+            <input type="submit" value="_(c_check)" title="_(t_check) [K]" accesskey="v"
+              formaction="/check/" />
+            <input type="submit" value="_(c_overview)" title="_(t_overview) [V]" accesskey="v"
+              formaction="/overview/" />
           </div>
           <div class="clear" style="clear: both"></div>
 
@@ -59,14 +52,14 @@
               <option>_(c_newitem)</option>
               {0}
             </select>
-            <input type="button" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
-              onclick="javascript: do_sub('loadrst'); return true;" />
-            <input type="button" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
-              onclick="javascript: do_sub('saverst'); return true;" />
-            <input type="button" value="_(c_convert)" title="_(t_convert) [R]" accesskey="r"
-              onclick="javascript: do_sub('convert'); return true;" />
-            <input type="button" value="_(c_saveall)" title="_(t_saveall) [C]" accesskey="c"
-              onclick="javascript: do_sub('saveall'); return true;" />
+            <input type="submit" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
+              formaction="/loadrst/" />
+            <input type="submit" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
+              formaction="/saverst/" />
+            <input type="submit" value="_(c_convert)" title="_(t_convert) [R]" accesskey="r"
+              formaction="/convert/" />
+            <input type="submit" value="_(c_saveall)" title="_(t_saveall) [C]" accesskey="c"
+              formaction="/saveall/" />
           </div>
           <div class="table-column" style="float:left">
             <span style="padding-left: 10px">_(c_newfile):</span>
@@ -88,14 +81,14 @@
               <option>_(c_newitem)</option>
               {1}
             </select>
-            <input type="button" value="_(c_loadhtml)" title="_(t_loadhtml) [H]" accesskey="h"
-              onclick="javascript: do_sub('loadhtml'); return true;" />
-            <input type="button" value="_(c_showhtml)" title="_(t_showhtml) [B]" accesskey="b"
-              onclick="javascript: do_sub('showhtml'); return true;" />
-            <input type="button" value="_(c_savehtml)" title="_(t_savehtml) [U]" accesskey="u"
-              onclick="javascript: do_sub('savehtml'); return true;" />
-            <input type="button" value="_(c_copytoroot)" title="_(t_copytoroot) [M]" accesskey="m"
-              onclick="javascript: do_sub('copytoroot'); return true;" />
+            <input type="submit" value="_(c_loadhtml)" title="_(t_loadhtml) [H]" accesskey="h"
+              formaction="/loadhtml/" />
+            <input type="submit" value="_(c_showhtml)" title="_(t_showhtml) [B]" accesskey="b"
+              formaction="/showhtml/" />
+            <input type="submit" value="_(c_savehtml)" title="_(t_savehtml) [U]" accesskey="u"
+              formaction="/savehtml/" />
+            <input type="submit" value="_(c_copytoroot)" title="_(t_copytoroot) [M]" accesskey="m"
+              formaction="/copytoroot/" />
           </div>
           <div class="table-column" style="float:left">
           </div>
@@ -104,10 +97,10 @@
           <div class="row-full" style="float:left">
             <!--
               _(c_custom):
-              <input type="button" value="_(c_loadxtra)" title="_(t_loadxtra)"
-                onclick="javascript:do_sub('loadxtra'); return true;" />
-              <input type="button" value="_(c_savextra)" title="_(t_savextra)"
-                onclick="javascript:do_sub('savextra'); return true;" />
+              <input type="submit" value="_(c_loadxtra)" title="_(t_loadxtra)"
+                formaction="/loadxtra/" />
+              <input type="submit" value="_(c_savextra)" title="_(t_savextra)"
+                formaction="/savextra/" />
               <span>&nbsp;&nbsp;&nbsp;</span> -->
             <strong>{3}</strong>
           </div>
