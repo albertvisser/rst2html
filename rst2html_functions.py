@@ -40,12 +40,13 @@ standard_directives.update({"startc": StartCols,
                             "clearc": ClearCol,
                             "spacer": Spacer})
 directive_selectors.update(dir_sel)
-from directives_magiokis import (Bottom, RefKey, ByLine, Audio, MenuText, MySidebar, Transcript,
-                                 MyHeader, StartSideBar, EndSideBar, MyFooter,
+from directives_magiokis import (Bottom, RefKey, MyInclude, ByLine, Audio, MenuText, MySidebar,
+                                 Transcript, MyHeader, StartSideBar, EndSideBar, MyFooter,
                                  Gedicht, SongTekst, StartBlock, EndBlock, RoleSpec, Scene, Anno,
                                  directive_selectors as dir_sel)
 standard_directives.update({"bottom": Bottom,
                             'refkey': RefKey,
+                            'incl': MyInclude,
                             'byline': ByLine,
                             'audio': Audio,
                             'menutext': MenuText,
@@ -266,6 +267,20 @@ def check_directive_selectors(sitename):
     if missing:
         return missing
     return ''
+
+
+def preprocess_includes(sitename, current, data):
+    "eigengebakken include support (zodat het werkt voor alle backends)"
+    keyword = '.. incl::'
+    lang = read_conf(sitename)[1].get('lang', '') or LANG
+    while keyword in data:
+        start, rest = data.split(keyword, 1)
+        name, end = rest.split('\n', 1)
+        msg, text = read_src_data(sitename, current, name.strip())
+        if msg:
+            text = '.. error:: {}\n'.format(get_text(msg, lang))
+        data = text.join((start, end))
+    return data
 
 
 # -- site / conf related --
@@ -870,7 +885,8 @@ class UpdateAll:
 
     def rebuild_html(self, dirname, filename):
         "regenerate target html if needed / possible"
-        htmldata = rst2html(self.rstdata, self.conf['css'])
+        htmldata = rst2html(preprocess_includes(self.sitename, dirname, self.rstdata),
+                            self.conf['css'])
         if self.show_only:
             msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
         else:
@@ -1403,6 +1419,7 @@ class R2hState:
                 # only if current text type == previous text type?
                 mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
+            rstdata = preprocess_includes(self.sitename, self.current, rstdata)
             previewdata = rst2html(rstdata, self.conf['css'])
         else:
             mld = get_text(mld, self.get_lang())
@@ -1421,6 +1438,7 @@ class R2hState:
         if mld == '':
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
+            rstdata = preprocess_includes(self.sitename, self.current, rstdata)
             newdata = rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,

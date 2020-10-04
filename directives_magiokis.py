@@ -124,6 +124,20 @@ class RefKey(Directive):
         return []
 
 
+class MyInclude(Directive):
+    """pseudo-directive om dit ook voor niet-filesystem sites mogelijk te maken"""
+
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        """dit directive is bedoeld om door een apart proces gebruikt te worden
+        en doet daarom niets"""
+        return []
+
+
 class MyHeader(Directive):
     """genereert een header die met de css om kan gaan (of andersom)
     """

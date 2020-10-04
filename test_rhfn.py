@@ -190,6 +190,24 @@ class TestR2HRelated:
         assert sorted(rhfn.check_directive_selectors('testsite')) == ['class_2', 'id_2']
         capsys.readouterr()  # swallow stdout/err
 
+    def test_preprocess_includes(self, monkeypatch, capsys):
+        def mock_read_conf(*args):
+            return '', {'lang': rhfn.LANG}
+        def mock_read_src_data(*args):
+            return '', 'include {} {} {}'.format(args[0], args[1], args[2])
+        def mock_read_src_data_msg(*args):
+            return 'fname_invalid', ''
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
+        assert rhfn.preprocess_includes('testsite', '', '') == ''
+        data = 'eerste regel\n\n.. incl:: jansen\n\ntweede regel\n'
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
+        expected = 'eerste regel\n\ninclude testsite  jansen\ntweede regel\n'
+        #import pdb; pdb.set_trace()
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_msg)
+        expected = ('eerste regel\n\n.. error:: Not a valid filename\n\ntweede regel\n')
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+
 
 class TestConfRelated:
     "tests for site / configuration related functions"
@@ -1051,9 +1069,9 @@ class TestSearchRelated:
                                      (3, 'een eindeloos uitzicht vol regels' + 20 * '@#$%' , [28])],
                      ('dir', 'file0'): [],
                      ('dir', 'file'): [(24, 'geen regeling', [6])]}
-        expected = [('/index', 1, '**regel** na **regel**'),
-                    ('/index', 3, '...eloos uitzicht vol **regel**s' + 13 * '@#$%' + '@#$...'),
-                    ('dir/file', 24, 'geen **regel**ing')]
+        expected = [('/index', 1, ' **regel**  na  **regel** '),
+                    ('/index', 3, '...eloos uitzicht vol  **regel** s' + 13 * '@#$%' + '@#$...'),
+                    ('dir/file', 24, 'geen  **regel** ing')]
         assert rhfn.searchdict2list(inputdict, 'regel') == expected
 
 
@@ -1120,6 +1138,9 @@ class TestUpdateAllRelated:
             return ''
         def mock_save_html_data_msg(*args, **kwargs):
             return 'save_html_data_err'
+        def mock_read_conf(*args):
+            return '', {'lang': rhfn.LANG}
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
 
         sitename, conf = 'testsite', {'css': []}
         testsubj = rhfn.UpdateAll(sitename, conf)
@@ -1646,6 +1667,8 @@ class TestR2hStateRelated:
                 'rstfile deleted', path)
 
     def test_convert(self, monkeypatch, capsys):
+        """ in: rstfile, newfile, rstdata; out: mld, previewdata, fname
+        """
         def mock_check_if_rst(*args):
             return ''
         def mock_check_if_rst_mld(*args):
@@ -1657,6 +1680,9 @@ class TestR2hStateRelated:
             return 'mld from save_src_data'
         def mock_rst2html(*args):
             return args[0]
+        def mock_read_conf(*args):
+            return '', {}
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
@@ -1667,6 +1693,7 @@ class TestR2hStateRelated:
         monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst)
         testsubj.oldtext = 'text\nmoretext'
         monkeypatch.setattr(rhfn, 'rst2html', mock_rst2html)
+        # import pdb; pdb.set_trace()
         assert testsubj.convert('rstfile', 'newfile', 'text\r\nmoretext') == (
                 '', 'text\nmoretext', 'newfile')
         assert capsys.readouterr().out == ''
@@ -1683,6 +1710,8 @@ class TestR2hStateRelated:
         assert capsys.readouterr().out == 'save_src_data called\n'
 
     def test_saveall(self, monkeypatch, capsys):
+        """in: rstfile, newfile, rstdata; out: mld, rstfile, htmlfile, newfile
+        """
         def mock_check_if_rst(*args):
             return ''
         def mock_check_if_rst_mld(*args):
@@ -1699,6 +1728,9 @@ class TestR2hStateRelated:
             return ''
         def mock_save_html_data_mld(*args):
             return 'mld from save_html_data for {}'
+        def mock_read_conf(*args):
+            return '', {'lang': rhfn.LANG}
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         testsubj.current = ''

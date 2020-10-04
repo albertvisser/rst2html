@@ -2,9 +2,30 @@ import pytest
 import directives_magiokis as dirm
 
 
+def mock_init(*args):
+    pass
+
+
+def test_refkey(monkeypatch):
+    monkeypatch.setattr(dirm.RefKey, '__init__', mock_init)
+    testsubj = dirm.RefKey()
+    testsubj.arguments= ['hallo']
+    testsubj.options = {}
+    testsubj.content = []
+    assert testsubj.run() == []
+
+
+def test_myinclude(monkeypatch):
+    monkeypatch.setattr(dirm.MyInclude, '__init__', mock_init)
+    testsubj = dirm.MyInclude()
+    testsubj.arguments = ['hallo']
+    testsubj.options = {}
+    testsubj.content = []
+    data = testsubj.run()[0][0]  # .children[0]
+    assert str(data) == 'hallo'
+
+
 def test_transcript(monkeypatch, capsys):
-    def mock_init( *args):
-        pass
     start = (" <script type='text/javascript'>\n   function toggle_expander(id) {\n"
              "     var e = document.getElementById(id);\n"
              "     if (e.style.visibility == 'hidden') {\n"
