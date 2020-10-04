@@ -276,9 +276,31 @@ def preprocess_includes(sitename, current, data):
     while keyword in data:
         start, rest = data.split(keyword, 1)
         name, end = rest.split('\n', 1)
-        msg, text = read_src_data(sitename, current, name.strip())
+        name = name.strip()
+        parts = name.split('/')  # max 2 splits allowed
+        msg = ''
+        if len(parts) == 1:
+            include_location = current
+        elif len(parts) == 2:
+            if parts[0] == '..' and current:
+                include_location = ''
+            elif parts[0] != '..' and not current:
+                include_location = parts[0]
+            else:
+                msg = '.'
+        elif len(parts) == 3:
+            if not current or parts[0] == '..' or parts[1] != '..':
+                msg = '.'
+            else:
+                include_location = parts[0]
+        else:
+            msg = '.'
         if msg:
-            text = '.. error:: {}\n'.format(get_text(msg, lang))
+            msg = 'fname_invalid'  # 'illegal path specified for include'
+        else:
+            msg, text = read_src_data(sitename, include_location, parts[-1])
+        if msg:
+            text = '.. error:: {}: {}\n'.format(get_text(msg, lang), name)
         data = text.join((start, end))
     return data
 

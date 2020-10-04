@@ -198,14 +198,45 @@ class TestR2HRelated:
         def mock_read_src_data_msg(*args):
             return 'fname_invalid', ''
         monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
+        # lege invoer
         assert rhfn.preprocess_includes('testsite', '', '') == ''
+        # fout bij ophalen include
         data = 'eerste regel\n\n.. incl:: jansen\n\ntweede regel\n'
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_msg)
+        expected = ('eerste regel\n\n.. error:: Not a valid filename: jansen\n\ntweede regel\n')
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+        # '.. incl:: docname' in root
         monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
         expected = 'eerste regel\n\ninclude testsite  jansen\ntweede regel\n'
-        #import pdb; pdb.set_trace()
+        assert rhfn.preprocess_includes('testsite', '', data) == expectedi
+        # '.. incl:: docname' in subdir
+        expected = 'eerste regel\n\ninclude testsite subdir jansen\ntweede regel\n'
+        assert rhfn.preprocess_includes('testsite', 'subdir', data) == expected
+        # '.. incl:: subdir/docname' in root
+        data = 'eerste regel\n\n.. incl:: subdir/jansen\n\ntweede regel\n'
+        expected = 'eerste regel\n\ninclude testsite subdir jansen\ntweede regel\n'
         assert rhfn.preprocess_includes('testsite', '', data) == expected
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_msg)
-        expected = ('eerste regel\n\n.. error:: Not a valid filename\n\ntweede regel\n')
+        # fout: '.. incl:: subdir/docname' in subdir
+        data = 'eerste regel\n\n.. incl:: subdir/jansen\n\ntweede regel\n'
+        expected = ('eerste regel\n\n.. error:: Not a valid filename: subdir/jansen\n\n'
+                    'tweede regel\n')
+        assert rhfn.preprocess_includes('testsite', 'ix', data) == expected
+        # '.. incl:: ../docname' in subdir
+        data = 'eerste regel\n\n.. incl:: ../jansen\n\ntweede regel\n'
+        expected = 'eerste regel\n\ninclude testsite  jansen\ntweede regel\n'
+        assert rhfn.preprocess_includes('testsite', 'subdir', data) == expected
+        # fout: '.. incl:: ../docname' in root
+        data = 'eerste regel\n\n.. incl:: ../jansen\n\ntweede regel\n'
+        expected = 'eerste regel\n\n.. error:: Not a valid filename: ../jansen\n\ntweede regel\n'
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+        # '.. incl:: ../subdir/docname' in andere subdir
+        data = 'eerste regel\n\n.. incl:: sopdir/../jansen\n\ntweede regel\n'
+        expected = 'eerste regel\n\ninclude testsite sopdir jansen\ntweede regel\n'
+        assert rhfn.preprocess_includes('testsite', 'subdir', data) == expected
+        # fout: '.. incl:: ../subdir/docname' in root
+        data = 'eerste regel\n\n.. incl:: sopdir/../jansen\n\ntweede regel\n'
+        expected = ('eerste regel\n\n.. error:: Not a valid filename: sopdir/../jansen\n\n'
+                    'tweede regel\n')
         assert rhfn.preprocess_includes('testsite', '', data) == expected
 
 
