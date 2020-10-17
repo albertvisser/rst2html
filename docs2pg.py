@@ -6,7 +6,7 @@ import functools
 import pathlib
 import psycopg2 as pg
 import psycopg2.extras as pgx
-from app_settings_postgres import user, password, Stats, DB_WEBROOT, LOC2EXT  # , LOCS
+from app_settings_postgres import user, password, Stats, WEBROOT, LOC2EXT  # , LOCS
 from docs2fs import save_to
 conn = pg.connect(database="rst2html", user=user, password=password)
 TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents', 'templates')
@@ -240,7 +240,7 @@ def list_sites():
 def create_new_site(site_name):
     """set up the database and file system for managing a new site
     """
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if _get_site_id(site_name) is not None or path.exists():
         raise FileExistsError('site_name_taken')
 
@@ -270,8 +270,8 @@ def rename_site(site_name, newname):
     cur.close()
 
     # create the physical destination (mirror) so that css and images can be moved there
-    path = DB_WEBROOT / site_name
-    newpath = DB_WEBROOT / newname
+    path = WEBROOT / site_name
+    newpath = WEBROOT / newname
     path.rename(newpath)
 
 
@@ -742,7 +742,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     conn.commit()
     cur.close()
 
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if directory != '/':
         path /= directory
     if not path.exists():
@@ -779,7 +779,7 @@ def apply_deletions_mirror(site_name, directory=''):
     conn.commit()
     cur.close()
 
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if directory != '/':
         path /= directory
     deleted = [row['docname'] for row in deleted]
@@ -936,7 +936,7 @@ def clear_site_data(site_name):
     siteid = _get_site_id(site_name)
     if siteid is None:
         db_data = False
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if not path.exists():
         fs_data = False
 

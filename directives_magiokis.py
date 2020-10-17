@@ -8,7 +8,7 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
-from app_settings import FS_WEBROOT
+from app_settings import WEBROOT
 
 directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
                        'myheader': (('a', "#logo"), ('div', "#name-and-slogan"), ('div',
@@ -168,7 +168,7 @@ class MyHeader(Directive):
             menufile = pathlib.Path(menu)
         else:
             sitename = self.options.get('site', 'magiokis')
-            menufile = FS_WEBROOT / sitename / '.source' / 'hoofdmenu.rst'
+            menufile = WEBROOT / sitename / '.source' / 'hoofdmenu.rst'
         if menufile.exists():
             text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
             lines.extend(build_menu(text))

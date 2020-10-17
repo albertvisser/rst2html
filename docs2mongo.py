@@ -5,7 +5,7 @@ import shutil
 import pathlib
 from pymongo import MongoClient
 from pymongo.collection import Collection
-from app_settings import DB_WEBROOT, LOC2EXT, LOCS, Stats
+from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 from docs2fs import save_to
 cl = MongoClient()
 db = cl.rst2html_database
@@ -97,7 +97,7 @@ def list_sites():
 def create_new_site(site_name):
     """set up the database and file system for managing a new site
     """
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if _get_site_doc(site_name) is not None or path.exists():
         raise FileExistsError('site_name_taken')
 
@@ -404,7 +404,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=False):
     sitedoc['docs'][directory][doc_name]['mirror'] = {'updated': dts}
     _update_site_doc(site_name, sitedoc['docs'])
 
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if directory != '/':
         path /= directory
     if not path.exists():
@@ -434,7 +434,7 @@ def apply_deletions_mirror(site_name, directory=''):
         sitedoc['docs'][directory].pop(doc_name)
     _update_site_doc(site_name, sitedoc['docs'])
 
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     if directory != '/':
         path /= directory
     for doc_name in deleted:
@@ -497,7 +497,7 @@ def list_site_data(site_name):
 def clear_site_data(site_name):
     """remove site from database, also delete mirror site files from file system
     """
-    path = DB_WEBROOT / site_name
+    path = WEBROOT / site_name
     try:
         sitedoc = site_coll.find_one_and_delete({'name': site_name})
     except TypeError:

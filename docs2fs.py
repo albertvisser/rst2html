@@ -10,7 +10,7 @@ save_config_data = yaml.dump
 load_config_data = yaml.safe_load  # let's be paranoid
 ParserError = yaml.parser.ParserError
 
-from app_settings import FS_WEBROOT, DB_WEBROOT, LOC2EXT, LOCS, Stats
+from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'
@@ -37,7 +37,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     do_seflinks = read_settings(sitename).get('seflinks')
     ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
-    path = _locify(FS_WEBROOT / sitename, ftype)
+    path = _locify(WEBROOT / sitename, ftype)
     if dirname:
         path = path / dirname
     if path.exists():
@@ -116,7 +116,7 @@ def read_data(fname):   # to be used for actual file system data
     on success: returns empty message and data as a string
     on failure: returns error message and empty string for data
     """
-    sitename = fname.relative_to(FS_WEBROOT).parts[0]
+    sitename = fname.relative_to(WEBROOT).parts[0]
     if read_settings(sitename).get('seflinks', False):
         if fname.suffix == '.html' and fname.stem != 'index':
             fname = fname.with_suffix('') / 'index.html'
@@ -145,7 +145,7 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
     if settings:
         sitename = fullname.relative_to(DB_WEBROOT).parts[0]
     else:
-        sitename = fullname.relative_to(FS_WEBROOT).parts[0]
+        sitename = fullname.relative_to(WEBROOT).parts[0]
         settings = read_settings(sitename)
     if settings.get('seflinks', False):
         if fullname.suffix == '.html' and fullname.stem != 'index':
@@ -185,13 +185,13 @@ def read_db():
 
 
 def list_sites():
-    """list all directories under FS_WEBROOT having subdirectories source en target
+    """list all directories under WEBROOT having subdirectories source en target
     (and a settings file)
     """
     ## """build list of options containing all settings files in current directory"""
     ## return [x.stem.replace('settings_', '') for x in HERE.glob('settings*.yml')]
     ## return [x.name for x in HERE.glob('settings*.yml')]
-    path = FS_WEBROOT
+    path = WEBROOT
     sitelist = []
     for item in path.iterdir():
         if not item.is_dir():
@@ -206,10 +206,10 @@ def list_sites():
 
 
 def create_new_site(sitename):
-    """aanmaken nieuwe directory onder FS_WEBROOT plus subdirectories source en target
+    """aanmaken nieuwe directory onder WEBROOT plus subdirectories source en target
     alsmede initieel settings file
     """
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     try:
         path.mkdir()
     except FileExistsError:
@@ -231,7 +231,7 @@ def rename_site(sitename, newname):
 def read_settings(sitename):
     "lezen settings file"
     conf = None
-    path = FS_WEBROOT / sitename / SETTFILE
+    path = WEBROOT / sitename / SETTFILE
     try:
         with path.open(encoding='utf-8') as _in:
             conf = load_config_data(_in)
@@ -245,7 +245,7 @@ def read_settings(sitename):
 
 def update_settings(sitename, conf):
     "update (save) settings file"
-    path = FS_WEBROOT / sitename / SETTFILE
+    path = WEBROOT / sitename / SETTFILE
     if path.exists():
         shutil.copyfile(str(path), str(path.with_suffix(path.suffix + '.bak')))
     with path.open('w', encoding='utf-8') as _out:
@@ -261,7 +261,7 @@ def clear_settings(sitename):
 
 def list_dirs(sitename, loc=''):
     "list subdirs for type"
-    test = FS_WEBROOT / sitename
+    test = WEBROOT / sitename
     if not test.exists():
         raise FileNotFoundError('no_site')
     path = _locify(test, loc)
@@ -275,7 +275,7 @@ def list_dirs(sitename, loc=''):
 
 def create_new_dir(sitename, dirname):
     "create site subdirectory in source tree"
-    path = FS_WEBROOT / sitename / SRC_LOC / dirname
+    path = WEBROOT / sitename / SRC_LOC / dirname
     path.mkdir()    # can raise FileExistsError - is caught in caller
     (path / '.files').touch()   # mark as site subdirectory
 
@@ -292,7 +292,7 @@ def list_docs(sitename, loc, directory='', deleted=False):
     if requested, list files marked as deleted instead
     raises FileNotFoundError if site or directory doesn't exist
     """
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     if not path.exists():
         raise FileNotFoundError('no_site')
     path = _locify(path, loc)
@@ -305,7 +305,7 @@ def list_docs(sitename, loc, directory='', deleted=False):
     if loc == 'dest' and read_settings(sitename).get('seflinks', False):
         lines = [f.stem for f in path.iterdir()
                  if f.is_dir() and (f / ('index' + testsuffix)).exists()]
-        if not directory and (FS_WEBROOT / sitename / 'index.html').exists():
+        if not directory and (WEBROOT / sitename / 'index.html').exists():
             lines.append('index')
     else:
         lines = [f.stem for f in path.iterdir() if f.is_file() and f.suffix == testsuffix]
@@ -314,7 +314,7 @@ def list_docs(sitename, loc, directory='', deleted=False):
 
 def list_templates(sitename):
     """return a list of template names for this site"""
-    path = FS_WEBROOT / sitename / '.templates'
+    path = WEBROOT / sitename / '.templates'
     if not path.exists():
         return []
     return sorted([f.name for f in path.iterdir() if f.suffix == '.tpl'])
@@ -323,7 +323,7 @@ def list_templates(sitename):
 def read_template(sitename, docname):
     """get the source of a specific template"""
     # moet eigenlijk met read_data maar dan moet ik die eerst geschikt maken
-    with (FS_WEBROOT / sitename / '.templates' / docname).open() as f_in:
+    with (WEBROOT / sitename / '.templates' / docname).open() as f_in:
         data = ''.join(f_in.readlines()).replace('\r\n', '\n')
     return data
 
@@ -331,7 +331,7 @@ def read_template(sitename, docname):
 def write_template(sitename, fnaam, data):
     """store the source for a template"""
     # moet eigenlijk met save_to maar dan moet ik die eerst geschikt maken
-    fullname = FS_WEBROOT / sitename / '.templates' / fnaam
+    fullname = WEBROOT / sitename / '.templates' / fnaam
     fullname.parent.mkdir(exist_ok=True)
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
@@ -353,7 +353,7 @@ def create_new_doc(sitename, docname, directory=''):
     """
     if not docname:
         raise AttributeError('no_name')
-    path = _locify(FS_WEBROOT / sitename, 'src')
+    path = _locify(WEBROOT / sitename, 'src')
     if directory:
         path = path / directory
     if not path.exists():
@@ -372,7 +372,7 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     """
     if not docname:
         raise AttributeError('No name provided')
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     path = _locify(path, doctype)
     if directory and directory != '/':
         path /= directory
@@ -400,7 +400,7 @@ def update_rst(sitename, doc_name, contents, directory=''):
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
-    path = FS_WEBROOT / sitename / SRC_LOC
+    path = WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     path = path / doc_name
@@ -418,7 +418,7 @@ def mark_src_deleted(sitename, doc_name, directory=''):
     if doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
-    path = FS_WEBROOT / sitename / SRC_LOC
+    path = WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     path = path / doc_name
@@ -445,7 +445,7 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
         raise FileNotFoundError("no_document")
     if dry_run:
         return
-    path = FS_WEBROOT / sitename / DEST_LOC
+    path = WEBROOT / sitename / DEST_LOC
     if directory and directory != '/':
         path /= directory
     path.mkdir(exist_ok=True)
@@ -461,14 +461,14 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
 def apply_deletions_target(sitename, directory=''):
     """Copy deletion markers from source to target environment
     """
-    path = FS_WEBROOT / sitename / SRC_LOC
+    path = WEBROOT / sitename / SRC_LOC
     if directory and directory != '/':
         path /= directory
     deleted = []
     for item in path.glob('*' + DELMARK):
         deleted.append(item.name)
         item.unlink()
-    path = FS_WEBROOT / sitename / DEST_LOC
+    path = WEBROOT / sitename / DEST_LOC
     if directory and directory != '/':
         path /= directory
     for item in deleted:
@@ -493,7 +493,7 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
         raise AttributeError('no_name')
     if dry_run:
         return
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     if directory and directory != '/':
         path /= directory
         path.mkdir(exist_ok=True, parents=True)
@@ -507,14 +507,14 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
 def apply_deletions_mirror(sitename, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-    path = FS_WEBROOT / sitename / DEST_LOC
+    path = WEBROOT / sitename / DEST_LOC
     if directory and directory != '/':
         path /= directory
     deleted = []
     for item in path.glob('*' + DELMARK):
         deleted.append(item.name)
         item.unlink()
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     if directory and directory != '/':
         path /= directory
     for item in deleted:
@@ -534,7 +534,7 @@ def get_doc_stats(sitename, docname, dirname=''):
     do_seflinks = read_settings(sitename).get('seflinks')
     mtimes = [datetime.datetime.min, datetime.datetime.min, datetime.datetime.min]
     for ix, ftype in enumerate(LOCS):
-        path = _locify(FS_WEBROOT / sitename, ftype)
+        path = _locify(WEBROOT / sitename, ftype)
         path = path / dirname if dirname else path
         path /= docname
         if ix > 0:
@@ -575,7 +575,7 @@ def list_site_data(sitename):
         for dirname in list_dirs(sitename, ftype):
             names = list_docs(sitename, ftype, dirname)
             fnames.extend([('/'.join((dirname, x)), ftype) for x in names])
-    base = FS_WEBROOT / sitename
+    base = WEBROOT / sitename
     for name, ftype in sorted(fnames):
         path = base / SRC_LOC if ftype == 'src' else base / DEST_LOC
         path /= name
@@ -590,7 +590,7 @@ def list_site_data(sitename):
 def clear_site_data(sitename):
     """remove site from file system by removing mirror and underlying
     """
-    path = FS_WEBROOT / sitename
+    path = WEBROOT / sitename
     try:
         shutil.rmtree(str(path))
     except FileNotFoundError:
