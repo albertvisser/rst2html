@@ -1614,8 +1614,7 @@ class R2hState:
         "do a search and optionally replace action for all documents on the site"
         # TODO: wat te doen bij een achterlijk groot aantal zoekresultaten (bv. bij zoeken op "de")?
         if replace:
-            items_found = {}  # nog even geen wijzigingen
-            # items_found = search_site(self.sitename, search, replace)
+            items_found = search_site(self.sitename, search, replace)
         else:
             items_found = search_site(self.sitename, search)
         results = searchdict2list(items_found, search)
