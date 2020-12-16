@@ -8,10 +8,12 @@ worden in de eerder geschreven mock methoden
 import os
 import pathlib
 import shutil
+import datetime
 import pytest
 
 import rst2html_functions as rhfn
 
+FIXDATE = datetime.datetime(2020, 1, 1)
 
 def mock_default_site():
     return 'testsite'
@@ -23,6 +25,12 @@ def mock_get_lang(*args):
 
 def mock_get_text(*args):
     return args[0]
+
+
+class MockDatetime:
+    @classmethod
+    def today(cls):
+        return FIXDATE
 
 
 class TestLangRelated:
@@ -164,9 +172,15 @@ class TestR2HRelated:
         def mock_get_directives_used(*args):
             print('called get_directives_used')
             return {'directive', 'direct'}
+        def mock_get_directives_used_none(*args):
+            print('called get_directives_used')
+            return {}
         def mock_get_idcls(*args):
             print('called get_idcls')
             return {'class_1', 'id_1', 'id_2', 'class_2'}
+        def mock_get_idcls_none(*args):
+            print('called get_idcls')
+            return {}
         def mock_read_conf(*args):
             return '', {'css': ['test1.css', 'test2.css']}
         def mock_run_found_all(*args):
@@ -186,9 +200,18 @@ class TestR2HRelated:
         assert capsys.readouterr().out == ('called get_directives_used\ncalled get_idcls\n'
                                            'call subprocess with args `wget` `test1.css`'
                                            ' `test2.css` `-O` `/tmp/r2h_css.css`\n')
+        monkeypatch.setattr(rhfn, 'get_directives_used', mock_get_directives_used_none)
+        assert rhfn.check_directive_selectors('testsite') == ''
+        assert capsys.readouterr().out == ('called get_directives_used\n')
+        monkeypatch.setattr(rhfn, 'get_directives_used', mock_get_directives_used)
+        monkeypatch.setattr(rhfn, 'get_idcls', mock_get_idcls_none)
+        assert rhfn.check_directive_selectors('testsite') == ''
+        assert capsys.readouterr().out == ('called get_directives_used\ncalled get_idcls\n')
+        monkeypatch.setattr(rhfn, 'get_idcls', mock_get_idcls)
         monkeypatch.setattr(rhfn.subprocess, 'run', mock_run_not_all)
         assert sorted(rhfn.check_directive_selectors('testsite')) == ['class_2', 'id_2']
         capsys.readouterr()  # swallow stdout/err
+
 
     def test_preprocess_includes(self, monkeypatch, capsys):
         def mock_read_conf(*args):
@@ -208,7 +231,7 @@ class TestR2HRelated:
         # '.. incl:: docname' in root
         monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
         expected = 'eerste regel\n\ninclude testsite  jansen\ntweede regel\n'
-        assert rhfn.preprocess_includes('testsite', '', data) == expectedi
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
         # '.. incl:: docname' in subdir
         expected = 'eerste regel\n\ninclude testsite subdir jansen\ntweede regel\n'
         assert rhfn.preprocess_includes('testsite', 'subdir', data) == expected
@@ -230,12 +253,22 @@ class TestR2HRelated:
         expected = 'eerste regel\n\n.. error:: Not a valid filename: ../jansen\n\ntweede regel\n'
         assert rhfn.preprocess_includes('testsite', '', data) == expected
         # '.. incl:: ../subdir/docname' in andere subdir
-        data = 'eerste regel\n\n.. incl:: sopdir/../jansen\n\ntweede regel\n'
-        expected = 'eerste regel\n\ninclude testsite sopdir jansen\ntweede regel\n'
+        data = 'eerste regel\n\n.. incl:: topdir/../jansen\n\ntweede regel\n'
+        expected = 'eerste regel\n\ninclude testsite topdir jansen\ntweede regel\n'
         assert rhfn.preprocess_includes('testsite', 'subdir', data) == expected
         # fout: '.. incl:: ../subdir/docname' in root
-        data = 'eerste regel\n\n.. incl:: sopdir/../jansen\n\ntweede regel\n'
-        expected = ('eerste regel\n\n.. error:: Not a valid filename: sopdir/../jansen\n\n'
+        data = 'eerste regel\n\n.. incl:: topdir/../jansen\n\ntweede regel\n'
+        expected = ('eerste regel\n\n.. error:: Not a valid filename: topdir/../jansen\n\n'
+                    'tweede regel\n')
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+        # fout: geen includenaam
+        data = 'eerste regel\n\n.. incl::\n\ntweede regel\n'
+        expected = ("eerste regel\n\n.. error:: Not a valid filename: it's missing...\n\n"
+                    'tweede regel\n')
+        assert rhfn.preprocess_includes('testsite', '', data) == expected
+        # fout: teveel pad-onderdelen
+        data = 'eerste regel\n\n.. incl:: top/dir/../jansen\n\ntweede regel\n'
+        expected = ('eerste regel\n\n.. error:: Not a valid filename: top/dir/../jansen\n\n'
                     'tweede regel\n')
         assert rhfn.preprocess_includes('testsite', '', data) == expected
 
@@ -861,12 +894,10 @@ class TestProgressList:
                                                 ('testdir2', 'index', 2, (1, 2, 3)),
                                                 ('testdir2', 'test', 0, (3, 2, 1))]
 
-    def get_copystand_filepath(self, monkeypatch):
-        def mock_strftime(*args):
-            return 'x'
-        monkeypatch.setattr(rhfn.datetimedatetimedatetime, 'strftime', 'mock_strftime')
-        assert rhfn.get_copystand.filepath(s) == pathlib.Path(rhfn.WEBROOT / 's' /
-                                                              'voortgangsoverzicht-x')
+    def test_get_copystand_filepath(self, monkeypatch):
+        monkeypatch.setattr(rhfn.datetime, 'datetime', MockDatetime)
+        reportname = 'voortgangsoverzicht-20200101000000'
+        assert rhfn.get_copystand_filepath('s') == pathlib.Path(rhfn.WEBROOT / 's' / reportname)
 
     def test_get_progress_line_values(self):
         mindate = rhfn.datetime.datetime.min
@@ -1979,11 +2010,8 @@ class TestR2hStateRelated:
         monkeypatch.setattr(rhfn, 'searchdict2list', mock_searchdict2list)
         assert testsubj.search('found', '') == ('de onderstaande regels/regeldelen zijn gevonden:',
                                                 ['found this', 'and that'])
-        # werkelijk vervangen staat nog even uit
-        # assert testsubj.search('found', 'replaced') == ('de onderstaande regels/regeldelen zijn '
-        #                                                 'vervangen:',
-        #                                                 ['found this', 'and that'])
-        assert testsubj.search('found', 'replaced') == ('nothing found, no replacements', {})
+        assert testsubj.search('found', 'replaced') == ('de onderstaande regels/regeldelen zijn '
+                                                        'vervangen:', ['found this', 'and that'])
 
         monkeypatch.setattr(rhfn, 'search_site', mock_search_site_none)
         testsubj.search('not found', '') == ('search phrase not found', {})

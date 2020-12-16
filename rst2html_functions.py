@@ -276,10 +276,16 @@ def preprocess_includes(sitename, current, data):
     while keyword in data:
         start, rest = data.split(keyword, 1)
         name, end = rest.split('\n', 1)
-        name = name.strip()
-        parts = name.split('/')  # max 2 splits allowed
-        msg = ''
-        if len(parts) == 1:
+        if not name:
+            name = "it's missing..."
+            msg = '.'
+        else:
+            name = name.strip()
+            parts = name.split('/')  # max 2 splits allowed
+            msg = ''
+        if msg:
+            pass
+        elif len(parts) == 1:
             include_location = current
         elif len(parts) == 2:
             if parts[0] == '..' and current:
