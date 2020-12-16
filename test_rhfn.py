@@ -161,10 +161,11 @@ class TestR2HRelated:
         assert rhfn.get_directives_used(data) == {'directive', 'direct'}
 
     def test_get_idcls(self):
-        rhfn.directive_selectors = {'directive': [('selector', 'class_1'), ('selector', 'id_1')],
-                                    'direct': [('selector', 'class_2'), ('selector', 'id_2')]}
+        rhfn.rhdir.directive_selectors = {'directive': [('selector', 'class'),
+                                                        ('selector', 'id_1')],
+                                          'direct': [('selector', 'class'), ('selector', 'id_2')]}
         assert rhfn.get_idcls([]) == set()
-        assert rhfn.get_idcls({'directive', 'direct'}) == {'class_1', 'id_1', 'id_2', 'class_2'}
+        assert rhfn.get_idcls({'directive', 'direct'}) == {'class', 'id_1', 'id_2'}
 
     def test_check_directive_selectors(self, monkeypatch, capsys):
         def mock_search_site(*args):

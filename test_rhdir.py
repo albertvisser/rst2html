@@ -1,5 +1,5 @@
 import pytest
-import directives_magiokis as dirm
+import rst2html_directives as rhdir
 
 
 def mock_init(*args):
@@ -7,8 +7,8 @@ def mock_init(*args):
 
 
 def test_refkey(monkeypatch):
-    monkeypatch.setattr(dirm.RefKey, '__init__', mock_init)
-    testsubj = dirm.RefKey()
+    monkeypatch.setattr(rhdir.RefKey, '__init__', mock_init)
+    testsubj = rhdir.RefKey()
     testsubj.arguments= ['hallo']
     testsubj.options = {}
     testsubj.content = []
@@ -16,8 +16,8 @@ def test_refkey(monkeypatch):
 
 
 def test_myinclude(monkeypatch):
-    monkeypatch.setattr(dirm.MyInclude, '__init__', mock_init)
-    testsubj = dirm.MyInclude()
+    monkeypatch.setattr(rhdir.MyInclude, '__init__', mock_init)
+    testsubj = rhdir.MyInclude()
     testsubj.arguments = ['hallo']
     testsubj.options = {}
     testsubj.content = []
@@ -39,15 +39,15 @@ def test_transcript(monkeypatch, capsys):
     end = ("</div></div> </div> </div> <script type='text/javascript'>"
            "document.getElementById('transcript-content').style.visibility = 'hidden';"
            "document.getElementById('transcript-content').style.height = '1px';</script>")
-    monkeypatch.setattr(dirm.Transcript, '__init__', mock_init)
-    testsubj = dirm.Transcript()
+    monkeypatch.setattr(rhdir.Transcript, '__init__', mock_init)
+    testsubj = rhdir.Transcript()
     # testsubj.arguments
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]  # .children[0]
     assert str(data) == start + end
 
-    testsubj = dirm.Transcript()
+    testsubj = rhdir.Transcript()
     # testsubj.options = {'title': 'o'}
     testsubj.content = [':title: o', 'x', 'y::z', '::', 'a::b', '::c', 'd', '::e']
     data = testsubj.run()[0][0]  # .children[0]

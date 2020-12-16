@@ -29,51 +29,39 @@ from docs2fs import read_data, save_to, load_config_data, ParserError, save_conf
 #
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
-standard_directives = {}
-directive_selectors = {}
-from directives_grid import (StartCols, EndCols, FirstCol, NextCol, ClearCol, Spacer,
-                             directive_selectors as dir_sel)
-standard_directives.update({"startc": StartCols,
-                            "endc": EndCols,
-                            "firstc": FirstCol,
-                            "nextc": NextCol,
-                            "clearc": ClearCol,
-                            "spacer": Spacer})
-directive_selectors.update(dir_sel)
-from directives_magiokis import (Bottom, RefKey, MyInclude, ByLine, Audio, MenuText, MySidebar,
-                                 Transcript, MyHeader, StartSideBar, EndSideBar, MyFooter,
-                                 Gedicht, SongTekst, StartBlock, EndBlock, RoleSpec, Scene, Anno,
-                                 directive_selectors as dir_sel)
-standard_directives.update({"bottom": Bottom,
-                            'refkey': RefKey,
-                            'incl': MyInclude,
-                            'byline': ByLine,
-                            'audio': Audio,
-                            'menutext': MenuText,
-                            'mysidebar': MySidebar,
-                            'transcript': Transcript,
-                            'myheader': MyHeader,
-                            'startsidebar': StartSideBar,
-                            'endsidebar': EndSideBar,
-                            'myfooter': MyFooter,
-                            'gedicht': Gedicht,
-                            'songtekst': SongTekst,
-                            'startblock': StartBlock,
-                            'endblock': EndBlock,
-                            'rollen': RoleSpec,
-                            'scene': Scene,
-                            'anno': Anno})
-directive_selectors.update(dir_sel)
-from directives_bitbucket import (StartBody, NavLinks, TextHeader, StartMarginless, EndMarginless,
-                                  BottomNav, EndBody, directive_selectors as dir_sel)
-standard_directives.update({"startbody": StartBody,
-                            "navlinks": NavLinks,
-                            "textheader": TextHeader,
-                            "startcenter": StartMarginless,
-                            "endcenter": EndMarginless,
-                            "bottomnav": BottomNav,
-                            "endbody": EndBody})
-directive_selectors.update(dir_sel)
+import rst2html_directives as rhdir
+standard_directives = {"startc": rhdir.StartCols,
+                       "endc": rhdir.EndCols,
+                       "firstc": rhdir.FirstCol,
+                       "nextc": rhdir.NextCol,
+                       "clearc": rhdir.ClearCol,
+                       "spacer": rhdir.Spacer,
+                       "bottom": rhdir.Bottom,
+                       'refkey': rhdir.RefKey,
+                       'incl': rhdir.MyInclude,
+                       'byline': rhdir.ByLine,
+                       'audio': rhdir.Audio,
+                       'menutext': rhdir.MenuText,
+                       'mysidebar': rhdir.MySidebar,
+                       'transcript': rhdir.Transcript,
+                       'myheader': rhdir.MyHeader,
+                       'startsidebar': rhdir.StartSideBar,
+                       'endsidebar': rhdir.EndSideBar,
+                       'myfooter': rhdir.MyFooter,
+                       'gedicht': rhdir.Gedicht,
+                       'songtekst': rhdir.SongTekst,
+                       'startblock': rhdir.StartBlock,
+                       'endblock': rhdir.EndBlock,
+                       'rollen': rhdir.RoleSpec,
+                       'scene': rhdir.Scene,
+                       'anno': rhdir.Anno,
+                       "startbody": rhdir.StartBody,
+                       "navlinks": rhdir.NavLinks,
+                       "textheader": rhdir.TextHeader,
+                       "startcenter": rhdir.StartMarginless,
+                       "endcenter": rhdir.EndMarginless,
+                       "bottomnav": rhdir.BottomNav,
+                       "endbody": rhdir.EndBody}
 #
 # internals
 #
@@ -236,8 +224,8 @@ def get_idcls(directives_used):
     """
     result = set()
     for directive in directives_used:
-        if directive in directive_selectors:  # we don't check the standard docutils ones
-            for selector, stuff in directive_selectors[directive]:
+        if directive in rhdir.directive_selectors:  # we don't check the standard docutils ones
+            for selector, stuff in rhdir.directive_selectors[directive]:
                 result.add(stuff)
     return result
 

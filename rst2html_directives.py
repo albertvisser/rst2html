@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Directives for Magiokis site
 """
 import pathlib
@@ -9,6 +8,7 @@ from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
 from app_settings import WEBROOT
+
 
 directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
                        'myheader': (('a', "#logo"), ('div', "#name-and-slogan"), ('div',
@@ -33,7 +33,17 @@ directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div',
                        'myfooter': (('div', "#footer"), ('div', ".region"),
                                     ('div', ".region-bottom"), ('div', "#block-block-1"),
                                     ('div', ".block"), ('div', ".block-block"), ('div', ".first"),
-                                    ('div', ".last"), ('div', ".odd"))}
+                                    ('div', ".last"), ('div', ".odd")),
+                       'startcols': (('div', '.container_nn'), ),
+                       'firstcol': (('div', '.grid_nn'), ),
+                       'nextcol': (('div', '.grid_nn'), ),
+                       'clearcol': (('div', ".clear"), ),
+                       'spacer': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
+                       'startbody': (('div', '#container'), ('div', '#header')),
+                       'navlinks': (('div', '#navigation'), ('li', '.menu')),
+                       'textheader': (('div', '#body'),),  # h1.page-title hoeft niet
+                       'endmarginless': (('div', '#container'),),
+                       'bottomnav': (('div', '#botnav'), ('li', '.menu'))}
 
 
 def align(argument):
@@ -580,4 +590,283 @@ class MyFooter(Directive):
         lines = ['</div></div><div class="region-bottom"><div class="block">']
         # lines.append('</div>')
         text_node = nodes.raw('', '\n'.join(lines), format='html')
+        return [text_node]
+
+
+# ---------------- Directives to realize simple grid960 layout ----------------------
+class StartCols(Directive):
+    """Initialisatie van het grid
+
+    required: aantal eenheden (12 0f 16)"""
+
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {'grid': directives.nonnegative_int}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '<div class="container_{}">\n'.format(self.arguments[0])
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class EndCols(Directive):
+    "afsluiten van het grid"
+
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text_node = nodes.raw('', '</div>\n', format='html')
+        return [text_node]
+
+
+class FirstCol(Directive):
+    """definieren van de eerste kolom
+
+    required: aantal eenheden
+    optional: class"""
+
+    required_arguments = 1
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {'grid': directives.nonnegative_int}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        width = self.arguments[0]
+        try:
+            classes = self.arguments[1]
+        except IndexError:
+            classes = ''
+        text = '<div class="grid_{} {}">\n'.format(width, classes)
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class NextCol(Directive):
+    """definieren van de volgende kolom
+
+    required: aantal eenheden
+    optional: class"""
+
+    required_arguments = 1
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {'grid': directives.nonnegative_int}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        width = self.arguments[0]
+        try:
+            classes = self.arguments[1]
+        except IndexError:
+            classes = ''
+        text = '</div>\n<div class="grid_{} {}">\n'.format(width, classes)
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class ClearCol(Directive):
+    """afsluiten van een rij kolommen"""
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text_node = nodes.raw('', '</div>\n<div class="clear">&nbsp;</div>\n',
+                              format='html')
+        return [text_node]
+
+
+class Spacer(Directive):
+    """genereert een lege regel of kolom
+
+    optional: aantal kolomeenheden. Bij niet opgeven hiervan wrdt de spacer genereneerd
+    binnen de huidige kolom; anders vergelijkbaar met firstcol/nextcol"""
+
+    required_arguments = 0
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {'grid': directives.nonnegative_int}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        try:
+            cls = "grid_{} ".format(self.arguments[0])
+            clr = '<div class="clear">&nbsp;</div>\n'
+        except IndexError:
+            cls = clr = ''
+        text = '<div class="{}spacer">&nbsp;</div>\n{}'.format(cls, clr)
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+# ---------------- Directives for BitBucket site layout ------------------------
+class StartBody(Directive):
+    """genereert de start van de container div en de header div
+    """
+    required_arguments = 0
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {'header': directives.unchanged}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        header_text = self.options.get('header', '')   # "Albert Visser's programmer's blog"
+        text = '<div id="container">'
+        if header_text:
+            text += ' <div id="header">{}</div>'.format(header_text)
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class NavLinks(Directive):
+    """Menuutje met links voor navigatie
+
+    Nu op basis van de content, bijvoorbeeld:
+    .. navlinks::
+
+       `linktekst <linkadres>`_
+       `linktekst <linkadres>`_
+       `menutekst`
+       . `linktekst <linkadres>`_
+       . `linktekst <linkadres>`_
+    let op: dit werkt alleen maar in combinatie met de bijbehorende CSS
+    """
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = True
+
+    def run(self):  # nieuwe versie op basis van de directive content
+        "genereer de html"
+        text = ['<div id="navigation"><ul>']
+        in_submenu = False
+        for line in self.content:
+            if line.startswith('`'):
+                if in_submenu:
+                    text.append('</ul></li>')
+                    in_submenu = False
+                line = line.strip()[1:-3]
+                if '<' in line:  # menuoptie met tekst en link
+                    menu, target = line.split('<')
+                    text.append('<li class="menu"><a href="{}">{}</a></li>'.format(target,
+                                                                                   menu.strip()))
+                else:            # alleen tekst: submenu
+                    text.append('<li class="menu">{}<ul>'.format(line))
+                    in_submenu = True
+            elif line.startswith('. `') and '<' in line:  # submenuoptie met tekst en link
+                menu, target = line.strip()[3:-3].split('<')
+                text.append('<li><a href="{}">{}</a></li>'.format(target, menu.strip()))
+            else:  # error in content
+                self.error('Illegal content: {}'.format(line.strip()))
+        text.append('</ul></div>')
+        text_node = nodes.raw('', ''.join(text), format='html')
+        return [text_node]
+
+
+class TextHeader(Directive):
+    """genereert het begin van de echte tekst
+    """
+    required_arguments = 0
+    optional_arguments = 1
+    final_argument_whitespace = True
+    option_spec = {'text': directives.unchanged}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = ['<div id="body">']
+        try:
+            title_text = self.arguments[0]
+        except IndexError:
+            title_text = "&nbsp;"
+        text.append('<h1 class="page-title">{}</h1>'.format(title_text))
+        # datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
+        # text.append('<p class="date">last modified on {}</p>'.format(datum))
+        text_node = nodes.raw('', ''.join(text), format='html')
+        return [text_node]
+
+
+class StartMarginless(Directive):
+    """opschorten van de marges voor bv. een paginabreed plaatje
+    """
+    required_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '</div></div><div style="margin: auto">'
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class EndMarginless(Directive):
+    """marges terugzetten - zou eigenlijk niet moeten werken omdat je een id
+    vaker gebruikt
+    """
+    required_arguments = 0
+    final_argument_whitespace = True
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '</div><div id="container"><div id="body">'
+        text_node = nodes.raw('', text, format='html')
+        return [text_node]
+
+
+class BottomNav(Directive):
+    """Extra menuutje met links voor navigatie onderin
+    """
+    required_arguments = 0
+    optional_arguments = 0
+    final_argument_whitespace = True
+    has_content = True
+
+    def run(self):
+        "genereer de html"
+        text = ['<div><div id="botnav"><ul>']
+        for line in self.content:
+            line = line.strip()
+            if line.startswith('`') and ' <' in line and line.endswith(">`_"):
+                line = line[1:-3]
+                linktext, link = line.split(' <', 1)
+                line = '<a href="{}">{}</a>'.format(link, linktext)
+            else:
+                line = line
+            text.append('<li class="menu">{}</li>'.format(line))
+        text.append('</ul></div></div>')
+        text_node = nodes.raw('', ''.join(text), format='html')
+        return [text_node]
+
+
+class EndBody(Directive):
+    """genereert het eind van de body div en de container div
+    """
+    required_arguments = 0
+    final_argument_whitespace = True
+    ## option_spec = {'grid': directives.nonnegative_int,
+                   ## 'next': directives.unchanged,
+                   ## 'ltext': directives.unchanged,
+                   ## }
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text = '</div></div>'
+        text_node = nodes.raw('', text, format='html')
         return [text_node]
