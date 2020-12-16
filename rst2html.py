@@ -26,6 +26,27 @@ scriptdict = {'yaml': ('yaml/yaml',),
               'rst': ('rst/rst', '../addon/mode/overlay')}
 
 
+def load_template(name):
+    "load a template file from the base directory"
+    template = HERE / name
+    output = ''
+    with template.open() as _in:
+        output = _in.read()
+    return output
+
+
+def apply_lang(lines, state):
+    "pas eigengebakken language support toe op tekstregels"
+    output = []
+    for line in lines:
+        while '_(' in line:
+            start, rest = line.split('_(', 1)
+            keyword, end = rest.split(')', 1)
+            line = rhfn.get_text(keyword, state.get_lang()).join((start, end))
+        output.append(line)
+    return ''.join(output)
+
+
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
@@ -34,16 +55,8 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     else:
         all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')
         all_html = rhfn.list_files(state.sitename, state.current, htmlfile, 'dest')
-    with TEMPLATE.open() as f_in:
-        # eigengebakken language support
-        output = []
-        for line in f_in:
-            while '_(' in line:
-                start, rest = line.split('_(', 1)
-                keyword, end = rest.split(')', 1)
-                line = rhfn.get_text(keyword, state.get_lang()).join((start, end))
-            output.append(line)
-        output = ''.join(output)
+    lines = load_template("rst2html.html").split('\n')
+    output = apply_lang(lines, state)
     conflist = rhfn.list_confs(settings)
     format_stuff = ''
     if state.conf.get('highlight', False):
@@ -61,9 +74,7 @@ def format_progress_list(timelist):
     parts of this logic belong in the template, but since I'm not using a
     template engine I'm implementing it here
     """
-    template = HERE / 'stand.html'
-    with template.open() as _in:
-        output = _in.read()
+    output = load_template('stand.html')
     first_part, rest = output.split('{% for row in data %}')
     repeat_line, last_part = rest.split('{% endfor %}')
     output = [first_part]
@@ -83,7 +94,7 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
     """fix the urls in image links so that preview html points to the right place
     """
     # TODO: dit houdt er nog geen rekening mee dat hrefs die met / beginnen bedoeld zijn om
-    # absoluut vanaf de siteroot geladen te worden (blijkbaar is me dat nog niet eerder opgevallen)
+    # absoluut vanaf de siteroot geladen te worden? dat zit juist in
     data = []
     pos = rstdata.find('<img')
     if pos == -1:
@@ -94,8 +105,8 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
             pos = pos2
         else:
             begin = rstdata[:pos2]
-            if begin.startswith('/'):
-                begin = begin[1:]
+            # if begin.startswith('/'):
+            #     begin = begin[1:]
             data.append(begin)
             rstdata = rstdata[pos2:]
             from_root = False
@@ -105,7 +116,8 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
             pos = 0
         pos = rstdata.find('<img', pos)
     data.append(rstdata)
-    url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
+    if url:
+        url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
     if loc:
         url += loc.strip('/') + '/'  # if present add loc with no double //'s
     if use_sef and fname and fname != 'index' and not from_root:
@@ -122,8 +134,9 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
     arg3 = type of this file: `rst` or `html`
     """
     previewdata = resolve_images(previewdata, state.conf['url'], state.current,
-                                 state.conf.get('seflinks'),
-                                 fname.replace('.rst', '').replace('.html', ''))
+                                 state.conf.get('seflinks', False),
+                                 # fname.replace('.rst', '').replace('.html', ''))
+                                 fname.replace('.' + ftype, ''))
     try:
         pos = previewdata.index('>', previewdata.index('<body')) + 1
     except ValueError:
@@ -137,9 +150,7 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
 
 def format_search(results=None):
     "build search screen data"
-    template = HERE / 'search.html'
-    with template.open() as _in:
-        output = _in.read()
+    output = load_template('search.html')
     first_part, rest = output.split('{% if results %}')
     start, rest = rest.split('{% for row in data %}')
     line, rest = rest.split('{% endfor %}')
@@ -331,12 +342,3 @@ class Rst2Html:
         """
         msg = self.state.copystand(self.overviewdata)
         return format_progress_list(self.overviewdata).format(self.state.sitename, msg)
-
-
-if __name__ == "__main__":
-    cherrypy.quickstart(Rst2Html(), config={
-        "global": {'server.socket_host': '127.0.0.1',
-                   'server.socket_port': 8099},
-        "/": {'tools.staticdir.root': pathlib.Path.cwd().resolve()},
-        "/static": {'tools.staticdir.on': True,
-                    'tools.staticdir.dir': "./static"}})
