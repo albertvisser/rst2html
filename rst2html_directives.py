@@ -45,10 +45,10 @@ directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div',
                        'endmarginless': (('div', '#container'),),
                        'bottomnav': (('div', '#botnav'), ('li', '.menu'))}
 
-
-def align(argument):
-    """Conversion function for the "align" option."""
-    return directives.choice(argument, ('left', 'center', 'right'))
+# blijkbaar gebruik ik dit niet (meer)
+# def align(argument):
+#     """Conversion function for the "align" option."""
+#     return directives.choice(argument, ('left', 'center', 'right'))
 
 
 def build_menu(lines, title=''):
@@ -219,7 +219,6 @@ class Audio(Directive):
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
-    # option_spec = {'date': directives.unchanged}
     has_content = True
 
     def run(self):
@@ -326,23 +325,23 @@ class Transcript(Directive):
 
 # dit kan met een standaard rest directive, alleen genereert die niet zo'n aside tag
 # die directive heet ook sidebar en als argument kun je blijkbaar een include directive opgeven
-class MySidebar(Directive):
-    """genereert een verwijzing naar de pagina die de tekst voor een sidebar bevat
-    """
-
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = True
-    option_spec = {'href': directives.unchanged}
-    has_content = False
-
-    def run(self):
-        "genereer de html"
-        text = '<p></p><aside><section>include {}</section></aside>'.format(self.arguments[0])
-        # TODO dit werkt zo niet: je moet de inhoud van het aangegeven file tussenvoegen, niet
-        # de verwijzing ernaar
-        text_node = nodes.raw('', text, format='html')
-        return [text_node]
+# echter die include moet in deze eigen implementatie van te voren omgezet zijn want je wilt de
+# de inhoud van het aangegeven file tussenvoegen, niet de verwijzing ernaar
+# class MySidebar(Directive):
+#     """genereert een verwijzing naar de pagina die de tekst voor een sidebar bevat
+#     """
+#
+#     required_arguments = 1
+#     optional_arguments = 0
+#     final_argument_whitespace = True
+#     option_spec = {'href': directives.unchanged}
+#     has_content = False
+#
+#     def run(self):
+#         "genereer de html"
+#         text = '<p></p><aside><section>include {}</section></aside>'.format(self.arguments[0])
+#         text_node = nodes.raw('', text, format='html')
+#         return [text_node]
 
 
 class StrofenTekst(Directive):
@@ -368,9 +367,9 @@ class StrofenTekst(Directive):
         end_couplet = in_refrein = False
         for line in self.content:
             if line == '--':
-                if end_couplet:
-                    strofe = 'refrein' if in_refrein else 'couplet'
-                    lines.append('<div class="{}">'.format(strofe))
+                # if end_couplet:
+                #     strofe = 'refrein' if in_refrein else 'couplet'
+                #     lines.append('<div class="{}">'.format(strofe))
                 lines.append('</div>')
                 end_couplet = True
                 continue
@@ -442,9 +441,9 @@ class Scene(Directive):
                 lines.append('<div class="regel">{}</div>'.format(what))
                 open_claus = open_spraak = True
             else:
-                if open_spraak:
-                    lines.append('</div>')
-                    open_spraak = False
+                # if open_spraak:
+                #     lines.append('</div>')
+                #     open_spraak = False
                 lines.append('<div class="actie">{}</div>'.format(what))
         if open_claus:
             if open_spraak:
@@ -586,11 +585,11 @@ class MyFooter(Directive):
                  '<p>{0}: <a href="mailto:{1}">{1}</a></p></footer>'.format(text, mailto))
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]
-        # lines = ['<p></p><div id="footer">']
-        lines = ['</div></div><div class="region-bottom"><div class="block">']
-        # lines.append('</div>')
-        text_node = nodes.raw('', '\n'.join(lines), format='html')
-        return [text_node]
+        # # lines = ['<p></p><div id="footer">']
+        # lines = ['</div></div><div class="region-bottom"><div class="block">']
+        # # lines.append('</div>')
+        # text_node = nodes.raw('', '\n'.join(lines), format='html')
+        # return [text_node]
 
 
 # ---------------- Directives to realize simple grid960 layout ----------------------
@@ -735,7 +734,7 @@ class StartBody(Directive):
 class NavLinks(Directive):
     """Menuutje met links voor navigatie
 
-    Nu op basis van de content, bijvoorbeeld:
+    Op basis van de content, bijvoorbeeld:
     .. navlinks::
 
        `linktekst <linkadres>`_
@@ -750,7 +749,7 @@ class NavLinks(Directive):
     final_argument_whitespace = True
     has_content = True
 
-    def run(self):  # nieuwe versie op basis van de directive content
+    def run(self):
         "genereer de html"
         text = ['<div id="navigation"><ul>']
         in_submenu = False
@@ -759,19 +758,22 @@ class NavLinks(Directive):
                 if in_submenu:
                     text.append('</ul></li>')
                     in_submenu = False
-                line = line.strip()[1:-3]
+                line = line.strip()[1:-1]
                 if '<' in line:  # menuoptie met tekst en link
                     menu, target = line.split('<')
-                    text.append('<li class="menu"><a href="{}">{}</a></li>'.format(target,
+                    text.append('<li class="menu"><a href="{}">{}</a></li>'.format(target[:-2],
                                                                                    menu.strip()))
                 else:            # alleen tekst: submenu
                     text.append('<li class="menu">{}<ul>'.format(line))
                     in_submenu = True
             elif line.startswith('. `') and '<' in line:  # submenuoptie met tekst en link
-                menu, target = line.strip()[3:-3].split('<')
-                text.append('<li><a href="{}">{}</a></li>'.format(target, menu.strip()))
+                if in_submenu:
+                    menu, target = line.strip()[3:-3].split('<')
+                    text.append('<li><a href="{}">{}</a></li>'.format(target, menu.strip()))
+                else:
+                    self.error('Submenu entry before main menu: `{}`'.format(line.strip()))
             else:  # error in content
-                self.error('Illegal content: {}'.format(line.strip()))
+                self.error('Illegal content: `{}`'.format(line.strip()))
         text.append('</ul></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
