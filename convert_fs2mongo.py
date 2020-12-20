@@ -8,8 +8,8 @@ import argparse
 import shutil
 from app_settings import FS_WEBROOT, DB_WEBROOT
 import rst2html_functions as rhfn
-import docs2fs as fsys
-import docs2mongo as mongo
+import docs2fs as dmlf
+import docs2mongo as dmlm
 
 
 def main(args):
@@ -24,7 +24,7 @@ def main(args):
     # read settings so that we know where everything is
     try:
         print('reading settings for {}'.format(sitename))
-        sett = fsys.read_settings(sitename)
+        sett = dmlf.read_settings(sitename)
     except FileNotFoundError:
         print("settings don't exist")
         return
@@ -38,8 +38,8 @@ def main(args):
 
     # init site
     newsite = args.newname or sitename
-    mongo.clear_site_data(newsite)  # restart
-    mongo.create_new_site(newsite)
+    dmlm.clear_site_data(newsite)  # restart
+    dmlm.create_new_site(newsite)
 
     # copy site configuration
     conf = rhfn.DFLT_CONF
@@ -47,34 +47,34 @@ def main(args):
         if key in sett:
             conf[key] = sett[key]
     ## conf['url'] = "/rst2html-data/{}".format(sitename)
-    mongo.update_settings(sitename, conf)
+    dmlm.update_settings(sitename, conf)
 
     # transfer docs in source directory
     ## srcpath =  sourceloc
     ## convpath = targetloc
     ## mirrpath = fromloc
-    subdirs = fsys.list_dirs(sitename)
+    subdirs = dmlf.list_dirs(sitename)
     ## newmirrbase = targetloc
 
     # root files first
-    files = fsys.list_docs(sitename, 'src')
+    files = dmlf.list_docs(sitename, 'src')
     for docname in files:
-        mongo.create_new_doc(newsite, docname)
-        rstdata = fsys.get_doc_contents(sitename, docname, 'src')
-        mongo.update_rst(newsite, docname, rstdata)
+        dmlm.create_new_doc(newsite, docname)
+        rstdata = dmlf.get_doc_contents(sitename, docname, 'src')
+        dmlm.update_rst(newsite, docname, rstdata)
 
         try:
-            htmldata = fsys.get_doc_contents(sitename, docname, 'dest')
+            htmldata = dmlf.get_doc_contents(sitename, docname, 'dest')
         except FileNotFoundError:
             continue
-        mongo.update_html(newsite, docname, htmldata)
+        dmlm.update_html(newsite, docname, htmldata)
 
         fname = docname + '.html'
         fromfile = fromloc / fname
         destfile = tomirror / fname
         if fromfile.exists():
-            mld, data = fsys.read_data(fromfile)
-            mongo.update_mirror(newsite, docname, data)
+            mld, data = dmlf.read_data(fromfile)
+            dmlm.update_mirror(newsite, docname, data)
 
     for ext in args.extlist:
         spec = "*.{}".format(ext)
@@ -90,29 +90,29 @@ def main(args):
 
     for dirname in subdirs:
         print('new dir:', dirname)
-        mongo.create_new_dir(newsite, dirname)
+        dmlm.create_new_dir(newsite, dirname)
         frompath = fromloc / dirname
         destpath = tomirror / dirname
 
-        files = fsys.list_docs(sitename, 'src', dirname)
+        files = dmlf.list_docs(sitename, 'src', dirname)
         for docname in files:
             print('new doc:', docname)
-            mongo.create_new_doc(newsite, docname, dirname)
-            rstdata = fsys.get_doc_contents(sitename, docname, 'src', dirname)
-            mongo.update_rst(newsite, docname, rstdata, dirname)
+            dmlm.create_new_doc(newsite, docname, dirname)
+            rstdata = dmlf.get_doc_contents(sitename, docname, 'src', dirname)
+            dmlm.update_rst(newsite, docname, rstdata, dirname)
 
             try:
-                htmldata = fsys.get_doc_contents(sitename, docname, 'dest', dirname)
+                htmldata = dmlf.get_doc_contents(sitename, docname, 'dest', dirname)
             except FileNotFoundError:
                 continue
-            mongo.update_html(newsite, docname, htmldata, dirname)
+            dmlm.update_html(newsite, docname, htmldata, dirname)
 
             fname = docname + '.html'
             fromfile = frompath / fname
             destfile = destpath / fname
             if fromfile.exists():
-                mld, data = fsys.read_data(fromfile)
-                mongo.update_mirror(newsite, docname, data, dirname)
+                mld, data = dmlf.read_data(fromfile)
+                dmlm.update_mirror(newsite, docname, data, dirname)
 
         for ext in args.extlist:
             spec = "*.{}".format(ext)
