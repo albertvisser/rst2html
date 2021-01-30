@@ -1,6 +1,9 @@
 files in this directory
 =======================
 
+.gitignore
+    git stuff
+
 .hgignore
 .hgtags
     mercurial stuff
@@ -10,18 +13,10 @@ app_settings_example
     there are variants for each dml type to facilitate testing and running the apps
 
 convert_fs2mongo.py
+    used when converting flat files to a mongo database
 
 custom_directives_template.py
     default source for user-written directives
-
-directives_bitbucket.py
-    directives designed for use on my BitBucket pages
-
-directives_grid.py
-    directives designed for applying grid_960 layout
-
-directives_magiokis.py
-    directives designed for use on my Magiokis pages
 
 docs2fs.py
     routines for the file system implementation (data manipulation layer)
@@ -42,6 +37,9 @@ fcgi_handler.py
 files.rst
     this file
 
+get_links_for_sitemap (not tracked)
+    implementation of ...site search?
+
 LICENSE
     legal stuff
 
@@ -49,13 +47,22 @@ mdviewer.py
 rstviewer.py
     startup scripts for viewing markup files on the desktop
 
+mee-bezig.pck (untracked)
+    a-propos development notes file
+
+projdocs.pck/zip + backups (untracked)
+    treedocs bestand voor documentatie en development
+
 readme.rst
     information and usage notes
+
+r2h_search (untracked)
+    another implementation of site search, built as an external program
 
 r2h_util.py
     utility fiunctions for backup restore etc
 
-rst2html.conf
+rst2html_*.conf
     cherrypy configuration used by the startup script
     there's a version for each dml variant
 
@@ -65,8 +72,17 @@ rst2html.html
 rst2html.py
     the program in which it all happens (presentation layer)
 
+rst2html_directives.py
+    all directives used by the application
+
 rst2html_functions.py
     functions and stuff to be used by the webapp (application layer)
+
+run_local.py (untracked)
+    module level code extracted from rst2html.py
+
+search.html
+    template for displaying site search results
 
 setup_database.sql
     SQL statements for building the tables for the postgres database
@@ -74,9 +90,17 @@ setup_database.sql
 stand.html
     template for displaying the site overview
 
-start_rst2html.py
+start_rst2html_*.py
     script to start the application with
     there's a version for each dml variant
+
+test_dmlf.py (unfinished, untracked)
+test_dmlm.py (unfinished, untracked)
+test_dmlp.py (unfinished, untracked)
+test_r2h.py
+test_rhdir.py
+test_rhfn.py
+    unittest scripts for the application's core functionality
 
 wsgi_handler.py
     another script to start the app as a wsgi server (not used)
