@@ -42,7 +42,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
         path = path / dirname
     if path.exists():
         for item in path.iterdir():
-            if item.name.startswith('.') or item.name in ('css', SRC_LOC, DEST_LOC):
+            if item.name.startswith('.') or item.name == 'css':  # in ('css', SRC_LOC, DEST_LOC):
                 continue
             if ftype in LOCS[1:] and do_seflinks:
                 docname = item.stem
@@ -137,16 +137,13 @@ def read_data(fname):   # to be used for actual file system data
     return mld, data
 
 
-def save_to(fullname, data, settings=None):  # to be used for actual file system data
+def save_to(fullname, data):  # to be used for actual file system data
     """backup file, then write data to file
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
     """
-    if settings:
-        sitename = fullname.relative_to(DB_WEBROOT).parts[0]
-    else:
-        sitename = fullname.relative_to(WEBROOT).parts[0]
-        settings = read_settings(sitename)
+    sitename = fullname.relative_to(WEBROOT).parts[0]
+    settings = read_settings(sitename)
     if settings.get('seflinks', False):
         if fullname.suffix == '.html' and fullname.stem != 'index':
             new_fname = fullname.with_suffix('')
@@ -163,7 +160,7 @@ def save_to(fullname, data, settings=None):  # to be used for actual file system
     with fullname.open("w", encoding='utf-8') as f_out:
         try:
             f_out.write(data)
-        except OSError as err:
+        except OSError as err:      # TODO: staat deze try/except wel op het goede niveau?
             mld = str(err)
     return mld
 
@@ -236,7 +233,7 @@ def read_settings(sitename):
         with path.open(encoding='utf-8') as _in:
             conf = load_config_data(_in)
     except FileNotFoundError:
-        raise
+        raise                                       # TODO: hoeft dit wel gecodeerd te worden?
     if conf is None:
         conf = {}
     return conf
@@ -336,11 +333,11 @@ def write_template(sitename, fnaam, data):
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
     mld = ''
-    with fullname.open("w", encoding='utf-8') as f_out:
-        try:
+    try:
+        with fullname.open("w", encoding='utf-8') as f_out:
             f_out.write(data)
-        except OSError as err:
-            mld = str(err)
+    except OSError as err:
+        mld = str(err)
     return mld
 
 
@@ -377,7 +374,7 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     if directory and directory != '/':
         path /= directory
     path = path / docname
-    ext = LOC2EXT[doctype]
+    ext = LOC2EXT[doctype or 'src']
     if path.suffix != ext:
         path = path.with_suffix(ext)
     mld, doc_data = read_data(path)
