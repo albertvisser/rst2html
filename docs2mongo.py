@@ -193,6 +193,7 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
 
     raises FileNotFoundError if site or directory doesn't exist
     """
+    #TODO: if not doctype: doctype = 'src' toevoegen
     if not directory:
         directory = '/'
     sitedoc = _get_site_doc(site_name)
@@ -223,6 +224,7 @@ def list_templates(site_name):
 
 def read_template(site_name, doc_name):
     """get the source of a specific template"""
+    #TODO: afhandelen als 'templates' key niet bestaat (anders dan als bijbehorende value leeg?)
     sitedoc = _get_site_doc(site_name)
     if doc_name in sitedoc['templates']:
         return sitedoc['templates'][doc_name]
@@ -232,6 +234,7 @@ def read_template(site_name, doc_name):
 def write_template(site_name, doc_name, data):
     """store the source for a template
     """
+    #TODO: afhandelen als 'templates' key niet bestaat (opvoeren eerste template)
     # TODO: backup tekst indien reeds aanwezig
     sitedoc = _get_site_doc(site_name)
     sitedoc['templates'][doc_name] = data
@@ -268,6 +271,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     raises AttributeError on missing document name
            FileNotFoundError if document doesn't exist
     """
+    # TODO: ook deze voorziet in het vervolg niet in een default voor doctype
     if not doc_name:
         raise AttributeError('no_name')
     if not directory:
@@ -331,7 +335,7 @@ def mark_src_deleted(site_name, doc_name, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def update_html(site_name, doc_name, contents, directory='', dry_run=False):
+def update_html(site_name, doc_name, contents, directory='', dry_run=True):
     """update a converted document in the given directory
 
     create a new entry if it's the first-time conversion
@@ -371,6 +375,7 @@ def apply_deletions_target(site_name, directory=''):
     if not directory:
         directory = '/'
     sitedoc = _get_site_doc(site_name)
+    # changed = False  - optimalisatie, uit te proberen na schrijven testmethode
     for doc_name in sitedoc['docs'][directory]:
         # print('checking deletion mark for', doc_name)
         # print(sitedoc['docs'][directory][doc_name])
@@ -381,10 +386,12 @@ def apply_deletions_target(site_name, directory=''):
                 doc_id = _add_doc(htmldoc)
                 sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
             sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
+            # changed = True
+    # if changed:
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def update_mirror(site_name, doc_name, data, directory='', dry_run=False):
+def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     """administer promoting the converted document in the given directory
     to the mirror site
     some additions are only saved in the mirror html hence the data argument
@@ -395,6 +402,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=False):
     """
     if not doc_name:
         raise AttributeError('no_name')
+    # FIXME: geen test nodig of data gevuld of of het doc wel aanwezig is (zoals in update_html)?
     if dry_run:
         return
     if not directory:
@@ -416,7 +424,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=False):
     sett = read_settings(site_name)
     if not path.exists() and not sett.get('seflinks', False):
         path.touch()
-    save_to(path, data, sett)
+    save_to(path, data)
 
 
 def apply_deletions_mirror(site_name, directory=''):
@@ -430,6 +438,8 @@ def apply_deletions_mirror(site_name, directory=''):
         # if 'deleted' in sitedoc['docs'][directory][doc_name]['dest']:
         if 'deleted' in sitedoc['docs'][directory][doc_name].get('dest', {}):
             deleted.append(doc_name)
+    # if not deleted:  - optimalisatie, uit te proberen na schrijven testmethode
+    #     return
     for doc_name in deleted:
         sitedoc['docs'][directory].pop(doc_name)
     _update_site_doc(site_name, sitedoc['docs'])
