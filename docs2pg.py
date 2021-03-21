@@ -56,7 +56,6 @@ def _get_site_id(site_name):
     """returns the id of the site with the given name
     """
     cur = conn.cursor()
-    ## sql =
     cur.execute('select id from {} where sitename = %s;'.format(TABLES[0]), (site_name,))
     result = cur.fetchone()
     cur.close()
@@ -95,7 +94,7 @@ def _get_all_dir_ids(site_id):
 def _get_docs_in_dir(dir_id):
     """returns the names of all documents in a site subdirectory
     """
-    result = None
+    result = None       #FIXME: heeft dit zin? Is dit nodig bij gebruik van fetchall?
     cur = conn.cursor()
     cur.execute('select docname from {} where dir_id = %s;'.format(TABLES[3]), (dir_id,))
     result = [x for x in cur.fetchall()]
@@ -130,7 +129,7 @@ def _get_doc_text(doc_id):
     if result:
         result = result[0]
     else:
-        result = None, None, None
+        result = None, None, None  # waarom zo?
     return result
 
 
@@ -198,11 +197,11 @@ def read_db():
         sitedict = {'name': sitename}
 
         cur.execute('select settname, settval from {} order by settname'
-                    'where site_id = %s;'.format(TABLES[1]), (site_id,))
+                    ' where site_id = %s;'.format(TABLES[1]), (site_id,))
         sitedict['settings'] = {x: y for x, y in cur.fetchall()}
 
         cur.execute('select dirname, id from {} order by dirname'
-                    'where site_id = %s;'.format(TABLES[2]), (site_id,))
+                    ' where site_id = %s;'.format(TABLES[2]), (site_id,))
         sitedirs = [(x['dirname'], x['id']) for x in cur.fetchall()]
         sitedict['docs'] = []
         # if we keep the site_id in the docstats table we could restrict this to one db-query
@@ -212,10 +211,10 @@ def read_db():
 
             dirlist = []
             cur.execute('select * from {} order by docname'
-                        'where dir_id = %s;'.format(TABLES[3]), (dir_id,))
-            for result in cur:
-                result['dirname'] = dirname
-                dirlist.append(result)
+                        ' where dir_id = %s;'.format(TABLES[3]), (dir_id,))
+            for resultdict in cur:
+                resultdict['dirname'] = dirname
+                dirlist.append(resultdict)
             sitedict['docs'].append(dirlist)
 
         result.append(sitedict)
@@ -481,13 +480,13 @@ def write_template(site_name, doc_name, data):
     mld = ''
     siteid = _get_site_id(site_name)
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select text from {} where site_id = %s and name = %s'.format(TABLES[5]),
+    cur.execute('select text from {} where site_id = %s and name = %s;'.format(TABLES[5]),
                 (siteid, doc_name))
     if not cur.fetchone():
-        cur.execute('insert into {} (site_id, name, text) values (%s, %s, %s)'.format(TABLES[5]),
+        cur.execute('insert into {} (site_id, name, text) values (%s, %s, %s);'.format(TABLES[5]),
                     (siteid, doc_name, data))
     else:
-        cur.execute('update {} set text = %s where site_id = %s and name = %s'.format(TABLES[5]),
+        cur.execute('update {} set text = %s where site_id = %s and name = %s;'.format(TABLES[5]),
                     (data, siteid, doc_name))
     conn.commit()
     cur.close()
@@ -520,7 +519,7 @@ def create_new_doc(site_name, doc_name, directory=''):
     # add into site collection
     dts = datetime.datetime.utcnow()
     cur.execute('insert into {} (dir_id, docname, source_docid, source_updated) '
-                'values (%s, %s, %s, %s)'.format(TABLES[3]), (dirid, doc_name,
+                'values (%s, %s, %s, %s);'.format(TABLES[3]), (dirid, doc_name,
                                                               new_doc_id, dts))
     conn.commit()
     cur.close()
@@ -555,7 +554,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         docid = dest_id
 
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select currtext from {} where id = %s'.format(TABLES[4]), (docid,))
+    cur.execute('select currtext from {} where id = %s;'.format(TABLES[4]), (docid,))
     row = cur.fetchone()
     result = row['currtext']
     conn.commit()
@@ -594,9 +593,9 @@ def update_rst(site_name, doc_name, contents, directory=''):
 
     cur = conn.cursor()
     cur.execute('update {} set previous = %s, currtext = %s '
-                'where id = %s'.format(TABLES[4]), (oldtext, contents, rst_id))
+                'where id = %s;'.format(TABLES[4]), (oldtext, contents, rst_id))
     dts = datetime.datetime.utcnow()
-    cur.execute('update {} set source_updated = %s where id = %s'.format(
+    cur.execute('update {} set source_updated = %s where id = %s;'.format(
         TABLES[3]), (dts, doc_id))
     conn.commit()
     cur.close()
@@ -622,10 +621,10 @@ def mark_src_deleted(site_name, doc_name, directory=''):
         raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
-    cur.execute('select source_docid from {} where id = %s'.format(TABLES[3]), (doc_id,))
+    cur.execute('select source_docid from {} where id = %s;'.format(TABLES[3]), (doc_id,))
     docid = cur.fetchone()[0]
-    cur.execute('delete from {} where id = %s'.format(TABLES[4]), (docid,))
-    cur.execute('update {} set source_deleted = %s where id = %s'.format(
+    cur.execute('delete from {} where id = %s;'.format(TABLES[4]), (docid,))
+    cur.execute('update {} set source_deleted = %s where id = %s;'.format(
         TABLES[3]), (True, doc_id))
     conn.commit()
     cur.close()
@@ -670,14 +669,14 @@ def update_html(site_name, doc_name, contents, directory='', dry_run=True):
     dts = datetime.datetime.utcnow()
     if html_id is None:
         cur.execute('update {} set currtext = %s '
-                    'where id = %s'.format(TABLES[4]), (contents, new_html_id))
+                    'where id = %s;'.format(TABLES[4]), (contents, new_html_id))
         cur.execute('update {} set target_docid = %s, target_updated = %s '
-                    'where id = %s'.format(TABLES[3]), (new_html_id, dts, doc_id))
+                    'where id = %s;'.format(TABLES[3]), (new_html_id, dts, doc_id))
     else:
         cur.execute('update {} set previous = %s, currtext = %s '
-                    'where id = %s'.format(TABLES[4]), (oldtext, contents, html_id))
+                    'where id = %s;'.format(TABLES[4]), (oldtext, contents, html_id))
         cur.execute('update {} set target_updated = %s '
-                    'where id = %s'.format(TABLES[3]), (dts, doc_id))
+                    'where id = %s;'.format(TABLES[3]), (dts, doc_id))
     conn.commit()
     cur.close()
 
@@ -695,13 +694,13 @@ def apply_deletions_target(site_name, directory=''):
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute('select id, target_docid from {} '
-                'where source_deleted = %s'.format(TABLES[3]), (True,))
+                'where source_deleted = %s;'.format(TABLES[3]), (True,))
     deleted = [row for row in cur]
     docids = [(row['target_docid'],) for row in deleted]
-    cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
+    cur.executemany('delete from {} where id = %s;'.format(TABLES[4]), docids)
     deleted = [(None, 1, True, row['id']) for row in deleted]
-    cur.executemany('update {} set source_deleted = %s, target_docid = %s,  target_deleted = %s '
-                    'where id = %s'.format(TABLES[3]), deleted)
+    cur.executemany('update {} set source_deleted = %s, target_docid = %s, target_deleted = %s '
+                    'where id = %s;'.format(TABLES[3]), deleted)
     conn.commit()
     cur.close()
 
@@ -737,7 +736,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
 
     cur = conn.cursor()
     dts = datetime.datetime.utcnow()
-    cur.execute('update {} set mirror_updated = %s where id = %s'.format(
+    cur.execute('update {} set mirror_updated = %s where id = %s;'.format(
         TABLES[3]), (dts, doc_id))
     conn.commit()
     cur.close()
@@ -754,7 +753,7 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     sett = read_settings(site_name)
     if not path.exists() and not sett.get('seflinks', False):
         path.touch()
-    save_to(path, data, sett)
+    save_to(path, data)
 
 
 def apply_deletions_mirror(site_name, directory=''):
@@ -770,12 +769,12 @@ def apply_deletions_mirror(site_name, directory=''):
         raise FileNotFoundError('no_subdir')
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute('select id, docname, target_docid from {} '
-                'where target_deleted = %s'.format(TABLES[3]), (True,))
+                'where target_deleted = %s;'.format(TABLES[3]), (True,))
     deleted = [row for row in cur]
     # docids = [(row['target_docid'],) for row in deleted]
     # cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
     delids = [(row['id'],) for row in deleted]
-    cur.executemany('delete from {} where id = %s'.format(TABLES[3]), delids)
+    cur.executemany('delete from {} where id = %s;'.format(TABLES[3]), delids)
     conn.commit()
     cur.close()
 
@@ -784,12 +783,12 @@ def apply_deletions_mirror(site_name, directory=''):
         path /= directory
     deleted = [row['docname'] for row in deleted]
     for doc_name in deleted:
-        path /= doc_name
+        docpath = path / doc_name
         ext = LOC2EXT['dest']
-        if path.suffix != ext:
-            path = path.with_suffix(ext)
-        if path.exists():
-            path.unlink()
+        if docpath.suffix != ext:
+            docpath = docpath.with_suffix(ext)
+        if docpath.exists():
+            docpath.unlink()
 
 
 def get_doc_stats(site_name, docname, dirname=''):
@@ -809,7 +808,7 @@ def get_doc_stats(site_name, docname, dirname=''):
 
     cur = conn.cursor()
     cur.execute('select source_updated, target_updated, mirror_updated from {} '
-                'where id = %s'.format(TABLES[3]), (doc_id,))
+                'where id = %s;'.format(TABLES[3]), (doc_id,))
     docinfo = cur.fetchone()
     cur.close()
     return _get_stats(docinfo)
