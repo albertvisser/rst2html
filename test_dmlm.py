@@ -128,55 +128,82 @@ class TestTestApi:
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         assert dmlm.read_db() == 'result from site_coll.find()'
 
-    def list_site_data(self, monkeypatch, capsys):
-        # dit moet er in elk geval in:
-        def mock_get_site_doc(*args):
-            return {}
+    def test_list_site_data(self, monkeypatch, capsys):
         def mock_find(self, *args, **kwargs):
-            return [{}, {}, {}, {}]
-        monkeypatch(dmlf, '_get_site_doc', mock_get_site_doc)
-        sitename = 'testsite'
-        siteloc = dmlm.WEBROOT / sitename
-        # zo moet het resultaat er ongeveer uitzien:
-        assert dmlm.list_site_data(sitename) == (
-            {'_id': 0, 'name': 'testsite',
-             'settings': 'called read_settings for `testsite`',
-             'docs': 'called get_sitedoc_data for `testsite`'},
-            [{'_id': ('dir1/doc1', 'dest'),
-              'current': 'called read_data for {}/.target/dir1/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/dir1/doc1.html.bak'.format(siteloc)},
-             {'_id': ('dir1/doc1', 'src'),
-              'current': 'called read_data for {}/.source/dir1/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/dir1/doc1.rst.bak'.format(siteloc)},
-             {'_id': ('doc1', 'dest'),
-              'current': 'called read_data for {}/.target/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/doc1.html.bak'.format(siteloc)},
-             {'_id': ('doc1', 'src'),
-              'current': 'called read_data for {}/.source/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/doc1.rst.bak'.format(siteloc)}])
+            return [{'_id': 'x'}, {'_id': 'y'}, {'_id': 'z'}, {'_id': 'xx'}, {'_id': 'yy'},
+                    {'_id': 'zz'}]
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: None)
+        with pytest.raises(FileNotFoundError):
+            dmlm.list_site_data('sitename')
 
-    def clear_site_data(self, monkeypatch, capsys):
-        sitedoc = {}
+        monkeypatch.setattr(MockColl, 'find', mock_find)
+        monkeypatch.setattr(dmlm, 'site_coll', MockColl())
+        sitedoc = {'docs':
+            {'/': {'doc1': {'src': {'docid': 'x', 'updated': datetime.datetime.fromtimestamp(1)},
+                           'dest': {'docid': 'y', 'updated': datetime.datetime.fromtimestamp(2)},
+                           'mirror': {'docid': 'z', 'updated': datetime.datetime.fromtimestamp(3)}
+                           }},
+             'dir1': {'doc2': {'src': {'docid': 'xx',
+                                      'updated': datetime.datetime.fromtimestamp(1)}}},
+             'dir2': {'doc3': {'dest': {'docid': 'yy',
+                                       'updated': datetime.datetime.fromtimestamp(2)}}},
+             'dir3': {'doc4': {'mirror': {'docid': 'zz',
+                                         'updated': datetime.datetime.fromtimestamp(3)}}}}}
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: sitedoc)
+        doclist = [ {'_id': ('dir1/doc2', 'src')}, {'_id': ('dir2/doc3', 'dest')},
+                    {'_id': ('dir3/doc4', 'mirror')}, {'_id': ('doc1', 'dest')},
+                    {'_id': ('doc1', 'mirror')}, {'_id': ('doc1', 'src')}
+                ]
+        assert dmlm.list_site_data('sitename') == (sitedoc, doclist)
+        # maar dat ziet er toch wel heel anders uit dan dit:
+        # (afkomstig uit de file system verssie)
+        #   ({'_id': 0, 'name': 'testsite',
+        #     'settings': 'called read_settings for `testsite`',
+        #     'docs': 'called get_sitedoc_data for `testsite`'},
+        #    [{'_id': ('dir1/doc1', 'dest'),
+        #      'current': 'called read_data for {}/.target/dir1/doc1.html'.format(siteloc),
+        #      'previous': 'called read_data for {}/.target/dir1/doc1.html.bak'.format(siteloc)},
+        #     {'_id': ('dir1/doc1', 'src'),
+        #      'current': 'called read_data for {}/.source/dir1/doc1.rst'.format(siteloc),
+        #      'previous': 'called read_data for {}/.source/dir1/doc1.rst.bak'.format(siteloc)},
+        #     {'_id': ('doc1', 'dest'),
+        #      'current': 'called read_data for {}/.target/doc1.html'.format(siteloc),
+        #      'previous': 'called read_data for {}/.target/doc1.html.bak'.format(siteloc)},
+        #     {'_id': ('doc1', 'src'),
+        #      'current': 'called read_data for {}/.source/doc1.rst'.format(siteloc),
+        #      'previous': 'called read_data for {}/.source/doc1.rst.bak'.format(siteloc)}])
+
+    def test_clear_site_data(self, monkeypatch, capsys):
         def mock_find_delete_ok(self, *args, **kwargs):
             print('called find_one_and_delete')
-            return sitedoc
+            return {}
         def mock_find_delete_nok(self, *args, **kwargs):
             raise TypeError
         def mock_find(self, *args, **kwargs):
             print('called find_one')
-            return sitedoc
+            return {'docs': {1: {11: {111: {'docid': 111}, 112: {}}, 12: {121: {'docid': 121}}},
+                             2: {21: {211: {'docid': 211}, 22: {221: {'docis': 222}}}}}}
         def mock_rmtree(*args):
             print('called rmtree')
         def mock_rmtree_fail(*args):
             print('called rmtree_fail')
             raise FileNotFoundError
-        monkeypatch.setattr(MockColl, 'find_and_delete', mock_find_delete_ok)
+        sitedoc = {}
+        monkeypatch.setattr(MockColl, 'find_one_and_delete', mock_find_delete_ok)
+        monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm.shutil, 'rmtree', mock_rmtree)
-        assert dmlm.clear_site_data(site_name) == ''
-        monkeypatch.setattr(MockColl, 'find_and_delete', mock_find_delete_nok)
-        monkeypatch.setattr(MockColl, 'find', mock_find)
+        dmlm.clear_site_data('site_name')
+        assert capsys.readouterr().out == 'called find_one_and_delete\ncalled rmtree\n'
+        monkeypatch.setattr(MockColl, 'find_one_and_delete', mock_find_delete_nok)
+        monkeypatch.setattr(MockColl, 'find_one', mock_find)
+        monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm.shutil, 'rmtree', mock_rmtree_fail)
-        assert dmlm.clear_site_data(site_name) == ''
+        dmlm.clear_site_data('site_name')
+        assert capsys.readouterr().out == ('called find_one\n'
+                                           "called remove with args `{'name': 'site_name'}`\n"
+                                           "called delete_many with args `{'_id':"
+                                           " {'$in': [111, 121, 211]}}`\n"
+                                           'called rmtree_fail\n')
 
 
 class TestSiteLevel:
@@ -282,19 +309,6 @@ class TestSiteLevel:
 
 
 class TestDocLevel:
-    """voorbeeld van een site_doc "doc" gedeelte:
-    monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
-        {'/': {'doc': {'src': {'docid': 'x', 'updated': datetime.datetime.fromtimestamp(1)},
-                       'dest': {'docid': 'y', 'updated': datetime.datetime.fromtimestamp(2)},
-                       'mirror': {'docid': 'z', 'updated': datetime.datetime.fromtimestamp(3)}
-                       }},
-         'dir1': {'doc': {'src': {'docid': 'x',
-                                  'updated': datetime.datetime.fromtimestamp(1)}}},
-         'dir2': {'doc': {'dest': {'docid': 'y',
-                                   'updated': datetime.datetime.fromtimestamp(2)}}},
-         'dir3': {'doc': {'mirror': {'docid': 'z',
-                                     'updated': datetime.datetime.fromtimestamp(3)}}}}})
-    """
     def test_list_docs(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: None)
         with pytest.raises(FileNotFoundError):
