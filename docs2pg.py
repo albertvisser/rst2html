@@ -921,7 +921,7 @@ def list_site_data(site_name):
     cur.execute('select name, text from {} where site_id = %s;'.format(TABLES[5]),
                 (siteid,))
     for row in cur:
-        data.append({'_id': row['name'], 'template contents': row['text']})
+        data.append({'_id': (row['name'],), 'template contents': row['text']})
 
     conn.commit()
     cur.close()
@@ -975,7 +975,7 @@ def clear_site_data(site_name):
         sel = 'id = %s'
         sql = base_sql.format(TABLES[0], sel)
         cur.execute(sql, (siteid,))
-    conn.commit()
+        conn.commit()
 
     if fs_data:
         ## if not db_data

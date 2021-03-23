@@ -243,44 +243,114 @@ class TestTestApi:
             'called commit() on connection\n',
             'called close()\n'))
 
-    def list_site_data(self, monkeypatch, capsys):
-        def mock_read_settings(*args):
-            return 'called read_settings for `{}`'.format(args[0])
-        def mock_get_sitedoc_data(*args):
-            return 'called get_sitedoc_data for `{}`'.format(args[0])
-        def mock_list_docs(*args):
-            rest = '/{}'.format(args[2]) if len(args) > 2 else ''
-            return ['doc1']
-        def mock_list_dirs(*args):
-            return ['dir1']
-        def mock_read_data(*args):
-            return '', 'called read_data for {}'.format(args[0])
-        sitename = 'testsite'
-        monkeypatch.setattr(dmlp, 'read_settings', mock_read_settings)
-        monkeypatch.setattr(dmlp, '_get_sitedoc_data', mock_get_sitedoc_data)
-        monkeypatch.setattr(dmlp, 'list_docs', mock_list_docs)
-        monkeypatch.setattr(dmlp, 'list_dirs', mock_list_dirs)
-        monkeypatch.setattr(dmlp, 'read_data', mock_read_data)
-        siteloc = dmlp.WEBROOT / sitename
-        assert dmlp.list_site_data(sitename) == (
-            {'_id': 0, 'name': 'testsite',
-             'settings': 'called read_settings for `testsite`',
-             'docs': 'called get_sitedoc_data for `testsite`'},
-            [{'_id': ('dir1/doc1', 'dest'),
-              'current': 'called read_data for {}/.target/dir1/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/dir1/doc1.html.bak'.format(siteloc)},
-             {'_id': ('dir1/doc1', 'src'),
-              'current': 'called read_data for {}/.source/dir1/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/dir1/doc1.rst.bak'.format(siteloc)},
-             {'_id': ('doc1', 'dest'),
-              'current': 'called read_data for {}/.target/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/doc1.html.bak'.format(siteloc)},
-             {'_id': ('doc1', 'src'),
-              'current': 'called read_data for {}/.source/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/doc1.rst.bak'.format(siteloc)}])
+    def test_list_site_data(self, monkeypatch, capsys):
+        counter = 0
+        def mock_iter(*args):
+            nonlocal counter
+            counter += 1
+            if counter == 1:
+                return (x for x in [{'id': 2, 'dirname': '/'}, {'id': 3, 'dirname': 'subdir'}])
+            elif counter == 2:
+                return (x for x in [
+                    {'docname': 'doc1', 'dir_id': 2, 'source_docid': 4, 'source_updated': 4,
+                        'source_deleted': False, 'target_docid': 5, 'target_updated': 5,
+                        'target_deleted': False, 'mirror_updated': 6},
+                    {'docname': 'doc0', 'dir_id': 2, 'source_docid': None, 'source_updated': None,
+                        'source_deleted': None, 'target_docid': None, 'target_updated': None,
+                        'target_deleted': None, 'mirror_updated': None},
+                    {'docname': 'doc2', 'dir_id': 3, 'source_docid': 6, 'source_updated': 6,
+                        'source_deleted': True, 'target_docid': 7, 'target_updated': 7,
+                        'target_deleted': True, 'mirror_updated': 8}])
+            elif counter == 3:
+                return (x for x in [{'id': 4, 'currtext': '/doc1 src text', 'previous': ''},
+                                    {'id': 5, 'currtext': '/doc1 dest text', 'previous': 'old txt'},
+                                    {'id': 6, 'currtext': 'subdir/doc2 src', 'previous': 'old'},
+                                    {'id': 7, 'currtext': 'subdir/doc2 dest', 'previous': ''}])
+            elif counter == 4:
+                return (x for x in [{'name': 'tpl1', 'text': 'text tpl1'},
+                                    {'name': 'tpl2', 'text': 'text tpl2'}])
 
-    def clear_site_data(self, monkeypatch, capsys):
-        dmlp.clear_site_data(site_name)
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
+        with pytest.raises(FileNotFoundError):
+            dmlp.list_site_data('testsite')
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 1)
+        monkeypatch.setattr(dmlp, '_get_settings', lambda x: {'sett1': 'val1', 'sett2': 'val2'})
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        # import pdb; pdb.set_trace()
+        assert dmlp.list_site_data('sitename') == ({ '_id': 1, 'name': 'sitename',
+            'settings': {'sett1': 'val1', 'sett2': 'val2'},
+            'docs': {'/': {'doc0': {},
+                           'doc1': {'src': {'docid': 4, 'updated': 4, 'deleted': False},
+                                    'dest': {'docid': 5, 'updated': 5, 'deleted': False},
+                                    'mirror': {'updated': 5}}},
+            'subdir': {'doc2': {'src': {'docid': 6, 'updated': 6, 'deleted': True},
+                                'dest': {'docid': 7, 'updated': 7, 'deleted': True},
+                                'mirror': {'updated': 7}}}}}, [
+            {'_id': ('doc1', 'dest'), 'current': '/doc1 dest text', 'previous': 'old txt'},
+            {'_id': ('doc1', 'src'), 'current': '/doc1 src text', 'previous': ''},
+            {'_id': ('subdir/doc2', 'dest'), 'current': 'subdir/doc2 dest', 'previous': ''},
+            {'_id': ('subdir/doc2', 'src'), 'current': 'subdir/doc2 src', 'previous': 'old'},
+            {'_id': ('tpl1',), 'template contents': 'text tpl1'},
+            {'_id': ('tpl2',), 'template contents': 'text tpl2'} ])
+        assert capsys.readouterr().out == ''.join((
+            'execute SQL: `select id, dirname from directories where site_id = %s;`\n',
+            '  with: `1`\n',
+            'execute SQL: `select docname, source_docid, source_updated, source_deleted,'
+            ' target_docid, target_updated, target_deleted, mirror_updated, dir_id'
+            ' from doc_stats where dir_id = any(%s);`\n',
+            '  with: `[2, 3]`\n',
+            'execute SQL: `select id, currtext, previous from documents where id = any(%s)`\n',
+            '  with: `[4, 5, None, 6, 7]`\n',
+            'execute SQL: `select name, text from templates where site_id = %s;`\n',
+            '  with: `1`\n',
+            'called commit() on connection\n',
+            'called close()\n'))
+
+    def test_clear_site_data(self, monkeypatch, capsys):
+        def mock_rmtree_err(*args):
+            print('called rmtree()')
+            raise FileNotFoundError
+        def mock_rmtree_ok(*args):
+            print('called rmtree() with arg `{}`'.format(args[0]))
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
+        monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
+        dmlp.clear_site_data('site_name')
+        assert capsys.readouterr().out == ''
+
+        monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(dmlp.shutil, 'rmtree', mock_rmtree_err)
+        dmlp.clear_site_data('site_name')
+        assert capsys.readouterr().out == 'called rmtree()\n'
+
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 1)
+        monkeypatch.setattr(dmlp, '_get_all_dir_ids', lambda x: [2, 3])
+        monkeypatch.setattr(MockCursor, '__iter__', lambda x: (x for x in [
+            {'source_docid': 4, 'target_docid': 7},
+            {'source_docid': 5, 'target_docid': 8},
+            {'source_docid': 6, 'target_docid': 9}]))
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        monkeypatch.setattr(dmlp.shutil, 'rmtree', mock_rmtree_ok)
+        dmlp.clear_site_data('site_name')
+        assert capsys.readouterr().out == ''.join((
+            'execute SQL: `select source_docid, target_docid from doc_stats'
+            ' where dir_id = any(%s);`\n',
+            '  with: `[2, 3]`\n',
+            'execute SQL: `delete from documents where id = any(%s);`\n',
+            '  with: `[4, 7, 5, 8, 6, 9]`\n',
+            'execute SQL: `delete from doc_stats where dir_id = any(%s);`\n',
+            '  with: `[2, 3]`\n',
+            'execute SQL: `delete from templates where site_id = %s;`\n',
+            '  with: `1`\n',
+            'execute SQL: `delete from directories where site_id = %s;`\n',
+            '  with: `1`\n',
+            'execute SQL: `delete from site_settings where site_id = %s;`\n',
+            '  with: `1`\n',
+            'execute SQL: `delete from sites where id = %s;`\n',
+            '  with: `1`\n',
+            'called commit() on connection\n',
+            # 'called close()\n'
+            'called rmtree() with arg `{}`\n'.format(dmlp.WEBROOT / 'site_name')))
 
 
 class TestSiteLevel:
