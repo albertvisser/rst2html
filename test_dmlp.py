@@ -564,9 +564,9 @@ class TestDocLevel:
         # contents are identical for each test, so no need to verify this every time
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         return_for = ''
-        assert dmlp.list_docs('site_name', doctype=return_for) == []  # expected: 'd4']
+        assert dmlp.list_docs('site_name', doctype=return_for) == ['d4']
         capsys.readouterr()  # flush
-        assert dmlp.list_docs('site_name', doctype=return_for, deleted=True) == []  # 'd5']
+        assert dmlp.list_docs('site_name', doctype=return_for, deleted=True) == ['d5']
         capsys.readouterr()  # flush
         return_for = 'src'
         assert dmlp.list_docs('site_name', doctype=return_for) == ['d4']
@@ -690,6 +690,13 @@ class TestDocLevel:
         monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3))
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'currtext': 'text'})
         monkeypatch.setattr(dmlp, 'conn', MockConn())
+        assert dmlp.get_doc_contents('site_name', 'doc_name') == 'text'
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id for `/`\n',
+            'execute SQL: `select currtext from documents where id = %s;`\n',
+            '  with: `2`\n',
+            'called commit() on connection\n',
+            'called close()\n'))
         assert dmlp.get_doc_contents('site_name', 'doc_name', doctype='src') == 'text'
         assert capsys.readouterr().out == ''.join((
             'called get_dir_id for `/`\n',

@@ -3,6 +3,7 @@ import pathlib
 import pytest
 import docs2fs as dmlf
 
+
 def mock_settings_seflinks_yes(*args):
     return {'seflinks': True}
 
@@ -471,10 +472,6 @@ class TestDocLevel:
                                                         'file4', 'file0', 'index']
         assert dmlf.list_docs('testsite', 'src', deleted=True) == ['file0']
 
-
-
-
-
     def test_list_templates(self, monkeypatch, capsys):
         def mock_iterdir(self):
             return (pathlib.Path('x'), pathlib.Path('y.rst'), pathlib.Path('y.html'),
@@ -752,6 +749,3 @@ class TestDocLevel:
         assert dmlf.get_all_doc_stats('sitename') == [('/', 'hello, world!'),
                                                       ('x', 'hello, world!'),
                                                       ('y', 'hello, world!')]
-
-
-

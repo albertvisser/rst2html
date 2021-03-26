@@ -436,7 +436,7 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     for row in cur:
         # print(doctype, row['source_docid'], deleted, row['source_deleted'])
         add = False
-        if doctype == 'src' and row['source_docid']:
+        if doctype in ('', 'src') and row['source_docid']:
             # print(row['source_deleted'])
             add = bool(row['source_deleted']) == deleted
         elif doctype == 'dest' and row['target_docid']:
@@ -542,7 +542,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
     docid, src_id, dest_id = _get_doc_ids(dirid, doc_name)
     if docid is None:
         raise FileNotFoundError("no_document".format(doc_name))
-    if doctype == 'src':
+    if doctype in ('', 'src'):
         if src_id is None:
             ## raise FileNotFoundError("Document {} source not found".format(doc_name))
             raise FileNotFoundError("src_file_missing")

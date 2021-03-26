@@ -157,11 +157,11 @@ def save_to(fullname, data):  # to be used for actual file system data
     mld = ''
     if fullname.exists():
         shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
-    with fullname.open("w", encoding='utf-8') as f_out:
-        try:
+    try:
+        with fullname.open("w", encoding='utf-8') as f_out:
             f_out.write(data)
-        except OSError as err:      # TODO: staat deze try/except wel op het goede niveau?
-            mld = str(err)
+    except OSError as err:
+        mld = str(err)
     return mld
 
 
@@ -234,6 +234,7 @@ def read_settings(sitename):
             conf = load_config_data(_in)
     except FileNotFoundError:
         raise                                       # TODO: hoeft dit wel gecodeerd te worden?
+        # of is het de bedoeling om hier juist niet te raisen en "config is leeg" te forceren?
     if conf is None:
         conf = {}
     return conf

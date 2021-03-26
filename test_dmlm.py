@@ -321,7 +321,7 @@ class TestDocLevel:
              'doc2': {'dest': {'docid': 'y', 'updated': datetime.datetime.fromtimestamp(2)}},
              'doc3': {'mirror': {'docid': 'z', 'updated': datetime.datetime.fromtimestamp(3)}}},
              'dirname': {'doc4': {'src': {'deleted': True}}}}})
-        assert dmlm.list_docs('site_name') == []  # ik had 'doc1' verwacht
+        assert dmlm.list_docs('site_name') == ['doc1']
         assert dmlm.list_docs('site_name', 'src') == ['doc1']
         assert dmlm.list_docs('site_name', 'dest') == ['doc2']
         assert dmlm.list_docs('site_name', 'mirror') == ['doc3']
@@ -336,9 +336,6 @@ class TestDocLevel:
         assert dmlm.list_templates('site_name') == ['x', 'y']
 
     def test_read_template(self, monkeypatch, capsys):
-        # zie TODO in docs2mongo.py
-        # monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {})
-        #assert dmlm.read_template('site_name', 'doc_name') == ''
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'templates': {}})
         assert dmlm.read_template('site_name', 'doc_name') == ''
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'templates': {'doc_name': 'data'}})
@@ -347,10 +344,10 @@ class TestDocLevel:
     def test_write_template(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         # eerste template voor site; templates key bestaat nog niet
-        #   zie eerste TODO in docs2mongo.py
-        #  monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {})
-        #  dmlm.write_template('site_name', 'doc_name', 'data')
-        #  assert capsys.readouterr().out == 'call update_doc with args `` ``'
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {})
+        dmlm.write_template('site_name', 'doc_name', 'data')
+        assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
+                                           " `{'$set': {'templates': {'doc_name': 'data'}}}`\n")
         # nieuw template
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'templates': {}})
         dmlm.write_template('site_name', 'doc_name', 'data')
@@ -404,8 +401,8 @@ class TestDocLevel:
             assert dmlm.get_doc_contents('site_name', 'doc_name')
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
             {'/': {'doc_name': {'src': {'docid': 'doc_id'}}}}})
-        # dit gaat mis, zie TODO in docs2mongo.py
-        # assert dmlm.get_doc_contents('site_name', 'doc_name', 'src') == 'data'
+        assert dmlm.get_doc_contents('site_name', 'doc_name') == 'data'
+        assert capsys.readouterr().out == "called find() with arg `{'_id': 'doc_id'}`\n"
         assert dmlm.get_doc_contents('site_name', 'doc_name', 'src') == 'data'
         assert capsys.readouterr().out == "called find() with arg `{'_id': 'doc_id'}`\n"
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
@@ -536,7 +533,8 @@ class TestDocLevel:
         assert capsys.readouterr().out == ''.join(('called add_doc()\n',
                                                    'called update_site_doc()\n'))
         dmlm.apply_deletions_target('site_name', 'dirname')
-        assert capsys.readouterr().out == 'called update_site_doc()\n'
+        assert capsys.readouterr().out == ''  # 'called update_site_doc()\n' - weggeoptimaliseerd
+        # verificatie nodig dat dirname ook is gebruikt
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_update_site_doc(*args):
@@ -592,7 +590,8 @@ class TestDocLevel:
         assert capsys.readouterr().out == ('called update_site_doc()\n'
                                            'called unlink()\ncalled unlink()\n')
         dmlm.apply_deletions_mirror('site_name', 'dirname')
-        assert capsys.readouterr().out == 'called update_site_doc()\n'
+        assert capsys.readouterr().out == '' # 'called update_site_doc()\n' - weggeoptimaliseerd
+        # verificatie nodig dat dirname ook is gebruikt
 
     def test_get_doc_stats(self, monkeypatch, capsys):
         def mock_get_stats(*args):
