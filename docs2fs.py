@@ -46,11 +46,12 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
                 continue
             if ftype in LOCS[1:] and do_seflinks:
                 docname = item.stem
+                check_item = ''
                 if item.is_dir() and not item.is_symlink():
                     check_item = item / 'index.html'
                 elif item.name == 'index.html' and not dirname:
                     check_item = item
-                else:
+                if not check_item:
                     continue
             else:
                 if not item.is_file() or item.is_symlink():
@@ -161,7 +162,7 @@ def save_to(fullname, data):  # to be used for actual file system data
         with fullname.open("w", encoding='utf-8') as f_out:
             f_out.write(data)
     except OSError as err:
-        mld = str(err)
+        mld = str(err) or 'OSError without message'
     return mld
 
 
@@ -229,12 +230,16 @@ def read_settings(sitename):
     "lezen settings file"
     conf = None
     path = WEBROOT / sitename / SETTFILE
-    try:
-        with path.open(encoding='utf-8') as _in:
-            conf = load_config_data(_in)
-    except FileNotFoundError:
-        raise                                       # TODO: hoeft dit wel gecodeerd te worden?
-        # of is het de bedoeling om hier juist niet te raisen en "config is leeg" te forceren?
+    # de andere varianten gaan er van uit dat er altijd iets van settings is als we een site hebben
+    # dus dat doen we hier ook maar - geen foutafhandeling
+    # try:
+    #     with path.open(encoding='utf-8') as _in:
+    #         conf = load_config_data(_in)
+    # except FileNotFoundError:
+    #     raise                                       # TODO: hoeft dit wel gecodeerd te worden?
+    #     # of is het de bedoeling om hier juist niet te raisen en "config is leeg" te forceren?
+    with path.open(encoding='utf-8') as _in:
+        conf = load_config_data(_in)
     if conf is None:
         conf = {}
     return conf
@@ -284,7 +289,7 @@ def remove_dir(sitename, directory):
     raise NotImplementedError
 
 
-def list_docs(sitename, loc, directory='', deleted=False):
+def list_docs(sitename, loc='', directory='', deleted=False):
     """list the documents of a given type in a given directory
 
     if requested, list files marked as deleted instead
@@ -299,7 +304,7 @@ def list_docs(sitename, loc, directory='', deleted=False):
         if not path.exists():
             ## raise FileNotFoundError('no_subdir')
             return []
-    testsuffix = DELMARK if deleted else LOC2EXT[loc]
+    testsuffix = DELMARK if deleted else LOC2EXT[loc or 'src']
     if loc == 'dest' and read_settings(sitename).get('seflinks', False):
         lines = [f.stem for f in path.iterdir()
                  if f.is_dir() and (f / ('index' + testsuffix)).exists()]

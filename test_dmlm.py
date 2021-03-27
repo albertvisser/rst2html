@@ -22,6 +22,11 @@ def return_false(*args):
     return False
 
 
+class MockDatetime:
+    def utcnow(*args):
+        return 'now'
+
+
 class MockColl:
     # find wordt 6x gebruikt, find_one 3x, find_one_and_delete 1x
     def find(self, *args, **kwargs):
@@ -278,7 +283,7 @@ class TestSiteLevel:
              'dir1': {'doc1': {'src': 'deze directory heeft alleen een source versie'}},
              'dir2': {'doc2': {'dest': 'deze directory heeft alleen een html versie'}},
              'dir3': {'doc3': {'mirror': 'deze directory bestaat alleen in mirror'}}}})
-        assert dmlm.list_dirs('site_name') == []
+        assert dmlm.list_dirs('site_name') == ['dir1', 'dir2', 'dir3']
         assert dmlm.list_dirs('site_name', doctype='src') == ['dir1', 'dir2', 'dir3']
         assert dmlm.list_dirs('site_name', doctype='dest') == ['dir2']
         assert dmlm.list_dirs('site_name', doctype='mirror') == ['dir3']
@@ -366,10 +371,7 @@ class TestDocLevel:
             print('called add_doc() with args `{}`'.format(args[0]))
             return 'new_id'
         def mock_update_site_doc(*args):
-            docname = list(args[1]['/'])[0]
-            doc = args[0] + '/' + docname
-            docid = args[1]['/'][docname]['src']['docid']
-            print('called update_site_doc() for document {} with id `{}`'.format(doc, docid))
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs': {}})
         with pytest.raises(FileNotFoundError):
             dmlm.create_new_doc('site_name', 'doc_name', 'dir_name')
@@ -379,10 +381,12 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs': {'/': {}}})
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
         monkeypatch.setattr(dmlm, '_add_doc', mock_add_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         dmlm.create_new_doc('site_name', 'doc_name')
         assert capsys.readouterr().out == ''.join((
             "called add_doc() with args `{'current': '', 'previous': ''}`\n",
-            'called update_site_doc() for document site_name/doc_name with id `new_id`\n'))
+            "called update_site_doc() with args `site_name`,"
+            " `{'/': {'doc_name': {'src': {'docid': 'new_id', 'updated': 'now'}}}}`\n"))
 
     def test_get_doc_contents(self, monkeypatch, capsys):
         def mock_find(self, *args):
@@ -417,13 +421,7 @@ class TestDocLevel:
         def mock_update_doc(*args):
             print('called update_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         def mock_update_site_doc(*args):
-            docname = list(args[1]['/'])[0]
-            doc = args[0] + '/' + docname
-            docid = args[1]['/'][docname]['src']['docid']
-        def mock_update_site_doc_2(*args):
-            docname = list(args[1]['dirname'])[0]
-            doc = args[0] + '/dirname/' + docname
-            docid = args[1]['dirname'][docname]['src']['docid']
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         # monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: None)
         with pytest.raises(AttributeError):
@@ -441,19 +439,24 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm, '_update_doc', mock_update_doc)
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         dmlm.update_rst('site_name', 'doc_name', 'contents') # , 'dirname')
         assert capsys.readouterr().out == ''.join((
             "called find() with arg `{'_id': 'doc_id'}`\n",
             "called update_doc() with args `doc_id`,"
-            " `{'_id': 'doc_id', 'current': 'contents', 'previous': 'data'}`\n"))
+            " `{'_id': 'doc_id', 'current': 'contents', 'previous': 'data'}`\n"
+            "called update_site_doc() with args `site_name`,"
+            " `{'/': {'doc_name': {'src': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
             {'dirname': {'doc_name': {'src': {'docid': 'doc_id'}}}}})
-        monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc_2)
+        # monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc_2)
         dmlm.update_rst('site_name', 'doc_name', 'contents', 'dirname')
         assert capsys.readouterr().out == ''.join((
             "called find() with arg `{'_id': 'doc_id'}`\n",
             "called update_doc() with args `doc_id`,"
-            " `{'_id': 'doc_id', 'current': 'contents', 'previous': 'data'}`\n"))
+            " `{'_id': 'doc_id', 'current': 'contents', 'previous': 'data'}`\n"
+            "called update_site_doc() with args `site_name`,"
+            " `{'dirname': {'doc_name': {'src': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
 
     def test_mark_src_deleted(self, monkeypatch, capsys):
         def mock_update_site_doc(*args):
@@ -473,17 +476,16 @@ class TestDocLevel:
                                            "`{'/': {'doc_name': {'src': {'deleted': True}}}}`\n")
 
     def test_update_html(self, monkeypatch, capsys):
-        #TODO add args for mocked methods
         def mock_add_doc(*args):  # als 'dest' nog niet aanwezig
-            print('called add_doc()')
+            print('called add_doc() with args `{}`'.format(args[0]))
             return 'doc_id'
         def mock_find(self, *args):  # op sitecoll, als 'dest' al wel aanwezig
-            print('called find()')
+            print('called find() with arg `{}`'.format(args[0]))
             return ({'_id': 'doc_id', 'current': 'old_data'},)
         def mock_update_doc(*args):
-            print('called update_doc()')
+            print('called update_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         def mock_update_site_doc(*args):
-            print('called update_site_doc()')
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         with pytest.raises(AttributeError):
             dmlm.update_html('site_name', '', 'contents')
         with pytest.raises(AttributeError):
@@ -495,9 +497,11 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs': {'/': {}}})
         with pytest.raises(FileNotFoundError):
             dmlm.update_html('site_name', 'doc_name', 'contents')
-        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs': {'/': {'doc_name': {}}}})
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {
+            'docs': {'/': {'doc_name': {'src': {'docid': 'x'}}}}})
         monkeypatch.setattr(dmlm, '_update_doc', mock_update_doc)
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         dmlm.update_html('site_name', 'doc_name', 'contents')
         assert capsys.readouterr().out == ''
         monkeypatch.setattr(dmlm, '_add_doc', mock_add_doc)
@@ -505,46 +509,57 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         dmlm.update_html('site_name', 'doc_name', 'contents', dry_run=False)
         assert capsys.readouterr().out == ''.join((
-            'called add_doc()\n',
-            'called update_doc()\n',
-            'called update_site_doc()\n'))
+            "called add_doc() with args `{'current': '', 'previous': ''}`\n",
+            "called update_doc() with args `doc_id`, `{'current': 'contents', 'previous': ''}`\n",
+            "called update_site_doc() with args `site_name`, `{'/': {'doc_name':"
+            " {'src': {'docid': 'x'}, 'dest': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc_name': {'dest': {'docid': 'doc_id'}}}}})
+            {'/': {'doc_name': {'src': {'docid': 'x'}, 'dest': {'docid': 'doc_id'}}}}})
         dmlm.update_html('site_name', 'doc_name', 'contents', dry_run=False)
         assert capsys.readouterr().out == ''.join((
-            'called find()\n',
-            'called update_doc()\n',
-            'called update_site_doc()\n'))
+            "called find() with arg `{'_id': 'doc_id'}`\n",
+            "called update_doc() with args `doc_id`, `{'_id': 'doc_id', 'current': 'contents',"
+            " 'previous': 'old_data'}`\n",
+            "called update_site_doc() with args `site_name`, `{'/': {'doc_name':"
+            " {'src': {'docid': 'x'}, 'dest': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
 
     def test_apply_deletions_target(self, monkeypatch, capsys):
-        #TODO: add args to mocked methods
         def mock_add_doc(*args):  # als 'dest' nog niet aanwezig
-            print('called add_doc()')
+            print('called add_doc() with args `{}`'.format(args[0]))
             return 'doc_id'
         def mock_update_site_doc(*args):
-            print('called update_site_doc()')
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'src': {'deleted': True}, 'dest': {}},
+            {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
                    'doc2': {'src': {'deleted': {}}}},
-             'dirname': {'doc3': {'src': {}}}}})
+                   'dirname': {'doc3': {'src': {'deleted': {}}}}}})
         monkeypatch.setattr(dmlm, '_add_doc', mock_add_doc)
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         dmlm.apply_deletions_target('site_name')
-        assert capsys.readouterr().out == ''.join(('called add_doc()\n',
-                                                   'called update_site_doc()\n'))
+        assert capsys.readouterr().out == ''.join((
+            "called add_doc() with args `{'current': '', 'previous': ''}`\n",
+            "called update_site_doc() with args `site_name`, `{'/':"
+            " {'doc1': {'src': {'docid': 'x', 'deleted': False}, 'dest': {'deleted': True}},"
+            " 'doc2': {'src': {'deleted': False}, 'dest': {'docid': 'doc_id', 'deleted': True}}},"
+            " 'dirname': {'doc3': {'src': {'deleted': {}}}}}`\n"))
         dmlm.apply_deletions_target('site_name', 'dirname')
-        assert capsys.readouterr().out == ''  # 'called update_site_doc()\n' - weggeoptimaliseerd
-        # verificatie nodig dat dirname ook is gebruikt
+        assert capsys.readouterr().out == ''.join((
+            "called add_doc() with args `{'current': '', 'previous': ''}`\n",
+            "called update_site_doc() with args `site_name`, `{'/':"
+            " {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},"
+            " 'doc2': {'src': {'deleted': {}}}}, 'dirname': {'doc3': {'src':"
+            " {'deleted': False}, 'dest': {'docid': 'doc_id', 'deleted': True}}}}`\n"))
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_update_site_doc(*args):
-            print('called update_site_doc()')
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
         def mock_save_to(*args):
-            print('called save_to()')
-        def mock_mkdir(*args, **kwargs):
-            print('called mkdir()')
-        def mock_touch(*args):
-            print('called touch()')
+            print('called save_to() for `{}`'.format(args[0]))
+        def mock_mkdir(self, *args, **kwargs):
+            print('called mkdir() for `{}`'.format(self))
+        def mock_touch(self, *args):
+            print('called touch() for `{}`'.format(self))
         with pytest.raises(AttributeError):
             dmlm.update_mirror('site_name', '', 'contents')
         # geen test op of data gevuld?
@@ -558,40 +573,61 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
                 {'/': {'doc_name': {'mirror': {}}}}})
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(dmlm.pathlib.Path, 'exists', return_true)
         monkeypatch.setattr(dmlm, 'read_settings', mock_settings_seflinks_no)
         monkeypatch.setattr(dmlm, 'save_to', mock_save_to)
         dmlm.update_mirror('site_name', 'doc_name', 'data', dry_run=False)
-        assert capsys.readouterr().out == 'called update_site_doc()\ncalled save_to()\n'
+        assert capsys.readouterr().out == ''.join((
+                "called update_site_doc() with args `site_name`,"
+                " `{'/': {'doc_name': {'mirror': {'updated': 'now'}}}}`\n",
+                'called save_to() for `{}/site_name/doc_name.html`\n'.format(dmlm.WEBROOT)))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
                 {'dirname': {'doc_name': {'mirror': {}}}}})
         monkeypatch.setattr(dmlm.pathlib.Path, 'exists', return_false)
         monkeypatch.setattr(dmlm.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlm.pathlib.Path, 'touch', mock_touch)
         dmlm.update_mirror('site_name', 'doc_name', 'data', 'dirname', dry_run=False)
-        assert capsys.readouterr().out == ('called update_site_doc()\ncalled mkdir()\n'
-                                           'called touch()\ncalled save_to()\n')
+        assert capsys.readouterr().out == ''.join((
+            "called update_site_doc() with args `site_name`,"
+            " `{'dirname': {'doc_name': {'mirror': {'updated': 'now'}}}}`\n",
+            'called mkdir() for `{}/site_name/dirname`\n'.format(dmlm.WEBROOT),
+            'called touch() for `{}/site_name/dirname/doc_name.html`\n'.format(dmlm.WEBROOT),
+            'called save_to() for `{}/site_name/dirname/doc_name.html`\n'.format(dmlm.WEBROOT)))
 
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
-        # TODO: add args to mocked methods
         def mock_update_site_doc(*args):
-            print('called update_site_doc()')
-        def mock_unlink(*args):
-            print('called unlink()')
+            print('call update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
+        def mock_unlink(self, *args):
+            print('called unlink() for `{}`'.format(self))
         # monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: None)
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
             {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
                    'doc2': {'dest': {'deleted': {}}}},
-             'dirname': {'doc3': {'dest': {}}}}})
+             'dirname': {'doc3': {'dest': {'deleted': {}}}}}})
         monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(dmlm.pathlib.Path, 'exists', return_true)
         monkeypatch.setattr(dmlm.pathlib.Path, 'unlink', mock_unlink)
-        dmlm.apply_deletions_mirror('site_name'),
-        assert capsys.readouterr().out == ('called update_site_doc()\n'
-                                           'called unlink()\ncalled unlink()\n')
+        dmlm.apply_deletions_mirror('site_name')
+        loc = dmlm.WEBROOT / 'site_name'
+        assert capsys.readouterr().out == ''.join((
+            "call update_site_doc() with args `site_name`,"
+            " `{'/': {}, 'dirname': {'doc3': {'dest': {'deleted': {}}}}}`\n",
+            'called unlink() for `{}/doc1.html`\n'.format(loc),
+            'called unlink() for `{}/doc2.html`\n'.format(loc)))
         dmlm.apply_deletions_mirror('site_name', 'dirname')
-        assert capsys.readouterr().out == '' # 'called update_site_doc()\n' - weggeoptimaliseerd
-        # verificatie nodig dat dirname ook is gebruikt
+        assert capsys.readouterr().out == ''.join((
+            "call update_site_doc() with args `site_name`,"
+            " `{'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},"
+            " 'doc2': {'dest': {'deleted': {}}}}, 'dirname': {}}`\n",
+            'called unlink() for `{}/dirname/doc3.html`\n'.format(loc)))
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
+            {'/': {'doc1': {'dest': {}, 'mirror': {}},
+                   'doc2': {'dest': {}}},
+             'dirname': {'doc3': {'dest': {'deleted': {}}}}}})
+        dmlm.apply_deletions_mirror('site_name')
+        assert capsys.readouterr().out == ''
 
     def test_get_doc_stats(self, monkeypatch, capsys):
         def mock_get_stats(*args):

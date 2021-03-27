@@ -61,9 +61,6 @@ class TestNonApiFunctions:
             return result
         def mock_stat_error(*args):
             raise FileNotFoundError
-        sitename = 'testsite'
-        ftype = 'src'  # of 'dest'
-        dirname = ''  # of 'testdir'
         monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir_src)
@@ -72,25 +69,22 @@ class TestNonApiFunctions:
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_true)
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to', mock_relative_to)
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == []
+        assert dmlf._get_dir_ftype_stats('sitename', 'src') == []
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_false)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname='') == [('index', 'x')]
-        ftype = 'dest'
+        assert dmlf._get_dir_ftype_stats('sitename', 'src', '') == [('index', 'x')]
+
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir_dest)
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_true)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == [('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('index', 'x')]
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_false)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == [('subdir', 'x'),
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('subdir', 'x'),
                                                                        ('index', 'x')]
-        dirname = 'testdir'
-        # ik verwacht eigenlijk dat-ie hier voor test,src langs r. 54 komt maar dat blijkt niet te
-        # gebeuren - toch komt-ie ook niet langs r. 62-65...  stiekeme optimalisatie van de compiler?
         # import pdb; pdb.set_trace()
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == [('subdir', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('subdir', 'x')]
         monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == [('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('index', 'x')]
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat_error)
-        assert dmlf._get_dir_ftype_stats(sitename, ftype, dirname) == []
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == []
 
     def test_get_dir_stats(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):
@@ -178,6 +172,8 @@ class TestNonApiFunctions:
 
     def test_save_to(self, monkeypatch, capsys):
         tmpfilename = '/tmp/dmlfsaveto'
+        def mock_open_err(self, *args, **kwargs):
+            raise OSError
         def mock_open(self, *args, **kwargs):
             return open(tmpfilename, 'w')
         def mock_mkdir(self, *args, **kwargs):
@@ -189,12 +185,15 @@ class TestNonApiFunctions:
                 data = read_file.read()
             os.unlink(filename)
             return data
+        fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname'
+        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_err)
+        assert dmlf.save_to(fulldocname, 'data') == 'OSError without message'
         monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
         monkeypatch.setattr(dmlf.shutil, 'copyfile', mock_copyfile)
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
-        fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname'
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == ''
         assert read_and_remove(tmpfilename) == 'data'
@@ -452,6 +451,9 @@ class TestDocLevel:
         with pytest.raises(FileNotFoundError):
             dmlf.list_docs('testsite', 'x')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', mock_exists_1)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', lambda x: (x for x in []))
+        self.times_called = 0
+        assert dmlf.list_docs('testsite') == []
         self.times_called = 0
         assert dmlf.list_docs('testsite', 'src', 'subdir') == []
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)

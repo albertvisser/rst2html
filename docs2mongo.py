@@ -160,7 +160,7 @@ def list_dirs(site_name, doctype=''):
                 dirlist.append(dirname)
                 break
         else:
-            if doctype == 'src':
+            if doctype in ('', 'src'):
                 dirlist.append(dirname)
         if found:
             continue
@@ -446,12 +446,12 @@ def apply_deletions_mirror(site_name, directory=''):
     if directory != '/':
         path /= directory
     for doc_name in deleted:
-        path /= doc_name
+        docpath = path / doc_name
         ext = LOC2EXT['dest']
-        if path.suffix != ext:
-            path = path.with_suffix(ext)
-        if path.exists():
-            path.unlink()
+        if docpath.suffix != ext:
+            docpath = docpath.with_suffix(ext)
+        if docpath.exists():
+            docpath.unlink()
 
 
 def get_doc_stats(site_name, docname, dirname=''):
