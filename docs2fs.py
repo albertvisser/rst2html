@@ -144,9 +144,9 @@ def save_to(fullname, data):  # to be used for actual file system data
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
     """
     sitename = fullname.relative_to(WEBROOT).parts[0]
-    settings = read_settings(sitename)
-    if settings.get('seflinks', False):
-        if fullname.suffix == '.html' and fullname.stem != 'index':
+    if fullname.suffix == '.html' and fullname.stem != 'index':
+        settings = read_settings(sitename)
+        if settings.get('seflinks', False):
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():
                 new_fname.replace(new_fname.with_suffix('.bak'))
@@ -333,18 +333,9 @@ def read_template(sitename, docname):
 
 def write_template(sitename, fnaam, data):
     """store the source for a template"""
-    # moet eigenlijk met save_to maar dan moet ik die eerst geschikt maken
     fullname = WEBROOT / sitename / '.templates' / fnaam
     fullname.parent.mkdir(exist_ok=True)
-    if fullname.exists():
-        shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
-    mld = ''
-    try:
-        with fullname.open("w", encoding='utf-8') as f_out:
-            f_out.write(data)
-    except OSError as err:
-        mld = str(err)
-    return mld
+    return save_to(fullname, data)
 
 
 def create_new_doc(sitename, docname, directory=''):
