@@ -263,7 +263,10 @@ def preprocess_includes(sitename, current, data):
     lang = read_conf(sitename)[1].get('lang', '') or LANG
     while keyword in data:
         start, rest = data.split(keyword, 1)
-        name, end = rest.split('\n', 1)
+        if '\n' in rest:  # bij laatste regel kan deze ontbreken
+            name, end = rest.split('\n', 1)
+        else:
+            name, end = rest, ''
         if not name:
             name = "it's missing..."
             msg = '.'
@@ -1454,14 +1457,14 @@ class R2hState:
         if mld == '':
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
-            rstdata = preprocess_includes(self.sitename, self.current, rstdata)
-            newdata = rst2html(rstdata, self.conf['css'])
             if rstdata != self.oldtext or is_new_file:
                 mld = save_src_data(self.sitename, self.current, self.rstfile,
                                     rstdata, is_new_file)
                 if mld == "":
                     self.oldtext = self.rstdata = rstdata
             if mld == "":
+                rstdata = preprocess_includes(self.sitename, self.current, rstdata)
+                newdata = rst2html(rstdata, self.conf['css'])
                 mld = save_html_data(self.sitename, self.current, self.htmlfile,
                                      newdata)
                 if mld == "":
