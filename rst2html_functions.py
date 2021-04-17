@@ -907,7 +907,8 @@ class UpdateAll:
         htmldata = rst2html(preprocess_includes(self.sitename, dirname, self.rstdata),
                             self.conf['css'])
         if self.show_only:
-            msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
+            # msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
+            msg = 'regen_target_msg'
         else:
             msg = save_html_data(self.sitename, dirname, filename, htmldata)
         return msg
@@ -915,7 +916,8 @@ class UpdateAll:
     def rebuild_mirror(self, dirname, filename):
         "regenerate mirror file if needed / possible"
         if self.show_only:
-            msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
+            # msg = save_to_mirror(self.sitename, dirname, filename, self.conf, dry_run=True)
+            msg = 'regen_mirror_msg'
         else:
             msg = save_to_mirror(self.sitename, dirname, filename, self.conf)
         return msg
@@ -924,12 +926,17 @@ class UpdateAll:
 def check_for_includes(sitename, rstdata):
     "gebruikte includes afleiden uit source"
     includenames = []
-    # NB: het `.. include::` directive werkt eigenlijk alleen voor file-based sites...
     includes = [x.lstrip().split(None, 1)[0] for x in rstdata.split('.. include::')[1:]]
+    # standard include (only file besed)
     for item in includes:
         path = pathlib.Path(item)
         if path.parent == WEBROOT / sitename / '.source':
             includenames.append(path.stem)
+    # custom include using relative names and working for all backends
+    includes = [x.lstrip().split(None, 1)[0] for x in rstdata.split('.. incl::')[1:]]
+    for item in includes:
+        path = pathlib.Path(item)
+        includenames.append(path.stem)
     return includenames
 
 

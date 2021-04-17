@@ -1151,6 +1151,8 @@ class TestUpdateAllRelated:
         assert rhfn.check_for_includes(fake_sitename, '') == []
         rstdata = ".. include:: {}".format(fake_include)
         assert rhfn.check_for_includes(fake_sitename, rstdata) == ['include']
+        rstdata = ".. incl:: {}".format('../include.rst')
+        assert rhfn.check_for_includes(fake_sitename, rstdata) == ['include']
 
     def test_update_all_class(self):
         sitename, conf = 'testsite', {'css': []}
