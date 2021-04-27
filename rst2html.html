@@ -56,7 +56,13 @@
               formaction="/loadrst/" />
             <input type="submit" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
               formaction="/saverst/" />
-            <input type="submit" value="_(c_convert)" title="_(t_convert) [R]" accesskey="r"
+            <select name="action" title="_(t_action) [A]" accesskey="a">
+              <option> </option>
+              <option for="rename">_(c_rename)</option>
+              <option for="revert">_(c_revert)</option>
+              <option for="delete">_(c_delete)</option>
+            </select>
+	    <input type="submit" value="_(c_convert)" title="_(t_convert) [R]" accesskey="r"
               formaction="/convert/" />
             <input type="submit" value="_(c_saveall)" title="_(t_saveall) [C]" accesskey="c"
               formaction="/saveall/" />
@@ -64,14 +70,6 @@
           <div class="table-column" style="float:left">
             <span style="padding-left: 10px">_(c_newfile):</span>
             <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]" accesskey="n"/>
-            <input type="radio" name="action" value="_(c_rename)"
-              title="_(t_rename) [A]" accesskey="a">
-              <label for="rename">_(c_rename)</label>
-            </input>
-            <input type="radio" name="action" value="_(c_delete)"
-              title="_(t_delete) [D]" accesskey="d">
-              <label for="delete">_(c_delete)</label>
-            </input>
           </div>
           <div class="clear" style="clear: both"></div>
 
@@ -123,6 +121,7 @@
             <span title="
 O   _(t_activate) _(c_rstfile) selector
 L/S _(c_loadsrc)/_(c_savesrc)
+A   _(t_activate) _(c_sactions) selector
 R   _(c_convert)
 C   _(c_saveall)
 T   _(t_activate) _(c_htmlfile) selector
@@ -130,7 +129,6 @@ H/U _(c_loadhtml)/_(c_savehtml)
 B   _(c_showhtml)
 M   _(c_copytoroot)
 N   _(t_activate) _(c_newfile) _(t_fld)
-A/D _(t_sel) _(c_rename)/_(c_delete) _(t_opt)
 X   _(t_activate) _(c_settings) selector
 Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
 I   _(c_index)
