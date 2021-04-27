@@ -1686,7 +1686,7 @@ class TestR2hStateRelated:
         assert testsubj.saverst('dirname/', '', '', '') == ('mld from make_new_dir dirname', 'a',
                                                             'b', 'c', False)
 
-    def test_check_and_save_src(self, monkeypatch):
+    def test_check_and_save_src(self, monkeypatch, capsys):
         def mock_read_src_data(*args):
             return '', 'read_data'
         def mock_read_src_data_mld(*args):
@@ -1701,6 +1701,10 @@ class TestR2hStateRelated:
             return 'mld from check_if_rst'
         def mock_check_if_rst(*args):
             return ''
+        def mock_mark_deleted(*args):
+            print('called mark_deleted() with args', args)
+        def mock_revert_src(*args):
+            print('called revert_src() with args', args)
         def mock_save_src_data_mld(*args):
             return 'mld from save_src_data'
         def mock_save_src_data(*args):
@@ -1747,8 +1751,23 @@ class TestR2hStateRelated:
 
         path = pathlib.Path('rstfile')
         monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
+        monkeypatch.setattr(rhfn, 'mark_deleted', mock_mark_deleted)
         assert testsubj.check_and_save_src('delete', '', 'data', 'rstfile', '') == (
                 'rstfile deleted', path)
+        assert capsys.readouterr().out == ("called mark_deleted() with args ('testsite', '',"
+                                           " 'rstfile')\n")
+        monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: 'error')
+        assert testsubj.check_and_save_src('delete', '', 'data', 'rstfile', '') == (
+                'error', path)
+
+        monkeypatch.setattr(rhfn, 'revert_src', mock_revert_src)
+        assert testsubj.check_and_save_src('revert', '', 'data', 'rstfile', '') == (
+                'rstfile reverted to backup', path)
+        assert capsys.readouterr().out == ("called revert_src() with args ('testsite', '',"
+                                           " 'rstfile')\n")
+        monkeypatch.setattr(rhfn, 'revert_src', lambda x, y, z: 'error')
+        assert testsubj.check_and_save_src('revert', '', 'data', 'rstfile', '') == (
+                'error', path)
 
     def test_convert(self, monkeypatch, capsys):
         """ in: rstfile, newfile, rstdata; out: mld, previewdata, fname

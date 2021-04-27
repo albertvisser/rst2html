@@ -1363,7 +1363,6 @@ class R2hState:
 
     def saverst(self, rstfile, newfile, action, rstdata):
         """(re)save rest source
-        TODO: implement rename/delete in source environment - methinks I already done that
         """
         fname = newfile or rstfile
         action = translate_action(action)
@@ -1409,7 +1408,9 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile, clear_text
 
     def check_and_save_src(self, action, newfile, rstdata, rstfile, fname):
-        "uitvoeren save, rename of delete actie. Alleen bij de laatste twee is `action` gevuld"
+        """uitvoeren save, rename, revert of delete actie.
+        `action` geeft de uit te voeren actie aan en is leeg bij een save
+        """
         mld = ''
         is_new_file = newfile != ""
         path = pathlib.Path(rstfile)
@@ -1432,7 +1433,13 @@ class R2hState:
 
         if action == 'delete':
             mld = mark_deleted(self.sitename, self.current, rstfile)
-            mld = '{} deleted'.format(str(path))
+            if not mld:
+                mld = '{} deleted'.format(str(path))
+            return mld, path
+        elif action == 'revert':
+            mld = revert_src(self.sitename, self.current, rstfile)
+            if not mld:
+                mld = '{} reverted to backup'.format(str(path))
             return mld, path
 
         oldpath = path
