@@ -143,6 +143,7 @@ rst_saved = Rst source saved as {}
 rst_2_html = Rst converted to HTML and saved as {}
 rst_filename_error = Not executed: not a valid source file name
 src_file_missing = Source file does not exist
+backup_missing = No backup found
 chdir_down = switching to directory {}
 html_loaded = Target HTML {} loaded
 html_name_missing = Please enter or select a target (.html) filename

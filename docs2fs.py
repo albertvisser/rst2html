@@ -392,7 +392,6 @@ def update_rst(sitename, doc_name, contents, directory=''):
     if not contents:
         raise AttributeError('no_contents')
     if doc_name not in list_docs(sitename, 'src', directory):
-        ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
     path = WEBROOT / sitename / SRC_LOC
     if directory:
@@ -402,6 +401,31 @@ def update_rst(sitename, doc_name, contents, directory=''):
     if path.suffix != ext:
         path = path.with_suffix(ext)
     save_to(path, contents)
+
+
+def revert_rst(sitename, doc_name, directory=''):
+    """reset a source document in the given directory to the previous contents
+
+    raises AttributeError on missing document name
+           FileNotFoundError if document doesn't exist
+           FileNotFoundError if no backup present
+    """
+    if not doc_name:
+        raise AttributeError('no_name')
+    if doc_name not in list_docs(sitename, 'src', directory):
+        raise FileNotFoundError("no_document")  # .format(doc_name))
+    path = WEBROOT / sitename / SRC_LOC
+    if directory:
+        path /= directory
+    path = path / doc_name
+    ext = LOC2EXT['src']
+    if path.suffix != ext:
+        path = path.with_suffix(ext)
+    oldpath = pathlib.Path(str(path) + '.bak')
+    try:
+        oldpath.rename(path)
+    except FileNotFoundError:
+        raise FileNotFoundError('no_backup')
 
 
 def mark_src_deleted(sitename, doc_name, directory=''):

@@ -588,6 +588,34 @@ class TestDocLevel:
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
         assert capsys.readouterr().out == 'call save_to(): save `contents` in `{}`\n'.format(path)
 
+    def test_revert_rst(self, monkeypatch, capsys):
+        def mock_list_docs_none(*args):
+            return []
+        def mock_list_docs(*args):
+            return ['doc_name']
+        def mock_rename(self, *args):
+            print('call rename() to replace `{}` with `{}`'.format(args[0], self))
+        def mock_rename_err(self, *args):
+            raise FileNotFoundError
+        with pytest.raises(AttributeError):
+            dmlf.revert_rst('sitename', '')
+        monkeypatch.setattr(dmlf, 'list_docs', mock_list_docs_none)
+        with pytest.raises(FileNotFoundError):
+            dmlf.revert_rst('sitename', 'doc_name')
+        monkeypatch.setattr(dmlf, 'list_docs', mock_list_docs)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'rename', mock_rename_err)
+        with pytest.raises(FileNotFoundError):
+            dmlf.revert_rst('sitename', 'doc_name')
+        monkeypatch.setattr(dmlf.pathlib.Path, 'rename', mock_rename)
+        dmlf.revert_rst('sitename', 'doc_name')
+        path = dmlf.WEBROOT / 'sitename' / '.source' / 'doc_name.rst'
+        assert capsys.readouterr().out == 'call rename() to replace `{}` with `{}`\n'.format(
+                path, str(path) + '.bak')
+        dmlf.revert_rst('sitename', 'doc_name', 'directory')
+        path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
+        assert capsys.readouterr().out == 'call rename() to replace `{}` with `{}`\n'.format(
+                path, str(path) + '.bak')
+
     def test_mark_src_deleted(self, monkeypatch, capsys):
         def mock_list_docs_none(*args):
             return []
