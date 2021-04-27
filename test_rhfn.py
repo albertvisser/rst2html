@@ -1174,8 +1174,6 @@ class TestUpdateAllRelated:
             run = '(dry run)' if kwargs.get('dry_run', False) else ''
             print('save_to_mirror {} was called'.format(run))
             return ''
-        def mock_save_to_mirror_msg(*args, **kwargs):
-            return 'message from save_to_mirror'
 
         sitename, conf = 'testsite', {'seflinks': False}
         testsubj = rhfn.UpdateAll(sitename, conf)
@@ -1187,11 +1185,8 @@ class TestUpdateAllRelated:
         assert capsys.readouterr().out == 'save_to_mirror  was called\n'
 
         testsubj.show_only = True
-        assert testsubj.rebuild_mirror(dirname, filename) == ('')
-        assert capsys.readouterr().out == 'save_to_mirror (dry run) was called\n'
-
-        monkeypatch.setattr(rhfn, 'save_to_mirror', mock_save_to_mirror_msg)
-        assert testsubj.rebuild_mirror(dirname, filename) == 'message from save_to_mirror'
+        assert testsubj.rebuild_mirror(dirname, filename) == 'regen_mirror_msg'
+        assert capsys.readouterr().out == ''
 
     def test_rebuild_html(self, monkeypatch, capsys):
         def mock_rst2html(*args):
@@ -1218,12 +1213,11 @@ class TestUpdateAllRelated:
         assert capsys.readouterr().out == 'rst2html was called\nsave_html_data  was called\n'
 
         testsubj.show_only = True
-        assert testsubj.rebuild_html(dirname, filename) == ''
-        assert capsys.readouterr().out == ('rst2html was called\n'
-                                           'save_html_data (dry run) was called\n')
+        assert testsubj.rebuild_html(dirname, filename) == 'regen_target_msg'
+        assert capsys.readouterr().out == 'rst2html was called\n'
 
         monkeypatch.setattr(rhfn, 'save_html_data', mock_save_html_data_msg)
-        assert testsubj.rebuild_html(dirname, filename) == 'save_html_data_err'
+        assert testsubj.rebuild_html(dirname, filename) == 'regen_target_msg'  # 'save_html_data_err'
 
     def test_check_for_updated_includes(self, monkeypatch):
         def mock_check_for_includes_none(*args):
