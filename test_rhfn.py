@@ -704,6 +704,31 @@ class TestSourceRelated:
         assert rhfn.save_src_data(self.sitename, 'hello', self.filename + '.rst', '...') == (
             'src_file_missing')
 
+    def test_revert_src(self, monkeypatch, capsys):
+        def mock_revert_rst(*args, **kwargs):
+            print('args for revert_rst: `{}` `{}` `{}`'.format(args[0], args[1],
+                                                                kwargs['directory']))
+        def mock_revert_rst_error(*args, **kwargs):
+            raise AttributeError
+        def mock_revert_rst_error_2(*args, **kwargs):
+            raise FileNotFoundError('backup')
+        def mock_revert_rst_error_3(*args, **kwargs):
+            raise FileNotFoundError('other')
+        assert rhfn.revert_src(self.sitename, '', self.filename + '.x') == (
+                'rst_filename_error')
+        monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst)
+        assert rhfn.revert_src(self.sitename, 'test', self.filename + '.rst') == ''
+        assert capsys.readouterr().out == ('args for revert_rst: `testsite` `testname` `test`\n')
+        monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst_error)
+        assert rhfn.revert_src(self.sitename, 'hello', self.filename + '.rst') == (
+            'src_name_missing')
+        monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst_error_2)
+        assert rhfn.revert_src(self.sitename, 'hello', self.filename + '.rst') == (
+            'backup_missing')
+        monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst_error_3)
+        assert rhfn.revert_src(self.sitename, 'hello', self.filename + '.rst') == (
+            'src_file_missing')
+
     def test_mark_deleted(self, monkeypatch, capsys):
         def mock_mark_src_deleted(*args, **kwargs):
             print('args for mark_src_deleted: `{}` `{}` `{}`'.format(args[0], args[1],

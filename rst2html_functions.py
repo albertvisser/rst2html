@@ -687,6 +687,22 @@ def save_src_data(sitename, current, fname, data, new=False):
         return 'src_file_missing'
 
 
+def revert_src(sitename, current, fname):
+    "restore the source to the previous version"
+    path = pathlib.Path(fname)
+    if path.suffix not in ('', '.rst'):
+        return 'rst_filename_error'
+    try:
+        dml.revert_rst(sitename, path.stem, directory=current)
+        return ''
+    except AttributeError as e:
+        return 'src_name_missing'
+    except FileNotFoundError as e:
+        if 'backup' in str(e):
+            return 'backup_missing'
+        return 'src_file_missing'
+
+
 def mark_deleted(sitename, current, fname):
     """te verwijderen tekst als zodanig kenmerken
     """
