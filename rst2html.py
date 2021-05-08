@@ -228,10 +228,15 @@ class Rst2Html:
         if new name specified, use that (extension must be .rst)
         `action` has a value when rename or delete is checked
         """
-        mld, rstfile, htmlfile, newfile, clear = self.state.saverst(rstfile, newfile, action,
-                                                                    rstdata)
-        if clear:
-            rstdata = ''
+        action = rhfn.translate_action(action)
+        if action == 'rename':
+            mld, rstfile, htmlfile, newfile, rstdata = self.state.rename(rstfile, newfile, rstdata)
+        elif action == 'revert':
+            mld, rstfile, htmlfile, newfile, rstdata = self.state.revert(rstfile, rstdata)
+        elif action == 'delete':
+            mld, rstfile, htmlfile, newfile, rstdata = self.state.delete(rstfile, rstdata)
+        else:
+            mld, rstfile, htmlfile, newfile, rstdata = self.state.saverst(rstfile, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose

@@ -207,24 +207,40 @@ class TestRst2Html:
         assert capsys.readouterr().out == 'called R2hState.loadrst\n'
 
     def test_saverst(self, monkeypatch, capsys):
+        def mock_rename(*args):
+            print('called R2hState.rename')
+            return ('mld', 'rstfile', 'htmlfile', 'newfile', 'rstdata')
+        def mock_revert(*args):
+            print('called R2hState.revert')
+            return ('mld', 'rstfile', 'htmlfile', 'newfile', 'rstdata')
+        def mock_delete(*args):
+            print('called R2hState.delete')
+            return ('mld', 'rstfile', 'htmlfile', 'newfile', 'rstdata')
         def mock_saverst(*args):
             print('called R2hState.saverst')
-            return 'mld', 'rst', 'html', 'new', False
-        def mock_saverst_clear(*args):
-            print('called R2hState.saverst_clear')
-            return 'mld', 'rst', 'html', 'new', True
+            return ('mld', 'rstfile', 'htmlfile', 'newfile', 'rstdata')
         testsubj = r2h.Rst2Html()
+        monkeypatch.setattr(testsubj.state, 'rename', mock_rename)
+        monkeypatch.setattr(testsubj.state, 'revert', mock_revert)
+        monkeypatch.setattr(testsubj.state, 'delete', mock_delete)
         monkeypatch.setattr(testsubj.state, 'saverst', mock_saverst)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.saverst(settings='s', rstdata='r') == ('format_output for rst, html, new,'
-                                                               ' mld, r, s,'
-                                                               ' {}'.format(testsubj.state))
+        assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
+                                action='revert') == ('format_output for rstfile, htmlfile, newfile,'
+                                                     ' mld, rstdata, s, {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.revert\n'
+        assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
+                                action='rename') == ('format_output for rstfile, htmlfile, newfile,'
+                                                     ' mld, rstdata, s, {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.rename\n'
+        assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
+                                action='delete') == ('format_output for rstfile, htmlfile, newfile,'
+                                                     ' mld, rstdata, s, {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.delete\n'
+        assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
+                                action='x') == ('format_output for rstfile, htmlfile, newfile,'
+                                                ' mld, rstdata, s, {}'.format(testsubj.state))
         assert capsys.readouterr().out == 'called R2hState.saverst\n'
-        monkeypatch.setattr(testsubj.state, 'saverst', mock_saverst_clear)
-        assert testsubj.saverst(settings='s', rstdata='r') == ('format_output for rst, html, new,'
-                                                               ' mld, , s, '
-                                                               '{}'.format(testsubj.state))
-        assert capsys.readouterr().out == 'called R2hState.saverst_clear\n'
 
     def test_convert(self, monkeypatch, capsys):
         def mock_convert(*args):
