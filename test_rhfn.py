@@ -55,8 +55,19 @@ class TestLangRelated:
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert rhfn.translate_action('rename') == 'rename'
         assert rhfn.translate_action('c_rename') == 'rename'
+        assert rhfn.translate_action('revert') == 'revert'
+        assert rhfn.translate_action('c_revert') == 'revert'
         assert rhfn.translate_action('delete') == 'delete'
         assert rhfn.translate_action('c_delete') == 'delete'
+
+    def test_format_message(self, monkeypatch):
+        def mock_get_text(*args):
+            raise KeyError
+        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
+        assert rhfn.format_message('test: {}', '', 'parm') == 'test: parm'
+        assert rhfn.format_message('hallo', '', 'x') == 'hallo'
+        monkeypatch.setattr(rhfn, 'get_text', lambda x, y: 'test: {}')
+        assert rhfn.format_message('', '', 'arg') == 'test: arg'
 
 
 class TestR2HRelated:
@@ -706,8 +717,7 @@ class TestSourceRelated:
 
     def test_revert_src(self, monkeypatch, capsys):
         def mock_revert_rst(*args, **kwargs):
-            print('args for revert_rst: `{}` `{}` `{}`'.format(args[0], args[1],
-                                                                kwargs['directory']))
+            print('args for revert_rst: `{}` `{}`'.format(args, kwargs))
         def mock_revert_rst_error(*args, **kwargs):
             raise AttributeError
         def mock_revert_rst_error_2(*args, **kwargs):
@@ -718,7 +728,8 @@ class TestSourceRelated:
                 'rst_filename_error')
         monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst)
         assert rhfn.revert_src(self.sitename, 'test', self.filename + '.rst') == ''
-        assert capsys.readouterr().out == ('args for revert_rst: `testsite` `testname` `test`\n')
+        assert capsys.readouterr().out == ('args for revert_rst: '
+                                           "`('testsite', 'testname', 'test')` `{}`\n")
         monkeypatch.setattr(rhfn.dml, 'revert_rst', mock_revert_rst_error)
         assert rhfn.revert_src(self.sitename, 'hello', self.filename + '.rst') == (
             'src_name_missing')
@@ -1616,158 +1627,133 @@ class TestR2hStateRelated:
         assert testsubj.oldtext == 'source data'
         assert testsubj.rstfile == 'testfile'
 
+    def test_rename(self, monkeypatch, capsys):
+        def mock_mark_deleted(*args):
+            print('called mark_deleted with args `{}`'.format(args))
+            return 'oepsie'
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        assert testsubj.rename('', '', '')[0] == 'new_name_missing'
+        assert testsubj.rename('', 'directory/', '')[0] == 'incorrect_name'
+        assert testsubj.rename('', 'text.tpl', '')[0] == 'incorrect_name'
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('', 'some_text'))
+        assert testsubj.rename('', 'newfile', '')[0] == 'new_name_taken'
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
+        monkeypatch.setattr(rhfn, 'save_src_data', lambda x, y, z, a, b: 'src_file_missing')
+        assert testsubj.rename('', 'newfile', '')[0] == 'new_file_missing'
+        monkeypatch.setattr(rhfn, 'save_src_data', lambda x, y, z, a, b: '')
+        monkeypatch.setattr(rhfn, 'mark_deleted', mock_mark_deleted)
+        assert testsubj.rename('', 'newfile', '')[0] == 'oepsie'
+        assert capsys.readouterr().out == "called mark_deleted with args `('testsite', '', '')`\n"
+        monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: '')
+        assert testsubj.rename('oldfile', 'newfile', 'rstdata') == ('oldfile renamed to newfile',
+                'newfile.rst', 'newfile.html', '', 'rstdata')
+        assert capsys.readouterr().out == ''
+        assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
+
+    def test_revert(self, monkeypatch, capsys):
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        assert testsubj.revert('dirname/', '')[0] == 'incorrect_name'
+        assert testsubj.revert('text.tpl', '')[0] == 'incorrect_name'
+        monkeypatch.setattr(rhfn, 'revert_src', lambda x, y, z: '')
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
+        assert testsubj.revert('', '')[0] == 'mld'
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('', 'some_text'))
+        assert testsubj.revert('rstfile', 'rstdata') == ('rstfile reverted to backup', 'rstfile',
+                                                          'rstfile.html', '', 'some_text')
+        assert capsys.readouterr().out == ''
+        assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
+
+    def test_delete(self, monkeypatch, capsys):
+        def mock_mark_deleted(*args):
+            print('called mark_deleted with args `{}`'.format(args))
+            return 'oepsie'
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        assert testsubj.delete('dirname/', '')[0] == 'incorrect_name'
+        assert testsubj.delete('text.tpl', '')[0] == 'incorrect_name'
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
+        assert testsubj.delete('', '')[0] == 'mld'
+        monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('', 'some_text'))
+        monkeypatch.setattr(rhfn, 'mark_deleted', mock_mark_deleted)
+        assert testsubj.delete('', 'olddata')[0] == 'oepsie'
+        assert capsys.readouterr().out == "called mark_deleted with args `('testsite', '', '')`\n"
+        monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: '')
+        assert testsubj.delete('rstfile', 'rstdata') == ('rstfile deleted', 'rstfile',
+                'rstfile.html', '', '')
+        assert capsys.readouterr().out == ''
+        assert testsubj.oldtext == ''
+        assert testsubj.rstdata == ''
+
     def test_saverst(self, monkeypatch, capsys):
         def mock_translate_action(*args):
             return args[0]
         def mock_make_new_dir(*args):
             print('make_new_dir called using args `{}` `{}`'.format(*args))
             return ''
-        def mock_make_new_dir_mld(*args):
-            return 'mld from make_new_dir {}'
         def mock_save_tpl_data(*args):
             print('save_tpl_data called using args `{}` `{}` `{}`'.format(*args))
             return ''
-        def mock_save_tpl_data_mld(*args):
-            return 'mld from save_tpl_data'
-        def mock_check_and_save_src(*args):
-            print('check_and_save_src called using args `{}` `{}` `{}` `{}` `{}`'.format(*args[1:]))
-            return '', pathlib.Path('path.rst')
-        def mock_check_and_save_src_mld(*args):
-            return 'mld from check_and_save_src', ''
+        def mock_check_if_rst(*args):
+            print('check_if_rst called using args `{}` `{}` `{}`'.format(*args))
+            return ''
+        def mock_save_src_data(*args):
+            print('save_src_data called using args `{}` `{}` `{}` `{}` `{}`'.format(*args))
+            return ''
         def mock_get_text_exc(*args):
             raise KeyError
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
-        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
-        monkeypatch.setattr(rhfn, 'translate_action', mock_translate_action)
         testsubj.rstfile = 'a'
         testsubj.htmlfile = 'b'
         testsubj.newfile = 'c'
-        monkeypatch.setattr(rhfn, 'make_new_dir', mock_make_new_dir_mld)
-        assert testsubj.saverst('dirname/', '', '', '') == ('mld from make_new_dir dirname', 'a',
-                                                            'b', 'c', False)
+        monkeypatch.setattr(rhfn, 'make_new_dir', lambda x, y: 'mld from make_new_dir {}')
+        assert testsubj.saverst('dirname/', '', '') == ('mld from make_new_dir dirname', 'a',
+                                                            'b', 'c', '')
         monkeypatch.setattr(rhfn, 'make_new_dir', mock_make_new_dir)
-        assert testsubj.saverst('dirname/', '', '', '') == ('new_subdir', 'dirname/', 'b',
-                                                            '', False)
+        assert testsubj.saverst('dirname/', '', '') == ('new_subdir', 'dirname/', 'b',
+                                                            '', '')
         assert capsys.readouterr().out == 'make_new_dir called using args `testsite` `dirname`\n'
+
         testsubj.rstfile = 'a'
         testsubj.htmlfile = 'b'
         testsubj.newfile = 'c'
-        monkeypatch.setattr(rhfn, 'save_tpl_data', mock_save_tpl_data_mld)
-        assert testsubj.saverst('test.tpl', '', '', 'data') == ('mld from save_tpl_data', 'a', 'b',
-                                                                'c', False)
+        monkeypatch.setattr(rhfn, 'save_tpl_data',lambda x, y, z: 'mld from save_tpl_data')
+        assert testsubj.saverst('test.tpl', '', 'data') == ('mld from save_tpl_data', 'a', 'b',
+                                                                'c', 'data')
         monkeypatch.setattr(rhfn, 'save_tpl_data', mock_save_tpl_data)
-        assert testsubj.saverst('test.tpl', '', '', 'data') == ('tpl_saved', '', '', '', False)
+        assert testsubj.saverst('-- test.tpl --', '', 'data') == ('tpl_saved', '', '', '', 'data')
         assert capsys.readouterr().out == ('save_tpl_data called using args `testsite` `test.tpl`'
                                            ' `data`\n')
         assert testsubj.oldtext == 'data'
         assert testsubj.rstdata == 'data'
+
         testsubj.rstfile = 'a'
         testsubj.htmlfile = 'b'
         testsubj.newfile = 'c'
-        monkeypatch.setattr(rhfn.R2hState, 'check_and_save_src', mock_check_and_save_src_mld)
-        assert testsubj.saverst('-- new --', '', '', '') == ('mld from check_and_save_src', 'a',
-                                                             'b', 'c', False)
-        monkeypatch.setattr(rhfn.R2hState, 'check_and_save_src', mock_check_and_save_src)
-        assert testsubj.saverst('oldfile', 'newfile', 'rename', 'data') == ('rst_saved', 'newfile',
-                                                                            'path.html', '', False)
-        assert capsys.readouterr().out == ('check_and_save_src called using args `rename`'
-                                           ' `newfile` `data` `oldfile` `newfile`\n')
-        assert testsubj.saverst('oldfile', '', 'delete', 'data') == ('rst_saved', 'oldfile',
-                                                                     'path.html', '', True)
-        assert capsys.readouterr().out == ('check_and_save_src called using args `delete`'
-                                           ' `` `data` `oldfile` `oldfile`\n')
-        testsubj.rstfile = 'a'
-        testsubj.htmlfile = 'b'
-        testsubj.newfile = 'c'
-        monkeypatch.setattr(rhfn, 'get_text', mock_get_text_exc)
-        monkeypatch.setattr(rhfn, 'make_new_dir', mock_make_new_dir_mld)
-        assert testsubj.saverst('dirname/', '', '', '') == ('mld from make_new_dir dirname', 'a',
-                                                            'b', 'c', False)
-
-    def test_check_and_save_src(self, monkeypatch, capsys):
-        def mock_read_src_data(*args):
-            return '', 'read_data'
-        def mock_read_src_data_mld(*args):
-            return 'mld from read_src_data', ''
-        def mock_read_src_data_mld_ok(*args):
-            self.readcount += 1
-            if self.readcount == 1:
-                return 'mld from read_src_data', ''
-            else:
-                return '', 'read_data'
-        def mock_check_if_rst_mld(*args):
-            return 'mld from check_if_rst'
-        def mock_check_if_rst(*args):
-            return ''
-        def mock_mark_deleted(*args):
-            print('called mark_deleted() with args', args)
-        def mock_revert_src(*args):
-            print('called revert_src() with args', args)
-        def mock_save_src_data_mld(*args):
-            return 'mld from save_src_data'
-        def mock_save_src_data(*args):
-            return ''
-
-        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
-        testsubj = rhfn.R2hState()
-        monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
-        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
-        path = pathlib.Path('rstfile')
-
-        monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst_mld)
-        assert testsubj.check_and_save_src('', '', 'rstdata', 'rstfile', '') == (
-                'mld from check_if_rst', path)
+        testsubj.loaded = 'loaded'
+        monkeypatch.setattr(rhfn, 'check_if_rst', lambda x, y, z: 'mld from check_if_rst')
+        assert testsubj.saverst('-- new --', '', '') == ('mld from check_if_rst', 'a', 'b', 'c', '')
         monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst)
-        monkeypatch.setattr(rhfn, 'save_src_data', mock_save_src_data_mld)
-        assert testsubj.check_and_save_src('', '', 'rstdata', 'rstfile', 'rstfile') == (
-                'mld from save_src_data', path)
+        monkeypatch.setattr(rhfn, 'save_src_data', lambda x, y, z, a, b: 'mld from save_src_data')
+        assert testsubj.saverst('oldfile', 'newfile', 'data') == ('mld from save_src_data', 'a',
+                                                                  'b', 'c', 'data')
+        assert capsys.readouterr().out == ('check_if_rst called using args `data` `loaded`'
+                                           ' `newfile`\n')
         monkeypatch.setattr(rhfn, 'save_src_data', mock_save_src_data)
-        assert testsubj.check_and_save_src('', '', 'rstdata', 'rstfile', 'rstfile') == (
-                '', path)
-
-        assert testsubj.check_and_save_src('rename', '', 'data', 'rstfile', '') == (
-                'new_name_missing', path)
-        # geen melding van eerste read (willen we niet)
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
-        assert testsubj.check_and_save_src('rename', 'newfile', 'data', 'rstfile', '') == (
-                'new_name_taken', path)
-        # melding van eerste read (willen we) en van tweede read (willen we niet)
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_mld)
-        assert testsubj.check_and_save_src('rename', 'newfile', 'data', 'rstfile', '') == (
-                'mld from read_src_data', path)
-        # melding van eerste read (willen we) en niet van tweede read( willen we ook)
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_mld_ok)
-        monkeypatch.setattr(rhfn, 'save_src_data', mock_save_src_data_mld)
-        path = pathlib.Path('newfile')
-        self.readcount = 0
-        assert testsubj.check_and_save_src('rename', 'newfile', 'data', 'rstfile', 'newfile') == (
-                'mld from save_new_data', path)
-        monkeypatch.setattr(rhfn, 'save_src_data', mock_save_src_data)
-        self.readcount = 0
-        assert testsubj.check_and_save_src('rename', 'newfile', 'data', 'rstfile', 'newfile') == (
-                'rstfile renamed to newfile', path)
-
-        path = pathlib.Path('rstfile')
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
-        monkeypatch.setattr(rhfn, 'mark_deleted', mock_mark_deleted)
-        assert testsubj.check_and_save_src('delete', '', 'data', 'rstfile', '') == (
-                'rstfile deleted', path)
-        assert capsys.readouterr().out == ("called mark_deleted() with args ('testsite', '',"
-                                           " 'rstfile')\n")
-        monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: 'error')
-        assert testsubj.check_and_save_src('delete', '', 'data', 'rstfile', '') == (
-                'error', path)
-
-        monkeypatch.setattr(rhfn, 'revert_src', mock_revert_src)
-        assert testsubj.check_and_save_src('revert', '', 'data', 'rstfile', '') == (
-                'rstfile reverted to backup', path)
-        assert capsys.readouterr().out == ("called revert_src() with args ('testsite', '',"
-                                           " 'rstfile')\n")
-        monkeypatch.setattr(rhfn, 'revert_src', lambda x, y, z: 'error')
-        assert testsubj.check_and_save_src('revert', '', 'data', 'rstfile', '') == (
-                'error', path)
+        assert testsubj.saverst('oldfile', '', 'data') == ('rst_saved', 'oldfile.rst',
+                                                           'oldfile.html', '', 'data')
+        assert capsys.readouterr().out == ('check_if_rst called using args `data` `loaded`'
+                                           ' `oldfile`\n'
+                                           'save_src_data called using args `testsite` ``'
+                                           ' `oldfile.rst` `data` `False`\n')
+        assert testsubj.oldtext == 'data'
+        assert testsubj.rstdata == 'data'
 
     def test_convert(self, monkeypatch, capsys):
         """ in: rstfile, newfile, rstdata; out: mld, previewdata, fname

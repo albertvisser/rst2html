@@ -113,10 +113,20 @@ def get_text(keyword, lang=LANG):
 def translate_action(action):
     "translate action verb from UI to language-independent value"
     for lang in languages:
-        for keyword in ('c_rename', 'c_delete'):
+        for keyword in ('c_rename', 'c_revert', 'c_delete'):
             if action == get_text(keyword, lang):
                 action = keyword[2:]
     return action
+
+
+def format_message(mld, lang, msg_parameter):
+    try:
+        mld = get_text(mld, lang)
+    except KeyError:
+        pass
+    if '{}' in mld:
+        mld = mld.format(msg_parameter)
+    return mld
 
 
 def post_process_title(data):
@@ -693,7 +703,7 @@ def revert_src(sitename, current, fname):
     if path.suffix not in ('', '.rst'):
         return 'rst_filename_error'
     try:
-        dml.revert_rst(sitename, path.stem, directory=current)
+        dml.revert_rst(sitename, path.stem, current)
         return ''
     except AttributeError as e:
         return 'src_name_missing'
@@ -1361,99 +1371,119 @@ class R2hState:
             mld = get_text('src_loaded', self.get_lang()).format(rstfile)
         return mld, self.rstdata, self.htmlfile, self.newfile
 
-    def saverst(self, rstfile, newfile, action, rstdata):
-        """(re)save rest source
+    def rename(self, rstfile, newfile, rstdata):
+        """rename `rstfile` to `newfile` by saving `rstdata` under a new name and deleting `rstfile`
         """
-        fname = newfile or rstfile
-        action = translate_action(action)
-        clear_text = False
-        if action == 'rename':
-            fname = newfile
-        clear_text = is_tpl = False
-        if fname.startswith('-- ') and fname.endswith(' --'):
-            fname = fname[3:-3]
-        if fname.endswith('/'):
-            isfile = False
-            mld = make_new_dir(self.sitename, fname[:-1])
-            fmtdata = fname[:-1]
-        elif fname.endswith('.tpl'):
-            # TODO: ook rename en delete toestaan? Anders expliciet afkeuren (if action:)
-            # NOTE: geen controle op `bestaat al`, bestaande data wordt zonder meer overschreven
-            isfile = is_tpl = True
-            mld = save_tpl_data(self.sitename, fname, rstdata)
-            fmtdata = fname
-        else:
-            isfile = True
-            mld, path = self.check_and_save_src(action, newfile, rstdata, rstfile, fname)
-            fmtdata = fname
-        if mld == "":
-            if action == 'delete':
-                clear_text = True
-            self.oldtext = self.rstdata = rstdata
-            mld = 'tpl_saved' if is_tpl else 'rst_saved' if isfile else 'new_subdir'
-            if is_tpl:
-                self.rstfile = self.htmlfile = ''
+        # import pdb; pdb.set_trace()
+        if newfile:
+            if newfile.endswith('/') or newfile.endswith('.tpl'):
+                mld = 'incorrect_name'
             else:
-                self.rstfile = fname
-                if isfile:
-                    self.htmlfile = path.stem + ".html"
-            self.newfile = ""
-        if mld:
-            try:
-                mld = get_text(mld, self.get_lang())
-            except KeyError:
-                pass
-            if '{}' in mld:
-                mld = mld.format(fmtdata)
-        return mld, self.rstfile, self.htmlfile, self.newfile, clear_text
-
-    def check_and_save_src(self, action, newfile, rstdata, rstfile, fname):
-        """uitvoeren save, rename, revert of delete actie.
-        `action` geeft de uit te voeren actie aan en is leeg bij een save
-        """
-        mld = ''
-        is_new_file = newfile != ""
-        path = pathlib.Path(rstfile)
-        if action == "rename":
-            # import pdb; pdb.set_trace()
-            if newfile:
                 mld = read_src_data(self.sitename, self.current, newfile)[0]
                 mld = "new_name_taken" if not mld else ''
-            else:
-                mld = "new_name_missing"
-        if mld:
-            return mld, path
-
-        if action:
-            mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
         else:
-            mld = check_if_rst(rstdata, self.loaded, fname)
-        if mld:
-            return mld, path
-
-        if action == 'delete':
+            mld = "new_name_missing"
+        if mld == '':
+            oldpath = pathlib.Path(rstfile)
+            path = pathlib.Path(newfile)
+            if path.suffix != ".rst":
+                newfile = newfile + ".rst"
+            mld = save_src_data(self.sitename, self.current, newfile, rstdata, True)
+            mld = mld.replace('src_', 'new_')
+        if mld == '':
             mld = mark_deleted(self.sitename, self.current, rstfile)
-            if not mld:
-                mld = '{} deleted'.format(str(path))
-            return mld, path
-        elif action == 'revert':
-            mld = revert_src(self.sitename, self.current, rstfile)
-            if not mld:
-                mld = '{} reverted to backup'.format(str(path))
-            return mld, path
+        if mld == '':
+            mld = '{} renamed to {}'.format(str(oldpath), str(path))
+            self.oldtext = self.rstdata = rstdata
+            self.rstfile = newfile
+            self.htmlfile = path.stem + ".html"
+            self.newfile = ""
+        mld = format_message(mld, self.get_lang(), newfile)
+        return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
 
-        oldpath = path
-        path = pathlib.Path(fname)
-        if path.suffix != ".rst":
-            fname = fname + ".rst"
-        mld = save_src_data(self.sitename, self.current, fname, rstdata, is_new_file)
-        if action == 'rename':
+    def revert(self, rstfile, rstdata):
+        """revert `rstfile` to  backed up contents
+        """
+        if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+            mld = 'incorrect_name'
+        else:
+            mld = revert_src(self.sitename, self.current, rstfile)
+            mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
+        if mld == "":
+            path = pathlib.Path(rstfile)
+            mld = '{} reverted to backup'.format(str(path))
+            self.oldtext = self.rstdata = rstdata
+            self.rstfile = rstfile
+            self.htmlfile = path.stem + ".html"
+            self.newfile = ""
+        mld = format_message(mld, self.get_lang(), rstfile)
+        return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
+
+    def delete(self, rstfile, rstdata):
+        """(re)save rest source
+        """
+        if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+            mld = 'incorrect_name'
+        else:
+            fname = rstfile
+            mld = read_src_data(self.sitename, self.current, rstfile)[0]
+        if mld == '':
+            mld = mark_deleted(self.sitename, self.current, rstfile)
+        if mld == "":
+            path = pathlib.Path(rstfile)
+            rstdata = ''
+            mld = '{} deleted'.format(str(path))
+            self.oldtext = self.rstdata = rstdata
+            self.rstfile = rstfile
+            self.htmlfile = path.stem + ".html"
+            self.newfile = ""
+        mld = format_message(mld, self.get_lang(), rstfile)
+        return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
+
+    def saverst(self, rstfile, newfile, rstdata):
+        """(re)save rest source
+        """
+        if rstfile.startswith('-- ') and rstfile.endswith(' --'):
+            rstfile = rstfile[3:-3]
+        fname = newfile or rstfile
+        if fname.endswith('/'):
+            mld = make_new_dir(self.sitename, fname[:-1])
+            msg_parameter = fname[:-1]
             if mld == "":
-                mld = mark_deleted(self.sitename, self.current, rstfile)
-                mld = '{} renamed to {}'.format(str(oldpath), str(path))
-            else:
-                mld = mld.replace('src_', 'new_')
-        return mld, path
+                self.oldtext = self.rstdata = rstdata
+                mld = 'new_subdir'
+                self.rstfile = fname
+                self.newfile = ""
+
+        elif fname.endswith('.tpl'):
+            # NOTE: geen controle op `bestaat al`, bestaande data wordt zonder meer overschreven
+            mld = save_tpl_data(self.sitename, fname, rstdata)
+            msg_parameter = fname
+            if mld == "":
+                self.oldtext = self.rstdata = rstdata
+                mld = 'tpl_saved'
+                self.rstfile = self.htmlfile = ''
+                self.newfile = ""
+
+        else:
+            path = pathlib.Path(rstfile)
+            mld = check_if_rst(rstdata, self.loaded, fname)
+            msg_parameter = fname
+            if mld == '':
+                oldpath = path
+                path = pathlib.Path(fname)
+                if path.suffix != ".rst":
+                    fname = fname + ".rst"
+                mld = save_src_data(self.sitename, self.current, fname, rstdata, bool(newfile))
+            if mld == "":
+                self.oldtext = self.rstdata = rstdata
+                mld = 'rst_saved'
+                self.rstfile = fname
+                self.htmlfile = path.stem + ".html"
+                self.newfile = ""
+
+        mld = format_message(mld, self.get_lang(), msg_parameter)
+        return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
 
     def convert(self, rstfile, newfile, rstdata):
         """convert rest source to html and show on page
