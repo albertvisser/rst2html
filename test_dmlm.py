@@ -449,14 +449,40 @@ class TestDocLevel:
             " `{'/': {'doc_name': {'src': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
             {'dirname': {'doc_name': {'src': {'docid': 'doc_id'}}}}})
-        # monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc_2)
-        dmlm.update_rst('site_name', 'doc_name', 'contents', 'dirname')
+        with pytest.raises(FileNotFoundError):
+            dmlm.update_rst('site_name', 'doc_name', 'contents', 'otherdir')
+
+    def test_revert_rst(self, monkeypatch, capsys):
+        def mock_find(self, *args):
+            print('called find() with arg `{}`'.format(args[0]))
+            return [{'_id': 'doc_id', 'current': 'data', 'previous': 'old data'}]
+        def mock_update_doc(*args):
+            print('called update_doc() with args `{}`, `{}`'.format(args[0], args[1]))
+        def mock_update_site_doc(*args):
+            print('called update_site_doc() with args `{}`, `{}`'.format(args[0], args[1]))
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs': {'/': {'other_doc': {}}}})
+        with pytest.raises(AttributeError):
+            dmlm.revert_rst('site_name', '')
+        with pytest.raises(FileNotFoundError):
+            dmlm.revert_rst('site_name', 'doc_name')
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
+            {'/': {'doc_name': {'src': {'docid': 'doc_id'}}}}})
+        monkeypatch.setattr(MockColl, 'find', mock_find)
+        monkeypatch.setattr(dmlm, 'site_coll', MockColl())
+        monkeypatch.setattr(dmlm, '_update_doc', mock_update_doc)
+        monkeypatch.setattr(dmlm, '_update_site_doc', mock_update_site_doc)
+        monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
+        dmlm.revert_rst('site_name', 'doc_name') # , 'dirname')
         assert capsys.readouterr().out == ''.join((
             "called find() with arg `{'_id': 'doc_id'}`\n",
             "called update_doc() with args `doc_id`,"
-            " `{'_id': 'doc_id', 'current': 'contents', 'previous': 'data'}`\n"
+            " `{'_id': 'doc_id', 'current': 'old data', 'previous': ''}`\n"
             "called update_site_doc() with args `site_name`,"
-            " `{'dirname': {'doc_name': {'src': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
+            " `{'/': {'doc_name': {'src': {'docid': 'doc_id', 'updated': 'now'}}}}`\n"))
+        monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
+            {'subdir': {'doc_name': {'src': {'docid': 'doc_id'}}}}})
+        with pytest.raises(FileNotFoundError):
+            dmlm.revert_rst('site_name', 'doc_name', 'otherdir')
 
     def test_mark_src_deleted(self, monkeypatch, capsys):
         def mock_update_site_doc(*args):

@@ -302,6 +302,8 @@ def update_rst(site_name, doc_name, contents, directory=''):
         directory = '/'
     doc_name = pathlib.Path(doc_name).stem
     sitedoc = _get_site_doc(site_name)
+    if directory not in sitedoc['docs']:
+        raise FileNotFoundError("no_subdir")
     if doc_name not in sitedoc['docs'][directory]:
         ## raise FileNotFoundError("Document doesn't exist")
         raise FileNotFoundError("no_document")
@@ -316,6 +318,33 @@ def update_rst(site_name, doc_name, contents, directory=''):
     dts = datetime.datetime.utcnow()
     sitedoc['docs'][directory][doc_name]['src']['updated'] = dts
     _update_site_doc(site_name, sitedoc['docs'])
+
+
+def revert_rst(sitename, doc_name, directory=''):
+    """reset a source document in the given directory to the previous contents
+
+    raises AttributeError on missing document name
+           FileNotFoundError if document doesn't exist
+           FileNotFoundError if no backup present
+    """
+    if not doc_name:
+        raise AttributeError('no_name')
+    if not directory:
+        directory = '/'
+    sitedoc = _get_site_doc(sitename)
+    if directory not in sitedoc['docs']:
+        raise FileNotFoundError("no_subdir")
+    if doc_name not in sitedoc['docs'][directory]:
+        raise FileNotFoundError("no_document")
+    doc_id = sitedoc['docs'][directory][doc_name]['src']['docid']
+    rstdoc = site_coll.find({'_id': doc_id})[0]
+
+    rstdoc['current'] = rstdoc['previous']
+    rstdoc['previous'] = ''
+    _update_doc(doc_id, rstdoc)
+    dts = datetime.datetime.utcnow()
+    sitedoc['docs'][directory][doc_name]['src']['updated'] = dts
+    _update_site_doc(sitename, sitedoc['docs'])
 
 
 def mark_src_deleted(site_name, doc_name, directory=''):
