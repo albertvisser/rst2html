@@ -752,6 +752,40 @@ class TestDocLevel:
             'called commit() on connection\n',
             'called close()\n'))
 
+    def test_revert_rst(self, monkeypatch, capsys):
+        def mock_get_dir_id(*args):
+            print('called get_dir_id() for `{}`'.format(args[1]))
+            return None
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
+        with pytest.raises(AttributeError):
+            dmlp.revert_rst('site_name', '')
+        with pytest.raises(FileNotFoundError):
+            dmlp.revert_rst('site_name', 'doc_name')
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 9)
+        monkeypatch.setattr(dmlp, '_get_dir_id', mock_get_dir_id)  # lambda x, y: None)
+        with pytest.raises(FileNotFoundError):
+            dmlp.revert_rst('site_name', 'doc_name', 'dirname')
+        assert capsys.readouterr().out == 'called get_dir_id() for `dirname`\n'
+        monkeypatch.setattr(dmlp, '_get_dir_id', lambda x, y: 99)
+        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (None, 2, 3))
+        with pytest.raises(FileNotFoundError):
+            dmlp.revert_rst('site_name', 'doc_name')
+        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3) )
+
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'previous': 'oldtext'})
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        monkeypatch.setattr(dmlp.datetime, 'datetime', MockDatetime)
+        dmlp.revert_rst('site_name', 'doc_name')
+        assert capsys.readouterr().out == ''.join((
+            'execute SQL: `select previous from documents where id = %s;`\n',
+            '  with: `2`\n',
+            'execute SQL: `update documents set previous = %s, currtext = %s where id = %s;`\n',
+            '  with: ``, `oldtext`, `2`\n',
+            'execute SQL: `update doc_stats set source_updated = %s where id = %s;`\n',
+            '  with: `now`, `1`\n',
+            'called commit() on connection\n',
+            'called close()\n'))
+
     def test_mark_src_deleted(self, monkeypatch, capsys):
         def mock_site_id(*args):
             if counter == 1:

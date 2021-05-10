@@ -601,6 +601,41 @@ def update_rst(site_name, doc_name, contents, directory=''):
     cur.close()
 
 
+def revert_rst(sitename, doc_name, directory=''):
+    """reset a source document in the given directory to the previous contents
+
+    raises AttributeError on missing document name
+           FileNotFoundError if document doesn't exist
+           FileNotFoundError if no backup present
+    """
+    if not doc_name:
+        raise AttributeError('no_name')
+    if not directory:
+        directory = '/'
+    doc_name = pathlib.Path(doc_name).stem
+
+    siteid = _get_site_id(sitename)
+    if siteid is None:
+        raise FileNotFoundError('no_site')
+    dirid = _get_dir_id(siteid, directory)
+    if dirid is None:
+        raise FileNotFoundError('no_subdir')
+    doc_id, rst_id, _ = _get_doc_ids(dirid, doc_name)
+    if doc_id is None:
+        raise FileNotFoundError("no_document")
+
+    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    cur.execute('select previous from {} where id = %s;'.format(TABLES[4]), (rst_id,))
+    oldtext = cur.fetchone()['previous']
+    cur.execute('update {} set previous = %s, currtext = %s '
+                'where id = %s;'.format(TABLES[4]), ('', oldtext, rst_id))
+    dts = datetime.datetime.utcnow()
+    cur.execute('update {} set source_updated = %s where id = %s;'.format(
+        TABLES[3]), (dts, doc_id))
+    conn.commit()
+    cur.close()
+
+
 def mark_src_deleted(site_name, doc_name, directory=''):
     """mark a source document in the given directory as deleted
     """
