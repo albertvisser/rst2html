@@ -340,7 +340,7 @@ def new_conf(sitename, text, lang=LANG):
     try:
         dml.create_new_site(sitename)
     except FileExistsError as e:
-        return str(e), newurl  # is newurl leegmaken hier niet beter ivm vervolg in save_conf ?
+        return str(e), ''
     return '', newurl
 
 
@@ -461,7 +461,7 @@ def conf2text(conf):
     return save_config_data(confdict, default_flow_style=False)
 
 
-def text2conf(text, lang=LANG):
+def text2conf(text, lang=LANG, urlcheck=True):
     """convert text (from input area) to settings dict and return it
 
     also check settings for correctness (valid locations)
@@ -490,7 +490,7 @@ def text2conf(text, lang=LANG):
                 return invalid.format(key), {}
         elif key == 'lang' and value not in languages:
             return invalid.format('lang'), {}
-        elif key == 'url' and value != '':
+        elif key == 'url' and value != '' and urlcheck:
             if not value.startswith('http'):
                 return invalid.format('url'), {}
             else:  # simple check for valid url setting
@@ -523,7 +523,7 @@ def check_url(value):
             raise
 
 
-def save_conf(sitename, text, lang=LANG):
+def save_conf(sitename, text, lang=LANG, urlcheck=True):
     """save the given settings into the site
     """
     conf = {}
@@ -531,7 +531,7 @@ def save_conf(sitename, text, lang=LANG):
         dml.read_settings(sitename)
     except FileNotFoundError:
         return get_text('no_such_sett', lang).format(sitename)
-    not_ok, conf = text2conf(text, lang)
+    not_ok, conf = text2conf(text, lang, urlcheck)
     if conf:
         dml.update_settings(sitename, conf)
     return not_ok
@@ -1283,7 +1283,8 @@ class R2hState:
                     rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if mld == "":
-            mld = save_conf(newsett, rstdata, self.get_lang())
+            do_urlcheck = not self.newconf
+            mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
             if mld == '' and self.newconf:
                 init_css(newsett)
         if mld == "":
