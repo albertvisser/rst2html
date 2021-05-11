@@ -44,7 +44,7 @@ def apply_lang(lines, state):
             keyword, end = rest.split(')', 1)
             line = rhfn.get_text(keyword, state.get_lang()).join((start, end))
         output.append(line)
-    return ''.join(output)
+    return '\n'.join(output)
 
 
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
