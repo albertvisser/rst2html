@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Sample code for site-specific directives that are loaded with the site
 instead of with the application
 """
