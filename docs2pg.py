@@ -860,15 +860,13 @@ def get_all_doc_stats(site_name):
     cur.execute('select dirname from {} where site_id = %s;'.format(TABLES[2]),
                 (siteid,))
     dirnames = [row['dirname'] for row in cur]
-    cur.execute('select docname, source_updated, target_updated, mirror_updated, dirname'
-                ' from {0}, {1} where dir_id = {1}.id and dir_id = any(%s)'
-                ';'.format(TABLES[3], TABLES[2]), (dirids,))
-
+    cur.execute('select dirname, docname, source_updated, target_updated, mirror_updated,'
+                ' source_deleted, target_deleted from {0}, {1} where dir_id = {1}.id'
+                ' and dir_id = any(%s);'.format(TABLES[3], TABLES[2]), (dirids,))
     all_stats = [(row['dirname'],
                   row['docname'],
-                  _get_stats((row['source_updated'],
-                              row['target_updated'],
-                              row['mirror_updated']))) for row in cur]
+                  _get_stats((row['source_updated'], row['target_updated'], row['mirror_updated'])))
+                 for row in cur if not any((row['source_deleted'], row['target_deleted']))]
     conn.commit()
     cur.close()
 

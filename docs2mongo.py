@@ -61,14 +61,24 @@ def _update_doc(docid, doc):
 def _get_stats(docinfo):
     """retrieve site stats from database"""
     stats = []
+    deleted = False
     for key in LOCS:
-        if key in docinfo and 'updated' in docinfo[key]:
-            stats.append(docinfo[key]['updated'])
+        if key in docinfo:
+            if 'deleted' in docinfo[key]:
+                deleted = True
+                break
+            if 'updated' in docinfo[key]:
+                stats.append(docinfo[key]['updated'])
         else:
             stats.append(datetime.datetime.min)
+    if deleted:
+        return None
     return Stats(*stats)
 
 
+    for dirname, doclist in sitedoc['docs'].items():
+        for docname, docinfo in doclist.items():
+                test = sitedoc['docs'][directory][docname][doctype]['deleted']
 ## def _add_sitecoll_doc(data):
     ## site_coll.insert_one(data)
 
@@ -500,7 +510,9 @@ def get_all_doc_stats(site_name):
     for dirname, doclist in sitedoc['docs'].items():
         docs = []
         for docname, docinfo in doclist.items():
-            docs.append((docname, _get_stats(docinfo)))
+            test = _get_stats(docinfo)
+            if test:
+                docs.append((docname, test))
         filelist.append((dirname, docs))
     return filelist
 
