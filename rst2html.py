@@ -75,17 +75,25 @@ def format_progress_list(timelist):
     template engine I'm implementing it here
     """
     output = load_template('stand.html')
-    first_part, rest = output.split('{% for row in data %}')
-    repeat_line, last_part = rest.split('{% endfor %}')
+    first_part, rest = output.split('{% if data %}')
+    data_part, last_part = rest.split('{% endif %}')
+    repeat_part, no_data = data_part.split('{% else %}')
+    thead, rest = repeat_part.split('{% for row in data %}')
+    repeat_line, tfoot = rest.split('{% endfor %}')
     output = [first_part]
-    for docinfo in timelist:
-        line = repeat_line
-        items = rhfn.get_progress_line_values(docinfo)
-        line = line.replace('{row.0}', items[0])
-        for idx, timestring in enumerate(items[1:]):
-            timestring = timestring.replace('--> ', '<strong>').replace(' <--', '</strong>')
-            line = line.replace('{row.%s}' % str(idx + 1), timestring)
-        output.append(line)
+    if timelist:
+        output.append(thead)
+        for docinfo in timelist:
+            line = repeat_line
+            items = rhfn.get_progress_line_values(docinfo)
+            line = line.replace('{row.0}', items[0])
+            for idx, timestring in enumerate(items[1:]):
+                timestring = timestring.replace('--> ', '<strong>').replace(' <--', '</strong>')
+                line = line.replace('{row.%s}' % str(idx + 1), timestring)
+            output.append(line)
+        output.append(tfoot)
+    else:
+        output.append(no_data)
     output.append(last_part)
     return ''.join(output)
 

@@ -11,6 +11,7 @@
 	    <button accesskey="c">
 	        <span style="text-decoration:underline">C</span>opy to file</button></a>
 	<div><span style="color: red; text-decoration: bold;">{}&nbsp;</span><div/>
+	{% if data %}
         <table summary="overzicht">
             <thead>
             <tr>
@@ -31,5 +32,8 @@
             {% endfor %}
             </tbody>
         </table>
+	{% else %}
+        <div><span style="color: blue; text-decoration: bold;">No data to report&nbsp;</span><div/>
+	{% endif %}
     </body>
 </html>
