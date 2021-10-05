@@ -94,9 +94,9 @@ start_rst2html_*.py
     script to start the application with
     there's a version for each dml variant
 
-test_dmlf.py (unfinished, untracked)
-test_dmlm.py (unfinished, untracked)
-test_dmlp.py (unfinished, untracked)
+test_dmlf.py
+test_dmlm.py
+test_dmlp.py
 test_r2h.py
 test_rhdir.py
 test_rhfn.py
@@ -143,10 +143,8 @@ test/
 
     analyze_testdata.py
         functions that help in comparing database and html output, used by test_scenario_1
-    assert_equals.py (untracked)
-        script to change lines of code containing assert statements into lines containing assert_equal function calls
-    test_directives.py (untracked)
-        script to test directives for bitbucket site    
+    test_convert_all (untracked)
+        uitproberen rhfn.UpdateAll 
     test_dml.py
         testscript for the data manipulation layer
     test_dml_specific.py
