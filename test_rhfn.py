@@ -290,13 +290,10 @@ class TestConfRelated:
     def test_default_site(self, monkeypatch):
         def no_sitelist():
             return []
-
         def sitelist_without_dflt():
             return ['site_1', 'site_2']
-
         def sitelist_with_dflt():
             return ['site_0', 'blabla']
-
         monkeypatch.setattr(rhfn.dml, 'list_sites', no_sitelist)
         assert rhfn.default_site() == ''
         monkeypatch.setattr(rhfn.dml, 'list_sites', sitelist_without_dflt)
@@ -308,46 +305,37 @@ class TestConfRelated:
     def test_new_conf(self, monkeypatch):
         def text2conf_notok(*args):
             return 'Not OK', {}
-
-        def text2conf_nourl(*args):
+        def text2conf_emptyurl(*args):
             return '', {'url': ''}
-
         def text2conf_ok(*args):
             return '', {'url': 'http://www.example.org'}
-
         def get_text_msg(*args):
             return 'Not Created'
-
         def create_conf(*args):
             return 'new_site'
-
         def create_site_exc(*args):
             raise FileExistsError('Exists')
-
         def create_site_ok(*args):
             pass
-
         monkeypatch.setattr(rhfn, 'text2conf', text2conf_notok)
         monkeypatch.setattr(rhfn, 'get_text', get_text_msg)
         assert rhfn.new_conf('', '') == ('Not Created Not OK', '')
-        monkeypatch.setattr(rhfn, 'text2conf', text2conf_nourl)
+        monkeypatch.setattr(rhfn, 'text2conf', text2conf_emptyurl)
         monkeypatch.setattr(rhfn, 'create_server_config', create_conf)
         monkeypatch.setattr(rhfn.dml, 'create_new_site', create_site_exc)
-        assert rhfn.new_conf('', '') == ('Exists', 'http://new_site')
-        monkeypatch.setattr(rhfn, 'text2conf', text2conf_ok)
+        assert rhfn.new_conf('', '') == ('Exists', '')  # 'http://new_site')
         monkeypatch.setattr(rhfn.dml, 'create_new_site', create_site_ok)
+        assert rhfn.new_conf('', '') == ('', 'http://new_site')
+        monkeypatch.setattr(rhfn, 'text2conf', text2conf_ok)
         assert rhfn.new_conf('', '') == ('', '')
 
     def test_create_server_config(self, monkeypatch):
         def mock_get_tldname(*args):
             return 'example.com'
-
         def mock_add_to_hostsfile(*args):
             print('mock_add_to_hostsfile was called')
-
         def mock_add_to_server(*args):
             print('mock_add_to_server was called')
-
         monkeypatch.setattr(rhfn, 'get_tldname', mock_get_tldname)
         monkeypatch.setattr(rhfn, 'add_to_hostsfile', mock_add_to_hostsfile)
         monkeypatch.setattr(rhfn, 'add_to_server', mock_add_to_server)
@@ -356,8 +344,11 @@ class TestConfRelated:
     # eigenlijk betekent het gegeven dat de volgende drie methoden niet te testen zijn dat deze
     # thuishoren in een data-benaderingsmodule, dan wel dat het ophalen van gegevens uit een extern
     # bestand in zo'n module thuishoort waardoor het wel monkeypatchbaar wordt
-    def get_tldname(self):  # not really testable (too dependent of /etc/hosts and /etc/hostname)
-        pass
+    def test_get_tldname(self):
+        # voor bepalen tldname kijken we in eerst /etc/hosts: eerste entry met een punt erin
+        # pas als die niet bestaat kijken we of er iets in /etc/hostname staat (computernaam)
+        # maar dat is niet te testen zonder /etc/hosts aan te passen
+        assert rhfn.get_tldname() == 'lemoncurry.nl'
 
     def add_to_hostsfile(self):  # not really testable (yet)
         pass
@@ -1503,10 +1494,10 @@ class TestR2hStateRelated:
             return '', 'new-url'
         def mock_new_conf_nourl(*args):
             return '', 'new-url'
-        def mock_save_conf(*args):
-            print('call save_conf with args `{}` `{}` `{}`'.format(*args))
+        def mock_save_conf(*args, **kwargs):
+            print('call save_conf with args `{}`, kwargs `{}`'.format(args, kwargs))
             return ''
-        def mock_save_conf_mld(*args):
+        def mock_save_conf_mld(*argsi, **kwargs):
             return 'mld from save_conf'
         def mock_init_css(*args):
             print('call init_css')
@@ -1543,7 +1534,8 @@ class TestR2hStateRelated:
         assert testsubj.newconf == False
         assert testsubj.sitename == 'newsett'
         assert testsubj.rstdata == 'conf2text'
-        assert capsys.readouterr().out == ("call save_conf with args `newsett` `url: new-url` ``\n"
+        assert capsys.readouterr().out == ("call save_conf with args `('newsett', 'url: new-url',"
+                                           " '')`, kwargs `{'urlcheck': False}`\n"
                                            'call init_css\n')
         testsubj.newconf = False
         monkeypatch.setattr(rhfn, 'new_conf', mock_new_conf_nourl)
