@@ -382,6 +382,8 @@ def add_to_hostsfile(url):
     """
     with (SRV_CONFIG / 'misc/hosts').open('a') as hostsfile:
         print('127.0.0.1     {}'.format(url), file=hostsfile)
+    # hierna `fabsrv modconf -n hosts` uitvoeren, NB heeft sudo nodig
+    # als dat niet kan sudo cp ~/nginx-config/misc/hosts /etc/hosts
 
 
 def add_to_server(url, location):
@@ -398,6 +400,9 @@ def add_to_server(url, location):
                      '    access_log /var/log/nginx/{}-access.log ;'.format(logloc),
                      '    }'):
             print(line, file=config)
+    # hierna `fabsrv nginx.modconf -n flatpages nginx.restart` uitvoeren, NB heeft sudo nodig
+    # als dat niet kan sudo cp ~/nginx-config/nginx/flatpages /etc/nginx/sites-available/flatpages
+    #  gevolgd door sudo killall -HUP nginx
 
 
 def init_css(sitename):
