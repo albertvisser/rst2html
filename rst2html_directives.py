@@ -27,9 +27,9 @@ directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div',
                                  ('div', ".regel")),
                        'anno': (('div', ".anno"), ),
                        'startsidebar': (('section', ".region-sidebar-first"),
-                                        ('section', ".column"), ('div', "#block")),
+                                        ('section', ".column"), ('div', ".block")),
                        'endsidebar': (('section', "region-sidebar-second"), ('section', "column"),
-                                      ('section', "sidebar"), ('div', "#block")),
+                                      ('section', "sidebar"), ('div', ".block")),
                        'myfooter': (('div', "#footer"), ('div', ".region"),
                                     ('div', ".region-bottom"), ('div', "#block-block-1"),
                                     ('div', ".block"), ('div', ".block-block"), ('div', ".first"),
@@ -537,7 +537,29 @@ class StartSideBar(Directive):
     def run(self):
         "genereer de html"
         text_node = nodes.raw('', '</div><aside><section class="region-sidebar-first column">'
-                              '<div id="block">', format='html')
+                              '<div class="block">', format='html')
+        return [text_node]
+
+
+class SideBarKop(Directive):
+    """vervanging voor een standaard gestylede titel omdat deze in een sidebar de html verpest
+
+    Er wordt namelijk een div omheen gegenereerd die de erop volgende inhoud ook omvat. De logica
+    hiervoor houdt geenrekening met de <aside> waardoor deze er ook in terecht komt
+    Ik weet niet of die div interessant is want die is bedoeld als navigatie-target
+    """
+
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {}
+    has_content = False
+
+    def run(self):
+        "genereer de html"
+        text_node = nodes.raw('', '<h1>{}</h1>'.format(self.arguments[0]),
+                               # '<div class="section"><h1>{}</h1></div>'.format(self.arguments[0]),
+                              format='html')
         return [text_node]
 
 
@@ -556,7 +578,7 @@ class EndSideBar(Directive):
         "genereer de html"
         text_node = nodes.raw('', '</div></section>'
                               '<section class="region-sidebar-second column sidebar">'
-                              '<div id="block"><p>&nbsp;</p></div></section>'
+                              '<div class="block"><p>&nbsp;</p></div></section>'
                               '</aside>', format='html')
         return [text_node]
 

@@ -346,7 +346,17 @@ def test_startsidebar(monkeypatch):
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('</div><aside><section class="region-sidebar-first column">'
-                         '<div id="block">')
+                         '<div class="block">')
+
+
+def test_sidebarkop(monkeypatch):
+    monkeypatch.setattr(rhdir.SideBarKop, '__init__', mock_init)
+    testsubj = rhdir.SideBarKop()
+    testsubj.arguments= ['Tekst']
+    testsubj.options = {}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<h1>Tekst</h1>')
 
 
 def test_endsidebar(monkeypatch):
@@ -357,7 +367,7 @@ def test_endsidebar(monkeypatch):
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('</div></section><section class="region-sidebar-second column sidebar">'
-                         '<div id="block"><p>&nbsp;</p></div></section></aside>')
+                         '<div class="block"><p>&nbsp;</p></div></section></aside>')
 
 
 def test_myfooter(monkeypatch):
