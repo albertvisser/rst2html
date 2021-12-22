@@ -16,7 +16,8 @@ def test_apply_lang(monkeypatch):
         return 'xxxx'
     monkeypatch.setattr(r2h.rhfn, 'get_text', mock_get_text)
     state = r2h.Rst2Html().state
-    assert r2h.apply_lang(['o _(q) _(q)', '', '_(q) o ', 'zzz'], state) == 'o xxxx xxxxxxxx o zzz'
+    assert r2h.apply_lang(['o _(q) _(q)', '', '_(q) o ', 'zzz'], state) == ('o xxxx xxxx\n\nxxxx'
+                                                                            ' o \nzzz')
 
 
 def test_format_output(monkeypatch):
@@ -56,20 +57,17 @@ def test_format_output(monkeypatch):
 
 def test_format_progress_list(capsys):
     raw_data = (r2h.HERE / 'stand.html').read_text()
-    begin = raw_data.split('{%', 1)[0]
-    end = raw_data.rsplit('%}', 1)[1]
-    assert r2h.format_progress_list([]) == begin + end
+    begin, rest = raw_data.split('{% if data %}', 1)
+    thead, rest = rest.split('{% for row in data %}', 1)
+    data_stuff, rest = rest.split('{% endfor %}', 1)
+    tfoot, rest = rest.split('{% else %}', 1)
+    no_data, end = rest.split('{% endif %}', 1)
+    assert r2h.format_progress_list([]) == begin + no_data + end
     dates = datetime.datetime.min, datetime.datetime.max, datetime.datetime.max
     data = [('q', 'r', 2, dates)]
-    middle = '\n'.join(('',
-                        '            <tr>',
-                        '                <td>q/r</td>',
-                        '                <td>n/a</td>',
-                        '                <td>31-12-9999 23:59:59</td>',
-                        '                <td><strong>31-12-9999 23:59:59</strong></td>',
-                        '            </tr>',
-                        '            '))
-    assert r2h.format_progress_list(data) == begin + middle + end
+    middle = data_stuff.replace('{row.0}', 'q/r').replace('{row.1}', 'n/a').replace('{row.2}',
+            '31-12-9999 23:59:59').replace('{row.3}', '<strong>31-12-9999 23:59:59</strong>')
+    assert r2h.format_progress_list(data) == begin + thead + middle + tfoot + end
 
 
 def test_resolve_images():
@@ -374,15 +372,34 @@ class TestRst2Html:
 
     def test_find_results(self, monkeypatch, capsys):
         def mock_search(*args):
-            return 'mld', 'results for {} {} {} {}'
+            return 'mld', 'results for {} {} {} {} {}'
+        def mock_search_not_found(*args):
+            return 'search phrase not found', ''
         def mock_format_search(*args):
-            return args[0] or '{3}'
+            return args[0] or '{4}'
         testsubj = r2h.Rst2Html()
         testsubj.state.settings = 's'
-        monkeypatch.setattr(testsubj.state, 'search', mock_search)
         monkeypatch.setattr(r2h, 'format_search', mock_format_search)
-        assert testsubj.find_results(search='f', replace='r') == 'results for s f r mld'
+        monkeypatch.setattr(r2h, 'copybuttontext', 'b')
+        monkeypatch.setattr(testsubj.state, 'search', mock_search_not_found)
+        assert testsubj.find_results(search='f') == 'search phrase not found'
+        monkeypatch.setattr(testsubj.state, 'search', mock_search)
+        assert testsubj.find_results(search='f', replace='r') == 'results for s b f r mld'
         assert testsubj.find_results(search='', replace='r') == 'Please tell me what to search for'
+
+    def test_copy_results(self, monkeypatch, capsys):
+        def mock_copys(*args):
+            return 'copied'
+        def mock_format_search(*args):
+            return 'results for {} {} {} {} {}'
+        testsubj = r2h.Rst2Html()
+        testsubj.state.settings = 's'
+        testsubj.search_stuff = ('f', 'r', [('page1', '1', 'first s'), ('page2', '11', 'second s')])
+        monkeypatch.setattr(testsubj.state, 'copysearch', mock_copys)
+        monkeypatch.setattr(r2h, 'format_search', mock_format_search)
+        monkeypatch.setattr(r2h, 'copybuttontext', 'b')
+        assert testsubj.copysearch() == 'results for s b f r copied'
+
 
     def test_check(self, monkeypatch, capsys):
         def mock_check(*args):

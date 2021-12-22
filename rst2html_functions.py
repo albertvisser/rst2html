@@ -837,6 +837,12 @@ def get_copystand_filepath(sitename):
     return  WEBROOT / sitename / 'voortgangsoverzicht-{}'.format(dts)
 
 
+def get_copysearch_filepath(sitename):
+    "determine filename to use for saving the search results"
+    dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+    return  WEBROOT / sitename / 'search-results-{}'.format(dts)
+
+
 def get_progress_line_values(docinfo):
     "convert a progress_list entry into a sequence of text items"
     if docinfo[0] == '/':
@@ -1689,6 +1695,20 @@ class R2hState:
         else:
             mld = 'nothing found, no replacements' if replace else 'search phrase not found'
         return mld, results
+
+    def copysearch(self, data):
+        """copy the search results to a file"""
+        outfile = get_copysearch_filepath(self.sitename)
+        with outfile.open('w') as out:
+            search, replace, results = data
+            heading = 'searched for `{}`'.format(search)
+            if replace:
+                heading += 'and replaced with `{}`'.format(replace)
+            print(heading, file=out)
+            print('', file=out)
+            for page, lineno, text in results:
+                print('{} line {}: {}'.format(page, lineno, text), file=out)
+        return 'Search results copied to {}'.format(outfile)
 
     def check(self):
         """check css for classes / ids used by directives"""

@@ -24,6 +24,9 @@ scriptdict = {'yaml': ('yaml/yaml',),
                        'htmlmixed/htmlmixed'),
               'py': ('python/python', '../addon/edit/matchbrackets'),
               'rst': ('rst/rst', '../addon/mode/overlay')}
+copybuttontext = """\
+        <a href="/copysearch"><button accesskey="c">
+                <span style="text-decoration:underline">C</span>opy to file</button></a>"""
 
 
 def load_template(name):
@@ -307,7 +310,6 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    #def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", regsubj=''):
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """regenerate all html files
         """
@@ -325,7 +327,7 @@ class Rst2Html:
     def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """start find/replace action: enter arguments
         """
-        return format_search().format(settings, '', '', '')
+        return format_search().format(settings, '', '', '', '')
 
     @cherrypy.expose
     def find_results(self, search="", replace=""):
@@ -333,9 +335,24 @@ class Rst2Html:
         """
         if search:
             mld, results = self.state.search(search, replace)
+            if mld in ('nothing found, no replacements', 'search phrase not found'):
+                btntxt = ''
+            else:
+                btntxt = copybuttontext
+                self.search_stuff = search, replace, results
         else:
             mld, results = 'Please tell me what to search for', []
-        return format_search(results).format(self.state.settings, search, replace, mld)
+            btntxt = ''
+        return format_search(results).format(self.state.settings, btntxt, search, replace, mld)
+
+    @cherrypy.expose
+    def copysearch(self):
+        """copy the search results to a file
+        """
+        msg = self.state.copysearch(self.search_stuff)
+        btntxt = copybuttontext
+        search, replace, results = self.search_stuff
+        return format_search(results).format(self.state.settings, btntxt, search, replace, msg)
 
     @cherrypy.expose
     def check(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):

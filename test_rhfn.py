@@ -1164,6 +1164,11 @@ class TestSearchRelated:
                     ('dir/file', 24, 'geen  **regel** ing')]
         assert rhfn.searchdict2list(inputdict, 'regel') == expected
 
+    def test_get_copysearch_filepath(self, monkeypatch):
+        monkeypatch.setattr(rhfn.datetime, 'datetime', MockDatetime)
+        reportname = 'search-results-20200101000000'
+        assert rhfn.get_copysearch_filepath('s') == pathlib.Path(rhfn.WEBROOT / 's' / reportname)
+
 
 class TestUpdateAllRelated:
     """tests for regenerate all functionality"""
@@ -2035,6 +2040,21 @@ class TestR2hStateRelated:
         monkeypatch.setattr(rhfn, 'search_site', mock_search_site_none)
         testsubj.search('not found', '') == ('search phrase not found', {})
         testsubj.search('not found', 'replaced') == ('nothing found, no replacements', {})
+
+    def test_copysearch(self, monkeypatch):
+        path = pathlib.Path('/tmp/copysearch')
+        def mock_get_copysearch_filepath(*args):
+            return path
+        def mock_get_progress_line_values(*args):
+            return ['x', 'y', 'z', 'q']
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        monkeypatch.setattr(rhfn, 'get_copysearch_filepath', mock_get_copysearch_filepath)
+        searchdata = ('search_for', 'replace_with',
+                      [('text1', '1', 'result1'), ('text2', '2', 'result2')])
+        assert testsubj.copysearch(searchdata) == 'Search results copied to /tmp/copysearch'
+        assert path.read_text() == ('searched for `search_for`and replaced with `replace_with`\n\n'
+                                    'text1 line 1: result1\ntext2 line 2: result2\n')
 
     def test_check(self, monkeypatch):
         def mock_check_directive_selectors(*args):
