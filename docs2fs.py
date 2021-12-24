@@ -555,8 +555,8 @@ def get_doc_stats(sitename, docname, dirname=''):
         path = _locify(WEBROOT / sitename, ftype)
         path = path / dirname if dirname else path
         path /= docname
-        if ix > 0:
-            path /= 'index'
+        if ix > 0 and do_seflinks:
+            path = path.with_suffix('') / 'index'
         ext = LOC2EXT[ftype]
         if path.suffix != ext:
             path = path.with_suffix(ext)
