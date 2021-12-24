@@ -297,6 +297,13 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
+    def status(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
+        "get status for current document"
+        mld = self.state.status(rstfile)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+
+
+    @cherrypy.expose
     def makerefdoc(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """build references document
         """

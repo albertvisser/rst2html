@@ -1170,7 +1170,7 @@ class TestSearchRelated:
         assert rhfn.get_copysearch_filepath('s') == pathlib.Path(rhfn.WEBROOT / 's' / reportname)
 
 
-class TestUpdateAllRelated:
+class TestUpdateAll:
     """tests for regenerate all functionality"""
     def test_check_for_includes(self, monkeypatch):
         fake_webroot = pathlib.Path('/tmp/rhfntest')
@@ -1362,7 +1362,7 @@ class TestUpdateAllRelated:
         assert testsubj.go() == []
 
 
-class TestR2hStateRelated:
+class TestR2hState:
     """tests for the logic in the methods of the state class
     """
     def test_init(self, monkeypatch):
@@ -1850,6 +1850,33 @@ class TestR2hStateRelated:
         assert testsubj.saveall('r', '', 'txt') == ('rst_2_html', 'r.rst', 'r.html', '')
         assert capsys.readouterr().out == ('save_html_data got args `testsite` `` `r.html`'
                                            ' `converted txt`\n')
+
+    def test_status(self, monkeypatch):
+        def mock_get_doc_stats(*args):
+            return rhfn.dml.Stats(2, 2, 2)
+        def mock_get_doc_stats_2(*args):
+            return rhfn.dml.Stats(2, None, None)
+        def mock_get_doc_stats_3(*args):
+            return rhfn.dml.Stats(None, None, None)
+        testsubj = rhfn.R2hState()
+        testsubj.current = ''
+        monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats)
+        assert testsubj.status('file') == ('/file: last modified: 2 - last converted: 2 -'
+                                           ' last migrated: 2')
+        testsubj = rhfn.R2hState()
+        testsubj.current = 'dir'
+        monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats)
+        assert testsubj.status('file') == ('dir/file: last modified: 2 - last converted: 2 -'
+                                           ' last migrated: 2')
+        testsubj = rhfn.R2hState()
+        testsubj.current = ''
+        monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats_2)
+        assert testsubj.status('file') == ('/file: last modified: 2 - last converted: n/a -'
+                                           ' last migrated: n/a')
+        testsubj = rhfn.R2hState()
+        testsubj.current = ''
+        monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats_3)
+        assert testsubj.status('file') == 'not possible to get stats'
 
     def test_loadhtml(self, monkeypatch):
         def mock_read_html_data(*args):

@@ -333,6 +333,18 @@ class TestRst2Html:
                                                       ' {}'.format(testsubj.state))
         assert capsys.readouterr().out == 'called R2hState.copytoroot\n'
 
+    def test_status(self, monkeypatch, capsys):
+        def mock_status(*args):
+            return 'message'
+        testsubj = r2h.Rst2Html()
+        monkeypatch.setattr(testsubj.state, 'status', mock_status)
+        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
+        assert testsubj.status(settings='s', rstfile='r',
+                               htmlfile='h', newfile='n',
+                               rstdata='d') == ('format_output for r, h, n, message, d,'
+                                                ' s, {}'.format(testsubj.state))
+
+
     def test_makerefdoc(self, monkeypatch, capsys):
         def mock_makerefdoc(*args):
             return 'ok', 'rref', 'href', 'dref'
@@ -399,7 +411,6 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_search', mock_format_search)
         monkeypatch.setattr(r2h, 'copybuttontext', 'b')
         assert testsubj.copysearch() == 'results for s b f r copied'
-
 
     def test_check(self, monkeypatch, capsys):
         def mock_check(*args):

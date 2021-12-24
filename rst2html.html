@@ -39,7 +39,7 @@
             </select>
             <input type="submit" value="_(c_find)" title="_(t_find) [F]" accesskey="f" 
               formaction="/find_screen/" />
-            <input type="submit" value="_(c_check)" title="_(t_check) [K]" accesskey="v"
+            <input type="submit" value="_(c_check)" title="_(t_check) [K]" accesskey="k"
               formaction="/check/" />
             <input type="submit" value="_(c_overview)" title="_(t_overview) [V]" accesskey="v"
               formaction="/overview/" />
@@ -71,6 +71,11 @@
             <span style="padding-left: 10px">_(c_newfile):</span>
             <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]" accesskey="n"/>
           </div>
+          <div class="table-column" style="float:left">
+            <input type="submit" name="status" value="status" title="status" accesskey=""
+	      formaction="/status/" />
+          </div>
+
           <div class="clear" style="clear: both"></div>
 
           <div class="table-column" style="float:left">
@@ -128,6 +133,7 @@ T   _(t_activate) _(c_htmlfile) selector
 H/U _(c_loadhtml)/_(c_savehtml)
 B   _(c_showhtml)
 M   _(c_copytoroot)
+J   voortgangsstatus document opvragen
 N   _(t_activate) _(c_newfile) _(t_fld)
 X   _(t_activate) _(c_settings) selector
 Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)

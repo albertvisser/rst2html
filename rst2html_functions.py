@@ -1549,6 +1549,24 @@ class R2hState:
                 mld = mld.format(self.currentify(self.htmlfile))
         return mld, self.rstfile, self.htmlfile, self.newfile
 
+    def status(self, rstfile):
+        result = dml.get_doc_stats(self.sitename, rstfile, self.current)
+        if result.src == datetime.datetime.min:
+            message = 'not possible to get stats'
+        else:
+            src = result.src.strftime('%d-%m-%Y %H:%M:%S')
+            if result.dest == datetime.datetime.min:
+                dest = 'n/a'
+            else:
+                dest = result.dest.strftime('%d-%m-%Y %H:%M:%S')
+            if result.mirror == datetime.datetime.min:
+                mirror = 'n/a'
+            else:
+                mirror = result.mirror.strftime('%d-%m-%Y %H:%M:%S')
+            message = '{}/{}: last modified: {} - last converted: {} - last migrated {}'.format(
+                    self.current, rstfile, src, dest, mirror)
+        return message
+
     def loadhtml(self, htmlfile):
         """load the created html and show on page
         """
