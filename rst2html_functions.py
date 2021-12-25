@@ -834,7 +834,7 @@ def build_progress_list(sitename):
 def get_copystand_filepath(sitename):
     "determine filename to use for saving the progress overview data"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-    return  WEBROOT / sitename / 'voortgangsoverzicht-{}'.format(dts)
+    return  WEBROOT / sitename / 'overview-{}'.format(dts)
 
 
 def get_copysearch_filepath(sitename):
@@ -1032,7 +1032,8 @@ class TrefwoordenLijst:
         has_errors = False
         reflinks, errors = self.get_reflinks()
         if not reflinks and not errors:
-            return '', 'No index created: no reflinks found'  # TODO: make translation
+            # return '', 'No index created: no reflinks found'  # TODO: make translation
+            return '', get_text('no_index', self.lang)
         to_top = self.start_page()
         for key in sorted(reflinks.keys()):
             if key[0] != self.current_letter:
@@ -1047,8 +1048,10 @@ class TrefwoordenLijst:
             self.finish_letter(to_top)
         if errors:
             has_errors = True
-            self.data.append('while creating this page, the following messages were generated:')
-            self.data.append('----------------------------------------------------------------')
+            header = get_text('index_messages', self.lang)
+            # self.data.append('while creating this page, the following messages were generated:')
+            # self.data.append('----------------------------------------------------------------')
+            self.data.extend([header, '-' * len(header)])
             for err in errors:
                 self.data.append('. ' + err)
         return "\n".join(self.data), has_errors
@@ -1406,7 +1409,7 @@ class R2hState:
         if mld == '':
             mld = mark_deleted(self.sitename, self.current, rstfile)
         if mld == '':
-            mld = '{} renamed to {}'.format(str(oldpath), str(path))
+            mld = get_text('renamed', self.get_lang()).format(str(oldpath), str(path))
             self.oldtext = self.rstdata = rstdata
             self.rstfile = newfile
             self.htmlfile = path.stem + ".html"
@@ -1424,7 +1427,7 @@ class R2hState:
             mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
         if mld == "":
             path = pathlib.Path(rstfile)
-            mld = '{} reverted to backup'.format(str(path))
+            mld = get_text('reverted', self.get_lang()).format(str(path))
             self.oldtext = self.rstdata = rstdata
             self.rstfile = rstfile
             self.htmlfile = path.stem + ".html"
@@ -1445,7 +1448,7 @@ class R2hState:
         if mld == "":
             path = pathlib.Path(rstfile)
             rstdata = ''
-            mld = '{} deleted'.format(str(path))
+            mld = get_text('deleted', self.get_lang()).format(str(path))
             self.oldtext = self.rstdata = rstdata
             self.rstfile = rstfile
             self.htmlfile = path.stem + ".html"
@@ -1552,7 +1555,7 @@ class R2hState:
     def status(self, rstfile):
         result = dml.get_doc_stats(self.sitename, rstfile, self.current)
         if result.src == datetime.datetime.min:
-            message = 'not possible to get stats'
+            message = get_text('no_stats', self.get_lang())   # 'not possible to get stats'
         else:
             src = result.src.strftime('%d-%m-%Y %H:%M:%S')
             if result.dest == datetime.datetime.min:
@@ -1563,8 +1566,10 @@ class R2hState:
                 mirror = 'n/a'
             else:
                 mirror = result.mirror.strftime('%d-%m-%Y %H:%M:%S')
-            message = '{}/{}: last modified: {} - last converted: {} - last migrated {}'.format(
-                    self.current, rstfile, src, dest, mirror)
+            # message = '{}/{}: last modified: {} - last converted: {} - last migrated {}'.format(
+            #         self.current, rstfile, src, dest, mirror)
+            message = get_text('status_msg', self.get_lang()).format(self.current, rstfile,
+                                                                      src, dest, mirror)
         return message
 
     def loadhtml(self, htmlfile):
@@ -1707,11 +1712,14 @@ class R2hState:
             items_found = search_site(self.sitename, search)
         results = searchdict2list(items_found, search)
         if results:
-            mld = 'de onderstaande regels/regeldelen zijn {}:'
-            hlp = 'vervangen' if replace else 'gevonden'
+            # mld = 'de onderstaande regels/regeldelen zijn {}:'
+            mld = get_text('found_msg', self.get_lang())
+            # hlp = 'vervangen' if replace else 'gevonden'
+            hlp = get_text('replaced' if replace else 'found', self.get_lang())
             mld = mld.format(hlp)
         else:
-            mld = 'nothing found, no replacements' if replace else 'search phrase not found'
+            # mld = 'nothing found, no replacements' if replace else 'search phrase not found'
+            mld = get_text('not_replaced' if replace else 'not_found', self.get_lang())
         return mld, results
 
     def copysearch(self, data):
@@ -1719,14 +1727,19 @@ class R2hState:
         outfile = get_copysearch_filepath(self.sitename)
         with outfile.open('w') as out:
             search, replace, results = data
-            heading = 'searched for `{}`'.format(search)
+            # heading = 'searched for `{}`'.format(search)
+            heading = get_text('search_msg', self.get_lang()).format(search)
             if replace:
-                heading += 'and replaced with `{}`'.format(replace)
+                # heading += 'and replaced with `{}`'.format(replace)
+                heading += get_text('replace_msg', self.get_lang()).format(replace)
             print(heading, file=out)
             print('', file=out)
             for page, lineno, text in results:
-                print('{} line {}: {}'.format(page, lineno, text), file=out)
-        return 'Search results copied to {}'.format(outfile)
+                # print('{} line {}: {}'.format(page, lineno, text), file=out)
+                print(get_text('location_msg', self.get_lang()).format(page, lineno, text),
+                      file=out)
+        # return 'Search results copied to {}'.format(outfile)
+        return get_text('search_copy_msg', self.get_lang()).format(outfile)
 
     def check(self):
         """check css for classes / ids used by directives"""
@@ -1746,6 +1759,6 @@ class R2hState:
             for docinfo in data:
                 docinfo = get_progress_line_values(docinfo)
                 print(';'.join(docinfo), file=out)
-        return 'Overzicht geëxporteerd naar {}'.format(outfile)
+        return get_text('overview_copy_msg', self.get_lang()).format(outfile)
 
 # -- eof

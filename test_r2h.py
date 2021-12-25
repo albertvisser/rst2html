@@ -344,7 +344,6 @@ class TestRst2Html:
                                rstdata='d') == ('format_output for r, h, n, message, d,'
                                                 ' s, {}'.format(testsubj.state))
 
-
     def test_makerefdoc(self, monkeypatch, capsys):
         def mock_makerefdoc(*args):
             return 'ok', 'rref', 'href', 'dref'

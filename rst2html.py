@@ -341,13 +341,15 @@ class Rst2Html:
         """
         if search:
             mld, results = self.state.search(search, replace)
-            if mld in ('nothing found, no replacements', 'search phrase not found'):
-                btntxt = ''
+            for text in ('not_found', 'not_replaced'):
+                if mld == rhfn.get_text(text, self.state.get_lang()):
+                    btntxt = ''
+                    break
             else:
                 btntxt = copybuttontext
                 self.search_stuff = search, replace, results
         else:
-            mld, results = 'Please tell me what to search for', []
+            mld, results = rhfn.get_text('no_search_args', self.state.get_lang()), []
             btntxt = ''
         return format_search(results).format(self.state.settings, btntxt, search, replace, mld)
 

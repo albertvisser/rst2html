@@ -924,7 +924,7 @@ class TestProgressList:
 
     def test_get_copystand_filepath(self, monkeypatch):
         monkeypatch.setattr(rhfn.datetime, 'datetime', MockDatetime)
-        reportname = 'voortgangsoverzicht-20200101000000'
+        reportname = 'overview-20200101000000'
         assert rhfn.get_copystand_filepath('s') == pathlib.Path(rhfn.WEBROOT / 's' / reportname)
 
     def test_get_progress_line_values(self):
@@ -1631,6 +1631,7 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert testsubj.rename('', '', '')[0] == 'new_name_missing'
         assert testsubj.rename('', 'directory/', '')[0] == 'incorrect_name'
         assert testsubj.rename('', 'text.tpl', '')[0] == 'incorrect_name'
@@ -1644,8 +1645,8 @@ class TestR2hState:
         assert testsubj.rename('', 'newfile', '')[0] == 'oepsie'
         assert capsys.readouterr().out == "called mark_deleted with args `('testsite', '', '')`\n"
         monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: '')
-        assert testsubj.rename('oldfile', 'newfile', 'rstdata') == ('oldfile renamed to newfile',
-                'newfile.rst', 'newfile.html', '', 'rstdata')
+        assert testsubj.rename('oldfile', 'newfile', 'rstdata') == ('renamed', 'newfile.rst',
+                                                                    'newfile.html', '', 'rstdata')
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
@@ -1653,14 +1654,15 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert testsubj.revert('dirname/', '')[0] == 'incorrect_name'
         assert testsubj.revert('text.tpl', '')[0] == 'incorrect_name'
         monkeypatch.setattr(rhfn, 'revert_src', lambda x, y, z: '')
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
         assert testsubj.revert('', '')[0] == 'mld'
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('', 'some_text'))
-        assert testsubj.revert('rstfile', 'rstdata') == ('rstfile reverted to backup', 'rstfile',
-                                                          'rstfile.html', '', 'some_text')
+        assert testsubj.revert('rstfile', 'rstdata') == ('reverted', 'rstfile', 'rstfile.html',
+                                                         '', 'some_text')
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
@@ -1671,6 +1673,7 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert testsubj.delete('dirname/', '')[0] == 'incorrect_name'
         assert testsubj.delete('text.tpl', '')[0] == 'incorrect_name'
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
@@ -1680,8 +1683,8 @@ class TestR2hState:
         assert testsubj.delete('', 'olddata')[0] == 'oepsie'
         assert capsys.readouterr().out == "called mark_deleted with args `('testsite', '', '')`\n"
         monkeypatch.setattr(rhfn, 'mark_deleted', lambda x, y, z: '')
-        assert testsubj.delete('rstfile', 'rstdata') == ('rstfile deleted', 'rstfile',
-                'rstfile.html', '', '')
+        assert testsubj.delete('rstfile', 'rstdata') == ('deleted', 'rstfile', 'rstfile.html', '',
+                                                         '')
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext == ''
         assert testsubj.rstdata == ''
@@ -1853,26 +1856,33 @@ class TestR2hState:
 
     def test_status(self, monkeypatch):
         def mock_get_doc_stats(*args):
-            return rhfn.dml.Stats(2, 2, 2)
+            return rhfn.dml.Stats(datetime.datetime.fromtimestamp(2),
+                                  datetime.datetime.fromtimestamp(2),
+                                  datetime.datetime.fromtimestamp(2))
         def mock_get_doc_stats_2(*args):
-            return rhfn.dml.Stats(2, None, None)
+            return rhfn.dml.Stats(datetime.datetime.fromtimestamp(2), datetime.datetime.min,
+                                  datetime.datetime.min)
         def mock_get_doc_stats_3(*args):
-            return rhfn.dml.Stats(None, None, None)
+            return rhfn.dml.Stats(datetime.datetime.min, datetime.datetime.min,
+                                  datetime.datetime.min)
         testsubj = rhfn.R2hState()
         testsubj.current = ''
         monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats)
-        assert testsubj.status('file') == ('/file: last modified: 2 - last converted: 2 -'
-                                           ' last migrated: 2')
+        assert testsubj.status('file') == ('/file: last modified: 01-01-1970 01:00:02'
+                                           ' - last converted: 01-01-1970 01:00:02'
+                                           ' - last migrated: 01-01-1970 01:00:02')
         testsubj = rhfn.R2hState()
         testsubj.current = 'dir'
         monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats)
-        assert testsubj.status('file') == ('dir/file: last modified: 2 - last converted: 2 -'
-                                           ' last migrated: 2')
+        assert testsubj.status('file') == ('dir/file: last modified: 01-01-1970 01:00:02'
+                                           ' - last converted: 01-01-1970 01:00:02'
+                                           ' - last migrated: 01-01-1970 01:00:02')
         testsubj = rhfn.R2hState()
         testsubj.current = ''
         monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats_2)
-        assert testsubj.status('file') == ('/file: last modified: 2 - last converted: n/a -'
-                                           ' last migrated: n/a')
+        assert testsubj.status('file') == ('/file: last modified: 01-01-1970 01:00:02'
+                                           ' - last converted: n/a'
+                                           ' - last migrated: n/a')
         testsubj = rhfn.R2hState()
         testsubj.current = ''
         monkeypatch.setattr(rhfn.dml, 'get_doc_stats', mock_get_doc_stats_3)
