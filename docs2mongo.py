@@ -494,7 +494,7 @@ def apply_deletions_mirror(site_name, directory=''):
 
 
 def get_doc_stats(site_name, docname, dirname=''):
-    """get statistics for all documents in a site subdirectory"""
+    """get statistics for a document in a site subdirectory"""
     sitedoc = _get_site_doc(site_name)
     if dirname:
         docinfo = sitedoc['docs'][dirname][docname]

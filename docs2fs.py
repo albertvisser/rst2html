@@ -458,8 +458,6 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     if not contents:
         raise AttributeError('load_html')
     if doc_name not in [x.replace('.rst', '.html') for x in list_docs(sitename, 'src', directory)]:
-        with open('/tmp/in_update_all', 'a') as _o:
-            print('doc_name', doc_name, 'not found in list_docs for directory', directory, file=_o)
         raise FileNotFoundError("no_document")
     if dry_run:
         return
@@ -471,8 +469,6 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     ext = LOC2EXT['dest']
     if path.suffix != ext:
         path = path.with_suffix(ext)
-    with open('/tmp/in_update_all', 'a') as _o:
-        print('saving to', path, file=_o)
     save_to(path, contents)
 
 

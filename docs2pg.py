@@ -827,7 +827,7 @@ def apply_deletions_mirror(site_name, directory=''):
 
 
 def get_doc_stats(site_name, docname, dirname=''):
-    """get statistics for all documents in a site subdirectory"""
+    """get statistics for a document in a site subdirectory"""
     if not dirname:
         dirname = '/'
     doc_name = pathlib.Path(docname).stem
