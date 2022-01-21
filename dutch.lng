@@ -122,6 +122,7 @@ chdir_down = verder in directory {}
 chdir_up = verder in parent directory
 clsid_missing = Een id of class gebruikt door directives zit niet in de css files: {}
 clsid_ok = Geen constateringen
+css_not_defined = Niet uitgevoerd: geen css gedefinieerd of site settings niet herladen na browser herstart
 conf_init = Configuratiebestand is {}
 conf_invalid = Niet uitgevoerd: tekstveld bevat geen settings
 conf_loaded = Settings geladen van {}

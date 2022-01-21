@@ -1504,15 +1504,18 @@ class R2hState:
     def convert(self, rstfile, newfile, rstdata):
         """convert rest source to html and show on page
         """
-        fname = newfile or rstfile
-        rstdata = rstdata.replace('\r\n', '\n')
-        if rstdata == self.oldtext:
-            mld = check_if_rst(rstdata, self.loaded)  # alleen inhoud controleren
+        if not self.is_css_defined():
+            mld = 'css_not_defined'
         else:
-            mld = check_if_rst(rstdata, self.loaded, fname)
-            if mld == '':
-                # only if current text type == previous text type?
-                mld = save_src_data(self.sitename, self.current, fname, rstdata)
+            fname = newfile or rstfile
+            rstdata = rstdata.replace('\r\n', '\n')
+            if rstdata == self.oldtext:
+                mld = check_if_rst(rstdata, self.loaded)  # alleen inhoud controleren
+            else:
+                mld = check_if_rst(rstdata, self.loaded, fname)
+                if mld == '':
+                    # only if current text type == previous text type?
+                    mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
             rstdata = preprocess_includes(self.sitename, self.current, rstdata)
             previewdata = rst2html(rstdata, self.conf['css'])
@@ -1524,12 +1527,15 @@ class R2hState:
     def saveall(self, rstfile, newfile, rstdata):
         """convert rest source to html and save
         """
-        fname = newfile or rstfile
-        is_new_file = newfile != ""
-        path = pathlib.Path(fname)
-        if path.suffix in ('.html', ''):
-            fname = path.stem + '.rst'
-        mld = check_if_rst(rstdata, self.loaded, fname)
+        if not self.is_css_defined():
+            mld = 'css_not_defined'
+        if mld == '':
+            fname = newfile or rstfile
+            is_new_file = newfile != ""
+            path = pathlib.Path(fname)
+            if path.suffix in ('.html', ''):
+                fname = path.stem + '.rst'
+            mld = check_if_rst(rstdata, self.loaded, fname)
         if mld == '':
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
@@ -1657,6 +1663,8 @@ class R2hState:
 
         (this would be the actual index of the site but hey, HTML conventions)
         """
+        if not self.is_css_defined():
+            return (get_text('css_not_defined', self.get_lang()), )
         use_sef = self.conf.get('seflinks', False)
         rstdata, has_err = TrefwoordenLijst(self.sitename, self.get_lang(), use_sef).build()
         if not rstdata:
@@ -1684,6 +1692,8 @@ class R2hState:
         """(re)generate all html documents and copy to mirror"""
         # optdict = {'0': 'all', '1': 'needed', '2': 'missing',
         #            '3': 'all (show)', '4': 'needed (show)', '5': 'missing (show)'}
+        if not self.is_css_defined():
+            return get_text('css_not_defined', self.get_lang()), ''
         needed_only = option in ('1', '4')
         missing_only = option in ('2', '5')
         show_only = option in ('3', '4', '5')
@@ -1761,4 +1771,6 @@ class R2hState:
                 print(';'.join(docinfo), file=out)
         return get_text('overview_copy_msg', self.get_lang()).format(outfile)
 
+    def is_css_defined(self):
+        return self.conf.get('css', [])
 # -- eof

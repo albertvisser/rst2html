@@ -122,6 +122,7 @@ chdir_down = switching to directory {}
 chdir_up = switching to parent directory
 clsid_missing = an id or class used in the directives was not found in the linked css files: {}
 clsid_ok = No issues detected
+css_not_defined = Not executed: no css defined or site settings not reloaded after browser restart
 conf_init = Settings file is {}
 conf_invalid = Not executed: text area doesn't contain settings data
 conf_loaded = Settings loaded from {}
