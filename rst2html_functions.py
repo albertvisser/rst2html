@@ -1527,6 +1527,7 @@ class R2hState:
     def saveall(self, rstfile, newfile, rstdata):
         """convert rest source to html and save
         """
+        mld = ''
         if not self.is_css_defined():
             mld = 'css_not_defined'
         if mld == '':
