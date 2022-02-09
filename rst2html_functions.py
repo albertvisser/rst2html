@@ -789,7 +789,7 @@ def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
-        return 'Not a valid html file name'  # TODO: language string van maken
+        return 'html_filename_error'
     if current:
         mld, data = read_html_data(sitename, current, path.stem)
     else:
@@ -1032,7 +1032,6 @@ class TrefwoordenLijst:
         has_errors = False
         reflinks, errors = self.get_reflinks()
         if not reflinks and not errors:
-            # return '', 'No index created: no reflinks found'  # TODO: make translation
             return '', get_text('no_index', self.lang)
         to_top = self.start_page()
         for key in sorted(reflinks.keys()):

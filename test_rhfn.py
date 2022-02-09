@@ -879,7 +879,7 @@ class TestTargetRelated:
             raise AttributeError('error')
         monkeypatch.setattr(rhfn.dml, 'apply_deletions_mirror', mock_apply_deletions_mirror)
         assert rhfn.save_to_mirror(self.sitename, '', self.filename + '.x', {}) == (
-                'Not a valid html file name')
+                'html_filename_error')
         assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
         monkeypatch.setattr(rhfn, 'read_html_data', mock_read_html_data_error)
         assert rhfn.save_to_mirror(self.sitename, '', self.filename, {}) == (
@@ -1771,14 +1771,17 @@ class TestR2hState:
             return args[0]
         def mock_read_conf(*args):
             return '', {}
-        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst_mld)
         assert testsubj.convert('rstfile', 'newfile', 'text\r\nmoretext') == (
+                'css_not_defined', '', '')
+        testsubj.conf = {'css': 'x'}
+        assert testsubj.convert('rstfile', 'newfile', 'text\r\nmoretext') == (
                 'mld from check_if_rst', '', '')
+        monkeypatch.setattr(rhfn, 'read_conf', mock_read_conf)
         monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst)
         testsubj.oldtext = 'text\nmoretext'
         monkeypatch.setattr(rhfn, 'rst2html', mock_rst2html)
@@ -1829,9 +1832,10 @@ class TestR2hState:
         testsubj.rstfile = 'rst'
         testsubj.htmlfile = 'html'
         testsubj.newfile = 'new'
+        assert testsubj.saveall('r', 'n', 'txt') == ('css_not_defined', 'rst', 'html', 'new')
+        testsubj.conf = {'css': 'x'}
         assert testsubj.saveall('r', 'n', 'txt') == ('mld from check_if_rst', 'rst', 'html', 'new')
         monkeypatch.setattr(rhfn, 'check_if_rst', mock_check_if_rst)
-        testsubj.conf = {'css': ''}
         testsubj.oldtxt = 'txt'
         monkeypatch.setattr(rhfn, 'save_src_data', mock_save_src_data_mld)
         assert testsubj.saveall('r', 'n', 'txt') == ('mld from save_src_data', 'n.rst', 'n.html',
@@ -2010,6 +2014,10 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
         testsubj.conf = {'css': []}
+        msg = rhfn.get_text('css_not_defined', testsubj.get_lang())
+        monkeypatch.setattr(rhfn.TrefwoordenLijst, 'build', mock_trefwlijst_norefs)
+        assert testsubj.makerefdoc() == (msg, )
+        testsubj.conf = {'css': ['x']}
         monkeypatch.setattr(rhfn.TrefwoordenLijst, 'build', mock_trefwlijst_norefs)
         assert testsubj.makerefdoc() == (True, )
 
@@ -2042,10 +2050,11 @@ class TestR2hState:
 
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
         testsubj = rhfn.R2hState()
-        # FIXME: bij het simuleren van deze klasse ook teruggeven met welke argumenten deze wordt
-        # aangeroepen/geinstantieerd
         monkeypatch.setattr(rhfn.UpdateAll, 'go', mock_update_all_go_empty)
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
+        testsubj.conf = {'css': []}
+        assert testsubj.convert_all() == ('css_not_defined', '')
+        testsubj.conf = {'css': ['x']}
         assert testsubj.convert_all() == ('converted in_sim', '')
         assert testsubj.convert_all('2') == ('converted ', '')
         assert testsubj.convert_all('3') == ('converted in_sim', '')
@@ -2069,10 +2078,10 @@ class TestR2hState:
 
         monkeypatch.setattr(rhfn, 'search_site', mock_search_site)
         monkeypatch.setattr(rhfn, 'searchdict2list', mock_searchdict2list)
-        assert testsubj.search('found', '') == ('de onderstaande regels/regeldelen zijn gevonden:',
+        assert testsubj.search('found', '') == ('the following lines / parts were found:',
                                                 ['found this', 'and that'])
-        assert testsubj.search('found', 'replaced') == ('de onderstaande regels/regeldelen zijn '
-                                                        'vervangen:', ['found this', 'and that'])
+        assert testsubj.search('found', 'replaced') == ('the following lines / parts were replaced:',
+                                                        ['found this', 'and that'])
 
         monkeypatch.setattr(rhfn, 'search_site', mock_search_site_none)
         testsubj.search('not found', '') == ('search phrase not found', {})
@@ -2126,5 +2135,5 @@ class TestR2hState:
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn, 'get_copystand_filepath', mock_get_copystand_filepath)
         monkeypatch.setattr(rhfn, 'get_progress_line_values', mock_get_progress_line_values)
-        assert testsubj.copystand(['x']) == 'Overzicht geëxporteerd naar /tmp/copystand'
+        assert testsubj.copystand(['x']) == 'Overview exported to /tmp/copystand'
         assert path.read_text() == 'x;y;z;q\n'
