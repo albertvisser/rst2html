@@ -440,7 +440,8 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     """
     if not doc_name:
         raise AttributeError('no_name')
-    # FIXME: geen test nodig of data gevuld of of het doc wel aanwezig is (zoals in update_html)?
+    if not data:
+        raise AttributeError('no_contents')
     if dry_run:
         return
     if not directory:

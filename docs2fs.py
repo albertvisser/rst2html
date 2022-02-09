@@ -456,7 +456,7 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     if not doc_name:
         raise AttributeError('no_name')
     if not contents:
-        raise AttributeError('load_html')
+        raise AttributeError('no_contents')
     if doc_name not in [x.replace('.rst', '.html') for x in list_docs(sitename, 'src', directory)]:
         raise FileNotFoundError("no_document")
     if dry_run:
@@ -505,6 +505,8 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
     """
     if not doc_name:
         raise AttributeError('no_name')
+    if not data:
+        raise AttributeError('no_contents')
     if dry_run:
         return
     path = WEBROOT / sitename
