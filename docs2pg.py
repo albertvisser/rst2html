@@ -94,7 +94,7 @@ def _get_all_dir_ids(site_id):
 def _get_docs_in_dir(dir_id):
     """returns the names of all documents in a site subdirectory
     """
-    result = None       #FIXME: heeft dit zin? Is dit nodig bij gebruik van fetchall?
+    result = []
     cur = conn.cursor()
     cur.execute('select docname from {} where dir_id = %s;'.format(TABLES[3]), (dir_id,))
     result = [x for x in cur.fetchall()]
