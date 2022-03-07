@@ -688,12 +688,20 @@ class TestDocLevel:
         assert capsys.readouterr().out == 'called get_dir_id for `dirname`\n'
         # monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3))
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'currtext': 'text'})
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'currtext': 'text',
+                                                               'previous': 'old text'})
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         assert dmlp.get_doc_contents('site_name', 'doc_name') == 'text'
         assert capsys.readouterr().out == ''.join((
             'called get_dir_id for `/`\n',
             'execute SQL: `select currtext from documents where id = %s;`\n',
+            '  with: `2`\n',
+            'called commit() on connection\n',
+            'called close()\n'))
+        assert dmlp.get_doc_contents('site_name', 'doc_name', previous=True) == 'old text'
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id for `/`\n',
+            'execute SQL: `select previous from documents where id = %s;`\n',
             '  with: `2`\n',
             'called commit() on connection\n',
             'called close()\n'))
@@ -1148,13 +1156,23 @@ class TestDocLevel:
                 return (x for x in [{'dirname': '/'}, {'dirname': 'subdir'}])
             else:
                 return (x for x in [{'docname': 'x', 'source_updated': 1, 'target_updated': 2,
-                                     'mirror_updated': 3, 'dirname': '/'},
+                                     'mirror_updated': 3, 'source_deleted': None,
+                                     'target_deleted': None, 'dirname': '/'},
                                     {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'dirname': '/'},
+                                     'mirror_updated': 5, 'source_deleted': None,
+                                     'target_deleted': None, 'dirname': '/'},
+                                    {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
+                                     'mirror_updated': 5, 'source_deleted': 8, 'target_deleted': None,
+                                     'dirname': '/'},
+                                    {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
+                                     'mirror_updated': 5, 'source_deleted': 8, 'target_deleted': 9,
+                                     'dirname': '/'},
                                     {'docname': 'a', 'source_updated': 2, 'target_updated': 4,
-                                     'mirror_updated': 5, 'dirname': 'subdir'},
+                                     'mirror_updated': 5, 'source_deleted': None,
+                                     'target_deleted': None, 'dirname': 'subdir'},
                                     {'docname': 'b', 'source_updated': 3, 'target_updated': 4,
-                                     'mirror_updated': 6, 'dirname': 'subdir'}])
+                                     'mirror_updated': 6, 'source_deleted': None,
+                                     'target_deleted': None, 'dirname': 'subdir'}])
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.get_all_doc_stats('site_name')
@@ -1172,9 +1190,9 @@ class TestDocLevel:
         assert capsys.readouterr().out == ''.join((
             'execute SQL: `select dirname from directories where site_id = %s;`\n',
             '  with: `99`\n',
-            'execute SQL: `select docname, source_updated, target_updated, mirror_updated,'
-            ' dirname from doc_stats, directories where dir_id = directories.id'
-            ' and dir_id = any(%s);`\n',
+            'execute SQL: `select dirname, docname, source_updated, target_updated, mirror_updated,'
+            ' source_deleted, target_deleted from doc_stats, directories'
+            ' where dir_id = directories.id and dir_id = any(%s);`\n',
             '  with: `[1, 2, 3]`\n',
             'called commit() on connection\n',
             'called close()\n'))

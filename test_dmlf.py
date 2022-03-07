@@ -555,12 +555,20 @@ class TestDocLevel:
             dmlf.get_doc_contents('sitename', 'docname')
         monkeypatch.setattr(dmlf, 'read_data', mock_read_data)
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'docname.rst'
+        oldpath = dmlf.WEBROOT / 'sitename' / '.source' / 'docname.rst.bak'
         assert dmlf.get_doc_contents('sitename', 'docname') == 'read data from `{}`'.format(path)
-        assert dmlf.get_doc_contents('sitename', 'docname.rst') == ('read data from '
-                                                                    '`{}`'.format(path))
+        assert dmlf.get_doc_contents('sitename', 'docname', previous=True) == (
+                'read data from `{}`'.format(oldpath))
+        assert dmlf.get_doc_contents('sitename', 'docname.rst') == (
+                'read data from `{}`'.format(path))
+        assert dmlf.get_doc_contents('sitename', 'docname.rst', previous=True) == (
+                'read data from `{}`'.format(oldpath))
         path = dmlf.WEBROOT / 'sitename' / '.target' / 'docname.html'
-        assert dmlf.get_doc_contents('sitename', 'docname', 'dest') == ('read data from '
-                                                                        '`{}`'.format(path))
+        oldpath = dmlf.WEBROOT / 'sitename' / '.target' / 'docname.html.bak'
+        assert dmlf.get_doc_contents('sitename', 'docname', 'dest') == (
+                'read data from `{}`'.format(path))
+        assert dmlf.get_doc_contents('sitename', 'docname', 'dest', previous=True) == (
+                'read data from `{}`'.format(oldpath))
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'docname.rst'
         assert dmlf.get_doc_contents('sitename', 'docname', 'src',
                                      'directory') == 'read data from `{}`'.format(path)
@@ -708,6 +716,8 @@ class TestDocLevel:
             print('called save_to(): save `{}` in `{}`'.format(args[1], args[0]))
         with pytest.raises(AttributeError):
             dmlf.update_mirror('sitename', '', 'data')
+        with pytest.raises(AttributeError):
+            dmlf.update_mirror('sitename', 'doc_name', '')
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlf, 'save_to', mock_save_to)
         loc = dmlf.WEBROOT / 'sitename' / 'doc_name.html'

@@ -8,6 +8,7 @@ import pathlib
 import importlib
 import inspect
 ## import glob
+import difflib
 import html
 import urllib.request
 import urllib.error
@@ -77,7 +78,7 @@ FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
 # constants for loaded data
-RST, HTML, CONF, XTRA = 'rst', 'html', 'yaml', 'py'
+RST, HTML, CONF, XTRA, DIFF = 'rst', 'html', 'yaml', 'py', 'diff'
 #
 # Language support : eigengebakken spul, tzt te vervangen door gnu_gettext zaken (of niet)
 #
@@ -114,7 +115,7 @@ def get_text(keyword, lang=LANG):
 def translate_action(action):
     "translate action verb from UI to language-independent value"
     for lang in languages:
-        for keyword in ('c_rename', 'c_revert', 'c_delete'):
+        for keyword in ('c_rename', 'c_revert', 'c_delete', 'c_status', 'c_changes'):
             if action == get_text(keyword, lang):
                 action = keyword[2:]
     return action
@@ -617,6 +618,24 @@ def read_html_data(sitename, current, fname):
         return 'html_name_missing', ''
     except FileNotFoundError:
         return 'html_file_missing', ''
+
+
+def compare_source(sitename, current, rstfile):
+    rstdata = ''
+    if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+        mld = 'incorrect_name'
+    else:
+        mld, newsource = read_src_data(sitename, current, rstfile)
+    if not mld:
+        oldsource = dml.get_doc_contents(sitename, rstfile, 'src', current, previous=True)
+        # diff = difflib.context_diff(newsource.split('\n'), oldsource.split('\n'),
+        #                             fromfile='current text', tofile='previous text')
+        # diff = difflib.ndiff(oldsource.split('\n'), newsource.split('\n'))
+        diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
+                                    fromfile='current text', tofile='previous text')
+        # diff = difflib.HtmlDiff().make_file(oldsource, newsource)
+        mld, rstdata = '', ''.join([x for x in diff])
+    return mld, rstdata
 
 
 def read_tpl_data(sitename, fnaam):
@@ -1416,6 +1435,15 @@ class R2hState:
         mld = format_message(mld, self.get_lang(), newfile)
         return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
 
+    def diffsrc(self, rstfile):
+        """compare current source with previous version
+        """
+        mld, rstdata = compare_source(self.sitename, self.current, rstfile)
+        if not mld:
+            self.loaded = DIFF
+            mld = get_text('diff_loaded', self.get_lang()).format(rstfile)
+        return mld, rstdata
+
     def revert(self, rstfile, rstdata):
         """revert `rstfile` to  backed up contents
         """
@@ -1423,6 +1451,7 @@ class R2hState:
             mld = 'incorrect_name'
         else:
             mld = revert_src(self.sitename, self.current, rstfile)
+        if mld == "":
             mld, rstdata = read_src_data(self.sitename, self.current, rstfile)
         if mld == "":
             path = pathlib.Path(rstfile)

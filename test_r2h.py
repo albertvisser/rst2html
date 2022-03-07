@@ -196,9 +196,25 @@ class TestRst2Html:
         def mock_loadrst(*args):
             print('called R2hState.loadrst')
             return 'mld', 'data', 'html', 'new'
+        def mock_status(*args):
+            print('called R2hState.status')
+            return 'message'
+        def mock_diffsrc(*args):
+            print('called R2hState.diffsrc')
+            return 'message', 'diff'
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'loadrst', mock_loadrst)
+        monkeypatch.setattr(testsubj.state, 'status', mock_status)
+        monkeypatch.setattr(testsubj.state, 'diffsrc', mock_diffsrc)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
+        assert testsubj.loadrst(settings='s', rstfile='r', htmlfile='h', newfile='n', rstdata='d',
+                                l_action='status') == ('format_output for r, h, n, message,'
+                                                       ' d, s, {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.status\n'
+        assert testsubj.loadrst(settings='s', rstfile='r', htmlfile='h', newfile='n', rstdata='d',
+                                l_action='changes') == ('format_output for r, h, n, message,'
+                                                       ' diff, s, {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.diffsrc\n'
         assert testsubj.loadrst(settings='s', rstfile='r') == ('format_output for r, html, new,'
                                                                 ' mld, data, s,'
                                                                 ' {}'.format(testsubj.state))

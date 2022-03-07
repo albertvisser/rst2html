@@ -11,14 +11,14 @@ cl = MongoClient()
 db = cl.rst2html_database
 site_coll = db.site_coll
 # support for older pymongo versions
-try:
-    test = Collection.update_one
-except AttributeError:
-    ## Collection.insert_one = Collection.insert
-    Collection.update_one = Collection.update
-    Collection.replace_one = Collection.update
-    ## # Collection.find_one_and_delete = Collection.remove
-    Collection.delete_many = Collection.remove
+# try:
+#     test = Collection.update_one
+# except AttributeError:
+#     # Collection.insert_one = Collection.insert
+#     Collection.update_one = Collection.update
+#     Collection.replace_one = Collection.update
+#     # Collection.find_one_and_delete = Collection.remove
+#     Collection.delete_many = Collection.remove
 
 
 #
@@ -274,7 +274,7 @@ def create_new_doc(site_name, doc_name, directory=''):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
-def get_doc_contents(site_name, doc_name, doctype='', directory=''):
+def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=False):
     """ retrieve a document of a given type in the given directory
 
     raises AttributeError on missing document name
@@ -294,6 +294,8 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document".format(doc_name))
     doc_data = site_coll.find({'_id': doc_id})[0]
+    if previous:
+        return doc_data['previous']
     return doc_data['current']
 
 
@@ -496,6 +498,7 @@ def apply_deletions_mirror(site_name, directory=''):
 
 def get_doc_stats(site_name, docname, dirname=''):
     """get statistics for a document in a site subdirectory"""
+    docname = pathlib.Path(docname).stem
     sitedoc = _get_site_doc(site_name)
     if dirname:
         docinfo = sitedoc['docs'][dirname][docname]

@@ -54,9 +54,14 @@
             </select>
             <input type="submit" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
               formaction="/loadrst/" />
+	    <select name="l_action" title="_(t_loadaction) [J]" accesskey="j">
+	      <option> </option>
+	      <option>_(c_status)</option>
+	      <option>_(c_changes)</option>
+            </select>
             <input type="submit" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
               formaction="/saverst/" />
-            <select name="action" title="_(t_action) [A]" accesskey="a">
+            <select name="s_action" title="_(t_saveaction) [A]" accesskey="a">
               <option> </option>
               <option>_(c_rename)</option>
               <option>_(c_revert)</option>
@@ -70,10 +75,6 @@
           <div class="table-column" style="float:left">
             <span style="padding-left: 10px">_(c_newfile):</span>
             <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]" accesskey="n"/>
-          </div>
-          <div class="table-column" style="float:left">
-            <input type="submit" value="_(c_status)" title="_(t_status) [J]" accesskey="j"
-	      formaction="/status/" />
           </div>
 
           <div class="clear" style="clear: both"></div>

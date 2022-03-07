@@ -706,6 +706,13 @@ class TestSourceRelated:
         assert rhfn.save_src_data(self.sitename, 'hello', self.filename + '.rst', '...') == (
             'src_file_missing')
 
+    def test_compare_source(self, monkeypatch, capsys):
+        def mock_context_diff(*args, **kwargs):
+            return 'call context_diff with args {} {}'.format(args, kwargs)
+        monkeypatch.setattr(rhfn.difflib, 'context_diff', mock_context_diff)
+        assert rhfn.compare_source('new source', 'old source') == ("call context_diff with args"
+              " ('new source', 'old source') {'fromfile': 'current text', 'tofile': 'previous text'}")
+
     def test_revert_src(self, monkeypatch, capsys):
         def mock_revert_rst(*args, **kwargs):
             print('args for revert_rst: `{}` `{}`'.format(args, kwargs))
@@ -1649,6 +1656,29 @@ class TestR2hState:
                                                                     'newfile.html', '', 'rstdata')
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
+
+    def test_diffsrc(self, monkeypatch, capsys):
+        def mock_read_src_data(*args):
+            return '', 'source data'
+        def mock_read_src_data_mld(*args):
+            return 'mld from read_src_data', ''
+        def mock_get_doc_contents(*args, **kwargs):
+            return '', 'backup data'
+        def mock_compare_source(*args):
+            return 'compared source data with backup data'
+        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+        testsubj = rhfn.R2hState()
+        monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
+        monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
+        assert testsubj.diffsrc('directory/') == 'incorrect_name', ''
+        assert testsubj.diffsrc('text.tpl') == 'incorrect_name', ''
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_mld)
+        assert testsubj.diffsrc('text') == 'mld from read_src_data', ''
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
+        monkeypatch.setattr(rhfn.dml, 'get_doc_contents', mock_get_doc_contents)
+        monkeypatch.setattr(rhfn, 'compare_source', mock_compare_source)
+        assert testsubj.diffsrc('test') == ('', 'compared source data with backup data')
+        assert testsubj.loaded == rhfn.DIFF
 
     def test_revert(self, monkeypatch, capsys):
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)

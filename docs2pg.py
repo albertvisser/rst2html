@@ -525,7 +525,7 @@ def create_new_doc(site_name, doc_name, directory=''):
     cur.close()
 
 
-def get_doc_contents(site_name, doc_name, doctype='', directory=''):
+def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=False):
     """ retrieve a document of a given type in the given directory
 
     raises AttributeError on missing document name
@@ -554,9 +554,10 @@ def get_doc_contents(site_name, doc_name, doctype='', directory=''):
         docid = dest_id
 
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select currtext from {} where id = %s;'.format(TABLES[4]), (docid,))
+    column = 'previous' if previous else 'currtext'
+    cur.execute('select {} from {} where id = %s;'.format(column, TABLES[4]), (docid,))
     row = cur.fetchone()
-    result = row['currtext']
+    result = row[column]
     conn.commit()
     cur.close()
     return result

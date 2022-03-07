@@ -115,6 +115,8 @@ class TestNonApiFunctions:
                                                       datetime.datetime.min)
         docinfo = {'src': {'updated': 1}, 'dest': {'updated': 2}, 'mirror': {'updated': 3}}
         assert dmlm._get_stats(docinfo) == dmlm.Stats(1, 2, 3)
+        docinfo = {'src': {'deleted': 1}, 'dest': {'updated': 2}, 'mirror': {'updated': 3}}
+        assert not dmlm._get_stats(docinfo)
 
 
 class TestTestApi:
@@ -413,6 +415,9 @@ class TestDocLevel:
             {'dirname': {'doc_name': {'dest': {'docid': 'doc_id'}}}}})
         assert dmlm.get_doc_contents('site_name', 'doc_name', 'dest', 'dirname') == 'data'
         assert capsys.readouterr().out == "called find() with arg `{'_id': 'doc_id'}`\n"
+        assert dmlm.get_doc_contents('site_name', 'doc_name', 'dest', 'dirname',
+                                     previous=True) == 'old data'
+        assert capsys.readouterr().out == "called find() with arg `{'_id': 'doc_id'}`\n"
 
     def test_update_rst(self, monkeypatch, capsys):
         def mock_find(self, *args):
@@ -588,10 +593,9 @@ class TestDocLevel:
             print('called touch() for `{}`'.format(self))
         with pytest.raises(AttributeError):
             dmlm.update_mirror('site_name', '', 'contents')
-        # geen test op of data gevuld?
-        # with pytest.raises(AttributeError):
-        #     dmlm.update_mirror('site_name', 'doc_name', '')
-        # no checking if the document exists
+        with pytest.raises(AttributeError):
+            dmlm.update_mirror('site_name', 'doc_name', '')
+        # no checking if the document exists ?
         # monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
         #         {'dirname': {'mirror': {'other_doc': {}}}}})
         dmlm.update_mirror('site_name', 'doc_name', 'contents')

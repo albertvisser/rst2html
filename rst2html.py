@@ -20,6 +20,7 @@ codemirror_stuff = ['<script src="/static/codemirror/lib/codemirror.js"></script
                     '<link rel="stylesheet" href="/static/codemirror/lib/codemirror.css"/>']
 scriptspec = '<script src="/static/codemirror/mode/{}.js"></script>'
 scriptdict = {'yaml': ('yaml/yaml',),
+              'diff': ('diff/diff',),
               'html': ('xml/xml', 'javascript/javascript', 'css/css',
                        'htmlmixed/htmlmixed'),
               'py': ('python/python', '../addon/edit/matchbrackets'),
@@ -225,21 +226,28 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
+    def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", l_action='',
+                **kwargs):
         """load indicated .rst file
 
         pre-builds save-filename by changing extension from rst to html"""
-        mld, rstdata, htmlfile, newfile = self.state.loadrst(rstfile)
+        action = rhfn.translate_action(l_action)
+        if action == 'status':
+            mld = self.state.status(rstfile)
+        elif action == 'changes':
+            mld, rstdata = self.state.diffsrc(rstfile)
+        else:
+            mld, rstdata, htmlfile, newfile = self.state.loadrst(rstfile)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
-    def saverst(self, settings="", rstfile="", newfile="", rstdata="", action='', **kwargs):
+    def saverst(self, settings="", rstfile="", newfile="", rstdata="", s_action='', **kwargs):
         """(re)save rst file using selected name
 
         if new name specified, use that (extension must be .rst)
         `action` has a value when rename or delete is checked
         """
-        action = rhfn.translate_action(action)
+        action = rhfn.translate_action(s_action)
         if action == 'rename':
             mld, rstfile, htmlfile, newfile, rstdata = self.state.rename(rstfile, newfile, rstdata)
         elif action == 'revert':

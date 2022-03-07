@@ -230,20 +230,11 @@ def read_settings(sitename):
     "lezen settings file"
     conf = None
     path = WEBROOT / sitename / SETTFILE
-    # de andere varianten gaan er van uit dat er altijd iets van settings is als we een site hebben
-    # dus dat doen we hier ook maar - geen foutafhandeling
-    # try:
-    #     with path.open(encoding='utf-8') as _in:
-    #         conf = load_config_data(_in)
-    # except FileNotFoundError:
-    #     raise                                       # TODO: hoeft dit wel gecodeerd te worden?
-    #     # of is het de bedoeling om hier juist niet te raisen en "config is leeg" te forceren?
     with path.open(encoding='utf-8') as _in:
         conf = load_config_data(_in)
     if conf is None:
         conf = {}
     return conf
-    ## return 'reading settings from {}'.format(path)
 
 
 def update_settings(sitename, conf):
@@ -358,7 +349,7 @@ def create_new_doc(sitename, docname, directory=''):
     path.touch(exist_ok=False)        # FileExistsError will be handled in the caller
 
 
-def get_doc_contents(sitename, docname, doctype='', directory=''):
+def get_doc_contents(sitename, docname, doctype='', directory='', previous=False):
     """ retrieve a document of a given type in the given directory
 
     raises AttributeError on missing document name
@@ -374,6 +365,8 @@ def get_doc_contents(sitename, docname, doctype='', directory=''):
     ext = LOC2EXT[doctype or 'src']
     if path.suffix != ext:
         path = path.with_suffix(ext)
+    if previous:
+        path = pathlib.Path(str(path) + '.bak')
     mld, doc_data = read_data(path)
     if mld:
         raise FileNotFoundError(mld)
