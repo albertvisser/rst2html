@@ -138,15 +138,17 @@ def read_data(fname):   # to be used for actual file system data
     return mld, data
 
 
-def save_to(fullname, data):  # to be used for actual file system data
+def save_to(fullname, data, seflinks=None):  # to be used for actual file system data
     """backup file, then write data to file
 
     gebruikt copyfile i.v.m. permissies (user = webserver ipv end-user)
     """
+    if seflinks is None:
+        settings = read_settings(sitename)
+        seflinks =  settings.get('seflinks', False)
     sitename = fullname.relative_to(WEBROOT).parts[0]
     if fullname.suffix == '.html' and fullname.stem != 'index':
-        settings = read_settings(sitename)
-        if settings.get('seflinks', False):
+        if seflinks:
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():
                 new_fname.replace(new_fname.with_suffix('.bak'))
