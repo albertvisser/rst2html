@@ -1,0 +1,3 @@
+# covtest tests/tasks.py tasks.py
+export PYTHONPATH=`pwd`
+python -m pytest -v

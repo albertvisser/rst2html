@@ -1,0 +1,44 @@
+#! /usr/bin/env python3
+import sys
+import subprocess
+import shutil
+
+tests = ('r2h', 'rhfn', 'rhdir', 'dmlf', 'dmlm', 'dmlp')
+backends = ('fs', 'mongo', 'postgres')
+usage = 'usage: ./unittests [ARG] - where arg is a value from {}'.format(tests)
+
+                                                                            # stand per 26-3-2021
+ok = False
+if len(sys.argv) == 3:
+    ok = True
+    do = sys.argv[1]
+    backend = sys.argv[2]
+elif len(sys.argv) == 2:
+    ok = True
+    do = sys.argv[1]
+    backend = 'fs'
+elif len(sys.argv) == 1:
+    ok = True
+    do = 'all'
+    backend = 'fs'
+if do != 'all' and do not in tests:
+    ok = False
+if backend not in backends: 
+    ok = False
+if ok:
+    if do in ('all', 'r2h'):
+        subprocess.run(['covtest', 'unittests/test_r2h.py', 'rst2html.py'])               # 100% 
+    if do in ('all', 'rhfn'):
+        shutil.copyfile('app_settings_{}.py'.format(backend), 'app_settings.py')
+        subprocess.run(['covtest', 'unittests/test_rhfn.py', 'rst2html_functions.py'])    # 98% 
+    if do in ('all', 'rhdir'):
+        subprocess.run(['covtest', 'unittests/test_rhdir.py', 'rst2html_directives.py'])  # 100% 
+    if do in ('all', 'dmlf'):
+        subprocess.run(['covtest', 'unittests/test_dmlf.py', 'docs2fs.py'])	              # 97% 
+    if do in ('all', 'dmlm'):
+        subprocess.run(['covtest', 'unittests/test_dmlm.py', 'docs2mongo.py'])	          # 99% 
+    if do in ('all', 'dmlp'):
+        subprocess.run(['covtest', 'unittests/test_dmlp.py', 'docs2pg.py'])	              # 98% 
+else:
+    print(usage)
+
