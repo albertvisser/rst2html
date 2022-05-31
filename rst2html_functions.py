@@ -1176,7 +1176,8 @@ def process_file(sitename, dirname, filename, search, replace):
             results.append((number + 1, line, [x + 1 for x in pos_list]))
     if replace is not None:
         new_contents = contents.replace(search, replace)
-        dml.update_rst(sitename, filename, new_contents, dirname)
+        if new_contents != contents:
+            dml.update_rst(sitename, filename, new_contents, dirname)
     return results
 
 
