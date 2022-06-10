@@ -45,17 +45,18 @@ def _update_site_doc(site_name, site_docs):
 def _add_doc(doc):
     """create new document in the site document
     """
-    try:
-        id_ = site_coll.insert_one(doc).inserted_id
-    except TypeError:
-        id_ = site_coll.insert(doc)
+    # try:
+    id_ = site_coll.insert_one(doc).inserted_id
+    # except TypeError:
+    #     id_ = site_coll.insert(doc)
     return id_
 
 
 def _update_doc(docid, doc):
     """change a document in the site document
     """
-    site_coll.update({'_id': docid}, doc)
+    # site_coll.update({'_id': docid}, doc)
+    site_coll.update_one({'_id': docid}, {'$set': doc})
 
 
 def _get_stats(docinfo):
@@ -113,10 +114,10 @@ def create_new_site(site_name):
 
     # create sitedoc
     new_site = {'name': site_name, 'settings': {}, 'docs': {'/': {}, 'templates': {}}}
-    try:
-        site_coll.insert_one(new_site)
-    except TypeError:
-        site_coll.insert(new_site)
+    # try:
+    site_coll.insert_one(new_site)
+    # except TypeError:
+    #     site_coll.insert(new_site)
 
     # create the physical destination (mirror) so that css and images can be moved there
     path.mkdir(parents=True)
@@ -141,7 +142,7 @@ def read_settings(site_name):
 def update_settings(site_name, settings_dict):
     """replace all settings at once
     """
-    return site_coll.update({'name': site_name}, {'$set': {'settings': settings_dict}})
+    return site_coll.update_one({'name': site_name}, {'$set': {'settings': settings_dict}})
 
 
 def clear_settings(site_name):  # untested - do I need/want this?
@@ -552,11 +553,11 @@ def clear_site_data(site_name):
     """remove site from database, also delete mirror site files from file system
     """
     path = WEBROOT / site_name
-    try:
-        sitedoc = site_coll.find_one_and_delete({'name': site_name})
-    except TypeError:
-        sitedoc = site_coll.find_one({'name': site_name})
-        site_coll.remove({'name': site_name})
+    # try:
+    sitedoc = site_coll.find_one_and_delete({'name': site_name})
+    # except TypeError:
+    #     sitedoc = site_coll.find_one({'name': site_name})
+    #     site_coll.remove_one({'name': site_name})
 
     ## if sitedoc is None:
         ## if path.exists():

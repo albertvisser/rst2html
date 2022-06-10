@@ -93,20 +93,22 @@ class TestNonApiFunctions:
             "{'name': 'site_name'}", "{'$set': {'docs': {'docs': ['doc1', 'doc2']}}}")
 
     def test_add_doc(self, monkeypatch, capsys):
-        def mock_insert_one(*args):
-            raise TypeError
+        "noodzaak voor testen op TypeError vervallen: zie docs2mongo.py"
+        # def mock_insert_one(*args):
+        #     raise TypeError
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         assert dmlm._add_doc('doc') == 'x'
         assert capsys.readouterr().out == 'called insert_one with args `doc`\n'
-        monkeypatch.setattr(MockColl, 'insert_one', mock_insert_one)
-        assert dmlm._add_doc('doc') == 'x'
-        assert capsys.readouterr().out == 'called insert with args `doc`\n'
+        # monkeypatch.setattr(MockColl, 'insert_one', mock_insert_one)
+        # assert dmlm._add_doc('doc') == 'x'
+        # assert capsys.readouterr().out == 'called insert with args `doc`\n'
 
     def test_update_doc(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         dmlm._update_doc('docid', 'doc')
-        assert capsys.readouterr().out == 'called update with args `{}`, `{}`\n'.format(
-                "{'_id': 'docid'}", 'doc')
+        # assert capsys.readouterr().out == 'called update with args `{}`, `{}`\n'.format(
+        assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
+                "{'_id': 'docid'}", "{'$set': 'doc'}")
 
     def test_get_stats(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
@@ -183,13 +185,15 @@ class TestTestApi:
     def test_clear_site_data(self, monkeypatch, capsys):
         def mock_find_delete_ok(self, *args, **kwargs):
             print('called find_one_and_delete')
-            return {}
-        def mock_find_delete_nok(self, *args, **kwargs):
-            raise TypeError
-        def mock_find(self, *args, **kwargs):
-            print('called find_one')
             return {'docs': {1: {11: {111: {'docid': 111}, 112: {}}, 12: {121: {'docid': 121}}},
                              2: {21: {211: {'docid': 211}, 22: {221: {'docis': 222}}}}}}
+        # niet meer nodig
+        # def mock_find_delete_nok(self, *args, **kwargs):
+        #     raise TypeError
+        # def mock_find(self, *args, **kwargs):
+        #     print('called find_one')
+        #     return {'docs': {1: {11: {111: {'docid': 111}, 112: {}}, 12: {121: {'docid': 121}}},
+        #                     2: {21: {211: {'docid': 211}, 22: {221: {'docis': 222}}}}}}
         def mock_rmtree(*args):
             print('called rmtree')
         def mock_rmtree_fail(*args):
@@ -200,14 +204,22 @@ class TestTestApi:
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm.shutil, 'rmtree', mock_rmtree)
         dmlm.clear_site_data('site_name')
-        assert capsys.readouterr().out == 'called find_one_and_delete\ncalled rmtree\n'
-        monkeypatch.setattr(MockColl, 'find_one_and_delete', mock_find_delete_nok)
-        monkeypatch.setattr(MockColl, 'find_one', mock_find)
-        monkeypatch.setattr(dmlm, 'site_coll', MockColl())
+        assert capsys.readouterr().out == ('called find_one_and_delete\n'
+                                           "called delete_many with args `{'_id':"
+                                           " {'$in': [111, 121, 211]}}`\n"
+                                           'called rmtree\n')
+        # niet meer nodig
+        # monkeypatch.setattr(MockColl, 'find_one_and_delete', mock_find_delete_nok)
+        # monkeypatch.setattr(MockColl, 'find_one', mock_find)
+        # monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         monkeypatch.setattr(dmlm.shutil, 'rmtree', mock_rmtree_fail)
         dmlm.clear_site_data('site_name')
-        assert capsys.readouterr().out == ('called find_one\n'
-                                           "called remove with args `{'name': 'site_name'}`\n"
+        # assert capsys.readouterr().out == ('called find_one\n'
+        #                                    "called remove with args `{'name': 'site_name'}`\n"
+        #                                    "called delete_many with args `{'_id':"
+        #                                    " {'$in': [111, 121, 211]}}`\n"
+        #                                    'called rmtree_fail\n')
+        assert capsys.readouterr().out == ('called find_one_and_delete\n'
                                            "called delete_many with args `{'_id':"
                                            " {'$in': [111, 121, 211]}}`\n"
                                            'called rmtree_fail\n')
@@ -224,8 +236,9 @@ class TestSiteLevel:
     def test_create_new_site(self, monkeypatch, capsys):
         def mock_mkdir(self, *args, **kwargs):
             print('called mkdir()')
-        def mock_insert_one(*args):
-            raise TypeError
+        # niet meer nodig
+        # def mock_insert_one(*args):
+        #     raise TypeError
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: 'x')
         with pytest.raises(FileExistsError):
             dmlm.create_new_site('sitename')
@@ -241,12 +254,12 @@ class TestSiteLevel:
             "called insert_one with args `{'name': 'site_name', 'settings': {}, "
             "'docs': {'/': {}, 'templates': {}}}`\n",
             'called mkdir()\n'))
-        monkeypatch.setattr(MockColl, 'insert_one', mock_insert_one)
-        dmlm.create_new_site('site_name')
-        assert capsys.readouterr().out == ''.join((
-            "called insert with args `{'name': 'site_name', 'settings': {}, "
-            "'docs': {'/': {}, 'templates': {}}}`\n",
-            'called mkdir()\n'))
+        # monkeypatch.setattr(MockColl, 'insert_one', mock_insert_one)
+        # dmlm.create_new_site('site_name')
+        # assert capsys.readouterr().out == ''.join((
+        #     "called insert with args `{'name': 'site_name', 'settings': {}, "
+        #     "'docs': {'/': {}, 'templates': {}}}`\n",
+        #     'called mkdir()\n'))
 
     def test_rename_site(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, '_get_site_id', lambda x: 'site_id')
@@ -266,13 +279,13 @@ class TestSiteLevel:
     def test_update_settings(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         dmlm.update_settings('site_name', 'settings_dict')
-        assert capsys.readouterr().out == ("called update with args `{'name': 'site_name'}`,"
+        assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
                                            " `{'$set': {'settings': 'settings_dict'}}`\n")
 
     def test_clear_settings(self, monkeypatch, capsys):
         monkeypatch.setattr(dmlm, 'site_coll', MockColl())
         dmlm.clear_settings('site_name')
-        assert capsys.readouterr().out == ("called update with args `{'name': 'site_name'}`,"
+        assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
                                            " `{'$set': {'settings': {}}}`\n")
 
     def test_list_dirs(self, monkeypatch, capsys):
@@ -639,7 +652,7 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(dmlm.pathlib.Path, 'exists', return_true)
         monkeypatch.setattr(dmlm.pathlib.Path, 'unlink', mock_unlink)
-        dmlm.apply_deletions_mirror('site_name')
+        dmlm.apply_deletions_mirror('site_name') == []
         loc = dmlm.WEBROOT / 'site_name'
         assert capsys.readouterr().out == ''.join((
             "call update_site_doc() with args `site_name`,"
