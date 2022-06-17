@@ -410,26 +410,55 @@ def update_html(site_name, doc_name, contents, directory='', dry_run=True):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
+def list_deletions_target(site_name, directory=''):
+    """list pending deletions in source environment"""
+    if not directory:
+        directory = '/'
+    if directory == '*':
+        directories = ['/'] + list_dirs(site_name, 'src')
+    else:
+        directories = [directory]
+    sitedoc = _get_site_doc(site_name)
+    deletions = []
+    for directory in directories:
+        for doc_name in sitedoc['docs'][directory]:
+            if sitedoc['docs'][directory][doc_name]['src'].get('deleted', False):
+                if directory != '/':
+                    doc_name = '/'.join((directory, doc_name))
+                deletions.append(doc_name)
+    return deletions
+
+
 def apply_deletions_target(site_name, directory=''):
     """Copy deletion markers from source to target environment (if not already there)
     """
     if not directory:
         directory = '/'
+    if directory == '*':
+        directories = ['/'] + list_dirs(site_name, 'src')
+    else:
+        directories = [directory]
     sitedoc = _get_site_doc(site_name)
     changed = False
-    for doc_name in sitedoc['docs'][directory]:
-        # print('checking deletion mark for', doc_name)
-        # print(sitedoc['docs'][directory][doc_name])
-        if 'deleted' in sitedoc['docs'][directory][doc_name]['src']:
-            sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
-            if 'dest' not in sitedoc['docs'][directory][doc_name]:
-                htmldoc = {'current': '', 'previous': ''}
-                doc_id = _add_doc(htmldoc)
-                sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
-            sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
-            changed = True
+    deleted = []
+    for directory in directories:
+        for doc_name in sitedoc['docs'][directory]:
+            # print('checking deletion mark for', doc_name)
+            # print(sitedoc['docs'][directory][doc_name])
+            if sitedoc['docs'][directory][doc_name]['src'].get('deleted', False):
+                sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
+                if 'dest' not in sitedoc['docs'][directory][doc_name]:
+                    htmldoc = {'current': '', 'previous': ''}
+                    doc_id = _add_doc(htmldoc)
+                    sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
+                sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
+                if directory != '/':
+                    doc_name = '/'.join((directory, doc_name))
+                deleted.append(doc_name)
+                changed = True
     if changed:
         _update_site_doc(site_name, sitedoc['docs'])
+    return deleted
 
 
 def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
@@ -470,32 +499,65 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     save_to(path, data, seflinks)
 
 
+def list_deletions_mirror(site_name, directory=''):
+    """list pending deletions in target environment"""
+    if not directory:
+        directory = '/'
+    if directory == '*':
+        directories = ['/'] + list_dirs(site_name, 'dest')
+    else:
+        directories = [directory]
+    sitedoc = _get_site_doc(site_name)
+    deletions = []
+    for directory in directories:
+        for doc_name in sitedoc['docs'][directory]:
+            if sitedoc['docs'][directory][doc_name].get('dest', {}).get('deleted', False):
+                if directory != '/':
+                    doc_name = '/'.join((directory, doc_name))
+                deletions.append(doc_name)
+    return deletions
+
+
 def apply_deletions_mirror(site_name, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
     if not directory:
         directory = '/'
+    if directory == '*':
+        directories = ['/'] + list_dirs(site_name, 'dest')
+    else:
+        directories = [directory]
     sitedoc = _get_site_doc(site_name)
     deleted = []
-    for doc_name in sitedoc['docs'][directory]:
-        if 'deleted' in sitedoc['docs'][directory][doc_name].get('dest', {}):
-            deleted.append(doc_name)
+    for directory in directories:
+        for doc_name in sitedoc['docs'][directory]:
+            destdict = sitedoc['docs'][directory][doc_name].get('dest', {})
+            if destdict.get('deleted', False):
+                deleted.append((directory, doc_name))
     if not deleted:
-        return
-    for doc_name in deleted:
+        return []
+    for directory, doc_name in deleted:
         sitedoc['docs'][directory].pop(doc_name)
     _update_site_doc(site_name, sitedoc['docs'])
 
     path = WEBROOT / site_name
-    if directory != '/':
-        path /= directory
-    for doc_name in deleted:
-        docpath = path / doc_name
+    deletions = []
+    for directory, doc_name in deleted:
+        if directory == '/':
+            docpath = path / doc_name
+        else:
+            docpath = path / directory / doc_name
         ext = LOC2EXT['dest']
         if docpath.suffix != ext:
             docpath = docpath.with_suffix(ext)
         if docpath.exists():
             docpath.unlink()
+        # dir_name = directory.replace('/', '')
+        # deletions.append(f'{dir_name}/{doc_name}')
+        if directory != '/':
+            doc_name = '/'.join((directory, doc_name))
+        deletions.append(doc_name)
+    return deletions
 
 
 def get_doc_stats(site_name, docname, dirname=''):
@@ -568,7 +630,7 @@ def clear_site_data(site_name):
         ## if not path.exists():
             ## raise RuntimeError("data inconstent: database without mirror site")
 
-    if sitedoc:
+    if sitedoc:  # zou betekenen dat find_one_and_delete misgaat
         id_list = []
         # for dirname, diritem in sitedoc['docs'].items():
         for diritem in sitedoc['docs'].values():
