@@ -1688,6 +1688,28 @@ class R2hState:
                     'siteroot/' + self.currentify(self.htmlfile))
         return mld
 
+    def propagate_deletions(self, mode):
+        """migrate outstanding deletions to the next stage"""
+        if mode == '0':
+            result = dml.list_deletions_target(self.sitename, '*')
+            if result:
+                return "pending deletions for target: " + ', '.join([x for x in result])
+        elif mode == '1':
+            result = dml.apply_deletions_target(self.sitename, '*')
+            if result:
+                return "deleted from target: " + ', '.join([x for x in result])
+        elif mode == '2':
+            result = dml.list_deletions_mirror(self.sitename, '*')
+            if result:
+                return "pending deletions for mirror: " + ', '.join([x for x in result])
+        elif mode == '3':
+            result = dml.apply_deletions_mirror(self.sitename, '*')
+            if result:
+                return "deleted from mirror: " + ', '.join([x for x in result])
+        else:
+            return f'{mode = }'
+        return "no deletions pending"
+
     def makerefdoc(self):
         """create a document with reference links
 
@@ -1803,4 +1825,3 @@ class R2hState:
 
     def is_css_defined(self):
         return self.conf.get('css', [])
-# -- eof

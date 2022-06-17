@@ -305,6 +305,12 @@ class Rst2Html:
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
+    def migdel(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", m_action='',
+               **kwargs):
+        mld = self.state.propagate_deletions(m_action)
+        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
+
+    @cherrypy.expose
     def status(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         "get status for current document"
         mld = self.state.status(rstfile)

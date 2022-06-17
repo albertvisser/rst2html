@@ -55,18 +55,18 @@
             <input type="submit" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
               formaction="/loadrst/" />
 	    <select name="l_action" title="_(t_loadaction) [J]" accesskey="j">
-	      <option> </option>
+	      <option value="">_(c_load)</option>
 	      <option>_(c_status)</option>
 	      <option>_(c_changes)</option>
-            </select>
+            </select>&nbsp;
             <input type="submit" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
               formaction="/saverst/" />
             <select name="s_action" title="_(t_saveaction) [A]" accesskey="a">
-              <option> </option>
+              <option value="">_(c_save)</option>
               <option>_(c_rename)</option>
               <option>_(c_revert)</option>
               <option>_(c_delete)</option>
-            </select>
+            </select>&nbsp;
 	    <input type="submit" value="_(c_convert)" title="_(t_convert) [R]" accesskey="r"
               formaction="/convert/" />
             <input type="submit" value="_(c_saveall)" title="_(t_saveall) [C]" accesskey="c"
@@ -92,7 +92,15 @@
             <input type="submit" value="_(c_savehtml)" title="_(t_savehtml) [U]" accesskey="u"
               formaction="/savehtml/" />
             <input type="submit" value="_(c_copytoroot)" title="_(t_copytoroot) [M]" accesskey="m"
-              formaction="/copytoroot/" />
+              formaction="/copytoroot/" />&nbsp;
+            <input type="submit" value="_(c_migdel)" title="_(t_migdel)"
+              formaction="/migdel/" />
+            <select name="m_action" title="_(t_delaction)">
+              <option value="0">_(c_listdel_s)</option>
+              <option value="1">_(c_movedel_s)</option>
+              <option value="2">_(c_listdel_t)</option>
+              <option value="3">_(c_movedel_t)</option>
+            </select>&nbsp;
           </div>
           <div class="table-column" style="float:left">
           </div>

@@ -349,6 +349,19 @@ class TestRst2Html:
                                                       ' {}'.format(testsubj.state))
         assert capsys.readouterr().out == 'called R2hState.copytoroot\n'
 
+    def test_migdel(self, monkeypatch, capsys):
+        def mock_propagate(*args):
+            print('called R2hState.propagate_deletions')
+            return 'mld'
+        testsubj = r2h.Rst2Html()
+        monkeypatch.setattr(testsubj.state, 'propagate_deletions', mock_propagate)
+        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
+        assert testsubj.migdel(settings='s', rstfile='r',
+                               htmlfile='h', newfile='n',
+                               rstdata='rst') == ('format_output for r, h, n, mld, rst, s,'
+                                                  ' {}'.format(testsubj.state))
+        assert capsys.readouterr().out == 'called R2hState.propagate_deletions\n'
+
     def test_status(self, monkeypatch, capsys):
         def mock_status(*args):
             return 'message'

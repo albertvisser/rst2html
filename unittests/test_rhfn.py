@@ -774,6 +774,27 @@ class TestSourceRelated:
         rhfn.save_tpl_data(self.sitename, self.filename, '')
         assert capsys.readouterr().out == 'write_template called\n'
 
+    def test_compare_source(self, monkeypatch, capsys):
+        def mock_read_data(*args):
+            print('called rhfn.read_src_data() with args', args)
+            return '', 'new source'
+        def mock_get_contents(*args, **kwargs):
+            print('called dml.read_src_data() with args', args, kwargs)
+            return 'old source'
+        def mock_diff(*args, **kwargs):
+            print('called unified_diff() with args', args)
+            return 'compared sources'
+        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_data)
+        monkeypatch.setattr(rhfn.dml, 'get_doc_contents', mock_get_contents)
+        monkeypatch.setattr(rhfn.difflib, 'unified_diff', mock_diff)
+        assert rhfn.compare_source('sitename', '', 'dirname/') == ('incorrect_name', '')
+        assert rhfn.compare_source('sitename', '', 'docname.tpl') == ('incorrect_name', '')
+        assert rhfn.compare_source('sitename', '', 'docname') == ('', 'compared sources')
+        assert capsys.readouterr().out == (
+            "called rhfn.read_src_data() with args ('sitename', '', 'docname')\n"
+            "called dml.read_src_data() with args ('sitename', 'docname', 'src', '')"
+            " {'previous': True}\n"
+            "called unified_diff() with args (['old source'], ['new source'])\n")
 
 class TestTargetRelated:
     sitename, filename = 'testsite', 'testname'
@@ -1658,28 +1679,24 @@ class TestR2hState:
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
-    def _test_diffsrc(self, monkeypatch, capsys):
-        def mock_read_src_data(*args):
-            return '', 'source data'
-        def mock_read_src_data_mld(*args):
-            return 'mld from read_src_data', ''
-        def mock_get_doc_contents(*args, **kwargs):
-            return '', 'backup data'
+    def test_diffsrc(self, monkeypatch, capsys):
         def mock_compare_source(*args):
-            return 'compared source data with backup data'
-        monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
+            print(f'called compare_source() with {args = }')
+            return '', 'newdata'
+        def mock_compare_source_mld(*args):
+            return 'other_msg', 'rstdata'
+        monkeypatch.setattr(rhfn, 'compare_source', mock_compare_source)
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn.R2hState, 'get_lang', mock_get_lang)
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
-        assert testsubj.diffsrc('directory/') == 'incorrect_name', ''
-        assert testsubj.diffsrc('text.tpl') == 'incorrect_name', ''
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data_mld)
-        assert testsubj.diffsrc('text') == 'mld from read_src_data', ''
-        monkeypatch.setattr(rhfn, 'read_src_data', mock_read_src_data)
-        monkeypatch.setattr(rhfn.dml, 'get_doc_contents', mock_get_doc_contents)
-        monkeypatch.setattr(rhfn, 'compare_source', mock_compare_source)
-        assert testsubj.diffsrc('test') == ('', 'compared source data with backup data')
+        monkeypatch.setattr(testsubj, 'sitename', 'site')
+        assert testsubj.diffsrc('test') == ('diff_loaded', 'newdata')
+        assert capsys.readouterr().out == "called compare_source() with args = ('site', '', 'test')\n"
         assert testsubj.loaded == rhfn.DIFF
+        monkeypatch.setattr(rhfn, 'compare_source', mock_compare_source_mld)
+        testsubj.loaded = ''
+        assert testsubj.diffsrc('test') == ('other_msg', 'rstdata')
+        assert testsubj.loaded != rhfn.DIFF
 
     def test_revert(self, monkeypatch, capsys):
         monkeypatch.setattr(rhfn, 'default_site', mock_default_site)
@@ -2023,6 +2040,50 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'save_to_mirror', mock_save_to_mirror)
         assert testsubj.copytoroot('htmlfile', 'text') == 'copied_to'
         assert testsubj.htmlfile == 'htmlfile'
+
+    def test_propagate_deletions(self, monkeypatch, capsys):
+        def mock_list_target(*args):
+            print('called list_deletions_target()')
+            return ['this', 'that']
+        def mock_list_target_none(*args):
+            return []
+        def mock_apply_target(*args):
+            print('called apply_deletions_target()')
+            return ['one', 'two']
+        def mock_apply_target_none(*args):
+            return []
+        def mock_list_mirror(*args):
+            print('called list_deletions_mirror()')
+            return ['this', 'that']
+        def mock_list_mirror_none(*args):
+            return []
+        def mock_apply_mirror(*args):
+            print('called apply_deletions_mirror()')
+            return ['one', 'two']
+        def mock_apply_mirror_none(*args):
+            return []
+        monkeypatch.setattr(rhfn.dml, 'list_deletions_target', mock_list_target)
+        monkeypatch.setattr(rhfn.dml, 'apply_deletions_target', mock_apply_target)
+        monkeypatch.setattr(rhfn.dml, 'list_deletions_mirror', mock_list_mirror)
+        monkeypatch.setattr(rhfn.dml, 'apply_deletions_mirror', mock_apply_mirror)
+        testsubj = rhfn.R2hState()
+        assert testsubj.propagate_deletions(0) == 'mode = 0'
+        assert testsubj.propagate_deletions('0') == 'pending deletions for target: this, that'
+        assert capsys.readouterr().out == 'called list_deletions_target()\n'
+        assert testsubj.propagate_deletions('1') == 'deleted from target: one, two'
+        assert capsys.readouterr().out == 'called apply_deletions_target()\n'
+        assert testsubj.propagate_deletions('2') == 'pending deletions for mirror: this, that'
+        assert capsys.readouterr().out == 'called list_deletions_mirror()\n'
+        assert testsubj.propagate_deletions('3') == 'deleted from mirror: one, two'
+        assert capsys.readouterr().out == 'called apply_deletions_mirror()\n'
+        monkeypatch.setattr(rhfn.dml, 'list_deletions_target', mock_list_target_none)
+        monkeypatch.setattr(rhfn.dml, 'apply_deletions_target', mock_apply_target_none)
+        monkeypatch.setattr(rhfn.dml, 'list_deletions_mirror', mock_list_mirror_none)
+        monkeypatch.setattr(rhfn.dml, 'apply_deletions_mirror', mock_apply_mirror_none)
+        assert testsubj.propagate_deletions('0') == 'no deletions pending'
+        assert testsubj.propagate_deletions('1') == 'no deletions pending'
+        assert testsubj.propagate_deletions('2') == 'no deletions pending'
+        assert testsubj.propagate_deletions('3') == 'no deletions pending'
 
     def test_makerefdoc(self, monkeypatch):
         def mock_trefwlijst(*args, **kwargs):
