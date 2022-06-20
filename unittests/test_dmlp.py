@@ -909,12 +909,14 @@ class TestDocLevel:
         dmlp.update_html('site_name', 'doc_name', 'contents')  # dry_run=True
         assert capsys.readouterr().out == ''
 
-    def test_apply_deletions_target(self, monkeypatch, capsys):
+    def _test_list_deletions_target_old(self, monkeypatch, capsys):
         def mock_site_id(*args):
             if counter == 1:
                 return None
             else:
                 return 9
+        def mock_list_dirs(*args):
+            return ['subdir']
         def mock_dir_id(*args):
             if counter <= 3:
                 print('called get_dir_id() for `{}`'.format(args[1]))
@@ -923,9 +925,76 @@ class TestDocLevel:
             else:
                 return 99
         def mock_iter(*args):
-            return (x for x in [{'id': 1, 'target_docid': 11}, {'id': 2, 'target_docid': 12}])
+            return (x for x in [{'id': 1, 'docname': 'doc1', 'target_docid': 11},
+                                {'id': 2, 'docname': 'doc2', 'target_docid': 12}])
         counter = 1
         monkeypatch.setattr(dmlp, '_get_site_id', mock_site_id)
+        monkeypatch.setattr(dmlp, '_get_dir_id', mock_dir_id)
+        with pytest.raises(FileNotFoundError):
+            dmlp.list_deletions_target('site_name')
+        counter += 1
+        with pytest.raises(FileNotFoundError):
+            dmlp.list_deletions_target('site_name', 'dirname')
+        assert capsys.readouterr().out == 'called get_dir_id() for `dirname`\n'
+        counter += 1
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        assert dmlp.list_deletions_target('site_name') == ['doc1', 'doc2']
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `/`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'))
+        assert dmlp.list_deletions_target('site_name', 'dirname') == ['dirname/doc1', 'dirname/doc2']
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `dirname`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'))
+        monkeypatch.setattr(dmlp, 'list_dirs', mock_list_dirs)
+        assert dmlp.list_deletions_target('site_name', '*') == ['doc1', 'doc2', 'subdir/doc1',
+                                                                'subdir/doc2']
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `/`\n',
+            'called get_dir_id() for `subdir`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'))
+
+    def test_list_deletions_target(self, monkeypatch, capsys):
+        def mock_get_dirlist(*args):
+            print(f'called get_dirlist_for_site() met {args = }')
+            return args[1]
+        def mock_list_deletions(*args):
+            print(f'called list_deletions() met {args = }')
+            return args
+        monkeypatch.setattr(dmlp, 'get_dirlist_for_site', mock_get_dirlist)
+        monkeypatch.setattr(dmlp, 'list_deletions', mock_list_deletions)
+        assert dmlp.list_deletions_target('sitename', 'dirname') == ('dirname', 'source')
+        assert capsys.readouterr().out == (
+                "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
+                "called list_deletions() met args = ('dirname', 'source')\n")
+
+    def _test_apply_deletions_target_old(self, monkeypatch, capsys):
+        def mock_site_id(*args):
+            if counter == 1:
+                return None
+            else:
+                return 9
+        def mock_list_dirs(*args):
+            return ['subdir']
+        def mock_dir_id(*args):
+            if counter <= 3:
+                print('called get_dir_id() for `{}`'.format(args[1]))
+            if counter == 2:
+                return None
+            else:
+                return 99
+        def mock_iter(*args):
+            return (x for x in [{'id': 1, 'docname': 'doc1', 'target_docid': 11},
+                                {'id': 2, 'docname': 'doc2', 'target_docid': 12}])
+        counter = 1
+        monkeypatch.setattr(dmlp, '_get_site_id', mock_site_id)
+        monkeypatch.setattr(dmlp, 'list_dirs', mock_list_dirs)
         monkeypatch.setattr(dmlp, '_get_dir_id', mock_dir_id)
         with pytest.raises(FileNotFoundError):
             dmlp.apply_deletions_target('site_name')
@@ -936,18 +1005,73 @@ class TestDocLevel:
         counter += 1
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
-        dmlp.apply_deletions_target('site_name')
-        assert capsys.readouterr().out == ''.join((
-            'called get_dir_id() for `/`\n',
-            'execute SQL: `select id, target_docid from doc_stats where source_deleted = %s;`\n',
-            '  with: `True`\n',
-            'execute SQL: `delete from documents where id = %s;`\n',
-            '  with: `(11,)`, `(12,)`\n',
+        assert dmlp.apply_deletions_target('site_name') == ['doc1', 'doc2']
+        assert capsys.readouterr().out == (
+            'called get_dir_id() for `/`\n'
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'
+            'execute SQL: `delete from documents where id = %s;`\n'
+            '  with: `(11,)`, `(12,)`\n'
+            'called commit() on connection\n'
+            'called close()\n'
             'execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,'
-            ' target_deleted = %s where id = %s;`\n',
-            '  with: `(None, 1, True, 1)`, `(None, 1, True, 2)`\n',
-            'called commit() on connection\n',
-            'called close()\n'))
+            ' target_deleted = %s where id = %s;`\n'
+            '  with: `(None, 1, True, 1)`, `(None, 1, True, 2)`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        assert dmlp.apply_deletions_target('site_name', '*') == ['doc1', 'doc2', 'subdir/doc1',
+                                                                 'subdir/doc2']
+        assert capsys.readouterr().out == (
+            'called get_dir_id() for `/`\n'
+            'called get_dir_id() for `subdir`\n'
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'
+            'execute SQL: `delete from documents where id = %s;`\n'
+            '  with: `(11,)`, `(12,)`, `(11,)`, `(12,)`\n'
+            'called commit() on connection\n'
+            'called close()\n'
+            'execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,'
+            ' target_deleted = %s where id = %s;`\n'
+            '  with: `(None, 1, True, 1)`, `(None, 1, True, 2)`, `(None, 1, True, 1)`,'
+            ' `(None, 1, True, 2)`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        assert dmlp.apply_deletions_target('site_name', 'dirname') == ['dirname/doc1', 'dirname/doc2']
+        assert capsys.readouterr().out == (
+            'called get_dir_id() for `dirname`\n'
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and source_deleted = %s;`\n  with: `99`, `True`\n'
+            'execute SQL: `delete from documents where id = %s;`\n'
+            '  with: `(11,)`, `(12,)`\n'
+            'called commit() on connection\n'
+            'called close()\n'
+            'execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,'
+            ' target_deleted = %s where id = %s;`\n'
+            '  with: `(None, 1, True, 1)`, `(None, 1, True, 2)`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_apply_deletions_target(self, monkeypatch, capsys):
+        def mock_get_dirlist(*args):
+            print(f'called get_dirlist_for_site() met {args = }')
+            return args[1]
+        def mock_apply_deletions(*args):
+            print(f'called apply_deletions() met {args = }')
+            return args, ['names']
+        monkeypatch.setattr(dmlp, 'get_dirlist_for_site', mock_get_dirlist)
+        monkeypatch.setattr(dmlp, 'apply_deletions', mock_apply_deletions)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        dmlp.apply_deletions_target('sitename', 'dirname')
+        assert capsys.readouterr().out == (
+                "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
+                "called apply_deletions() met args = ('dirname', 'source')\n"
+                "execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,"
+                " target_deleted = %s where id = %s;`\n"
+                "  with: `dirname`, `source`\n"
+                "called commit() on connection\n"
+                "called close()\n")
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_site_id(*args):
@@ -1038,7 +1162,94 @@ class TestDocLevel:
         dmlp.update_mirror('site_name', 'doc_name', 'contents')  # dry_run=True
         assert capsys.readouterr().out == ''
 
-    def test_apply_deletions_mirror(self, monkeypatch, capsys):
+    def _test_list_deletions_mirror_old(self, monkeypatch, capsys):
+        def mock_site_id(*args):
+            if counter == 1:
+                return None
+            else:
+                return 9
+        def mock_list_dirs(*args):
+            return ['subdir']
+        def mock_dir_id(*args):
+            if counter <= 3:
+                print('called get_dir_id() for `{}`'.format(args[1]))
+            if counter == 2:
+                return None
+            else:
+                return 99
+        def mock_iter(*args):
+            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
+        def mock_unlink(self, *args):
+            print('called unlink() with argument `{}`'.format(self))
+        counter = 1
+        monkeypatch.setattr(dmlp, '_get_site_id', mock_site_id)
+        monkeypatch.setattr(dmlp, '_get_dir_id', mock_dir_id)
+        with pytest.raises(FileNotFoundError):
+            dmlp.list_deletions_mirror('site_name')
+        counter += 1
+        with pytest.raises(FileNotFoundError):
+            dmlp.list_deletions_mirror('site_name', 'dirname')
+        assert capsys.readouterr().out == 'called get_dir_id() for `dirname`\n'
+        counter += 1
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
+        assert dmlp.list_deletions_mirror('site_name') == ['xxx', 'yyy.html']
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `/`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n',
+            # 'execute SQL: `delete from doc_stats where id = %s;`\n',
+            # '  with: `(1,)`, `(2,)`\n',
+            # 'called commit() on connection\n',
+            # 'called close()\n'
+            ))
+        # monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: True)
+        # monkeypatch.setattr(dmlp.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(dmlp, 'list_dirs', mock_list_dirs)
+        assert dmlp.list_deletions_mirror('site_name', '*') == ['xxx', 'yyy.html', 'subdir/xxx',
+                'subdir/yyy.html']
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `/`\n',
+            'called get_dir_id() for `subdir`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n'))
+        assert dmlp.list_deletions_mirror('site_name', 'dirname') == ['dirname/xxx',
+                'dirname/yyy.html']
+        # destloc = '{}/site_name/dirname'.format(dmlp.WEBROOT)
+        assert capsys.readouterr().out == ''.join((
+            'called get_dir_id() for `dirname`\n',
+            'execute SQL: `select id, docname, target_docid from doc_stats'
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n'))
+            # 'execute SQL: `delete from doc_stats where id = %s;`\n',
+            # '  with: `(1,)`, `(2,)`\n',
+            # 'called commit() on connection\n',
+            # 'called close()\n'
+            # 'called unlink() with argument `{}/xxx.html`\n'.format(destloc),
+            # 'called unlink() with argument `{}/yyy.html`\n'.format(destloc)))
+
+    def test_list_deletions_mirror(self, monkeypatch, capsys):
+        def mock_get_dirlist(*args):
+            print(f'called get_dirlist_for_site() met {args = }')
+            return args[1]
+        def mock_list_deletions(*args):
+            print(f'called list_deletions() met {args = }')
+            return args
+        monkeypatch.setattr(dmlp, 'get_dirlist_for_site', mock_get_dirlist)
+        monkeypatch.setattr(dmlp, 'list_deletions', mock_list_deletions)
+        assert dmlp.list_deletions_mirror('sitename', 'dirname') == ('dirname', 'target')
+        assert capsys.readouterr().out == (
+                "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
+                "called list_deletions() met args = ('dirname', 'target')\n")
+
+    def _test_apply_deletions_mirror_old(self, monkeypatch, capsys):
         def mock_site_id(*args):
             if counter == 1:
                 return None
@@ -1069,12 +1280,12 @@ class TestDocLevel:
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
-        dmlp.apply_deletions_mirror('site_name')
+        assert dmlp.apply_deletions_mirror('site_name') == ['xxx', 'yyy.html']
         assert capsys.readouterr().out == ''.join((
             'called get_dir_id() for `/`\n',
             'execute SQL: `select id, docname, target_docid from doc_stats'
-            ' where target_deleted = %s;`\n',
-            '  with: `True`\n',
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n',
             'execute SQL: `delete from doc_stats where id = %s;`\n',
             '  with: `(1,)`, `(2,)`\n',
             'called commit() on connection\n',
@@ -1082,19 +1293,107 @@ class TestDocLevel:
             ))
         monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlp.pathlib.Path, 'unlink', mock_unlink)
-        dmlp.apply_deletions_mirror('site_name', 'dirname')
+        assert dmlp.apply_deletions_mirror('site_name', 'dirname') == ['dirname/xxx',
+                'dirname/yyy.html']
         destloc = '{}/site_name/dirname'.format(dmlp.WEBROOT)
         assert capsys.readouterr().out == ''.join((
             'called get_dir_id() for `dirname`\n',
             'execute SQL: `select id, docname, target_docid from doc_stats'
-            ' where target_deleted = %s;`\n',
-            '  with: `True`\n',
+            ' where dir_id = %s and target_deleted = %s;`\n',
+            '  with: `99`, `True`\n',
             'execute SQL: `delete from doc_stats where id = %s;`\n',
             '  with: `(1,)`, `(2,)`\n',
             'called commit() on connection\n',
             'called close()\n'
             'called unlink() with argument `{}/xxx.html`\n'.format(destloc),
             'called unlink() with argument `{}/yyy.html`\n'.format(destloc)))
+
+    def test_apply_deletions_mirror(self, monkeypatch, capsys):
+        def mock_get_dirlist(*args):
+            print(f'called get_dirlist_for_site() met {args = }')
+            return args[1]
+        def mock_apply_deletions(*args):
+            print(f'called apply_deletions() met {args = }')
+            return args, ['name.html', 'noext']
+        def mock_unlink(self, *args):
+            print('called unlink() with argument `{}`'.format(self))
+        monkeypatch.setattr(dmlp, 'get_dirlist_for_site', mock_get_dirlist)
+        monkeypatch.setattr(dmlp, 'apply_deletions', mock_apply_deletions)
+        # monkeypatch.setattr(dmlp, 'conn', MockConn())
+        monkeypatch.setattr(dmlp.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
+        destloc = '{}/sitename'.format(dmlp.WEBROOT)
+        assert dmlp.apply_deletions_mirror('sitename', 'dirname') == ['name.html', 'noext']
+        assert capsys.readouterr().out == (
+                "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
+                "called apply_deletions() met args = ('dirname', 'target')\n")
+        monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: True)
+        assert dmlp.apply_deletions_mirror('sitename', 'dirname') == ['name.html', 'noext']
+        assert capsys.readouterr().out == (
+                "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
+                "called apply_deletions() met args = ('dirname', 'target')\n"
+                f'called unlink() with argument `{destloc}/name.html`\n'
+                f'called unlink() with argument `{destloc}/noext.html`\n')
+
+    def test_get_dirlist_for_site(self, monkeypatch, capsys):
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
+        with pytest.raises(FileNotFoundError) as excinfo:
+            dmlp.get_dirlist_for_site('sitename', '')
+            assert 'no_site' in excinfo.value
+        monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 15)
+        monkeypatch.setattr(dmlp, 'list_dirs', lambda x, y: ['subdir'])
+        monkeypatch.setattr(dmlp, '_get_dir_id', lambda x, y: None)
+        with pytest.raises(FileNotFoundError) as excinfo:
+            dmlp.get_dirlist_for_site('sitename', '')
+            assert 'no_subdir' in excinfo.value
+        monkeypatch.setattr(dmlp, '_get_dir_id', lambda x, y: 99)
+        assert dmlp.get_dirlist_for_site('sitename', '') == [('/', 99)]
+        assert dmlp.get_dirlist_for_site('sitename', '*') == [('/', 99), ('subdir', 99)]
+        assert dmlp.get_dirlist_for_site('sitename', 'dirname') == [('dirname', 99)]
+
+    def test_list_deletions(self, monkeypatch, capsys):
+        def mock_iter(*args):
+            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
+        assert dmlp.list_deletions([], 'x') == []
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        assert dmlp.list_deletions([('/', 1), ('subdir', 2)], 'stage') == ['xxx', 'yyy.html',
+                'subdir/xxx', 'subdir/yyy.html']
+        assert capsys.readouterr().out == (
+                'execute SQL: `select id, docname, target_docid from doc_stats'
+                ' where dir_id = %s and stage_deleted = %s;`\n'
+                '  with: `1`, `True`\n'
+                'execute SQL: `select id, docname, target_docid from doc_stats'
+                ' where dir_id = %s and stage_deleted = %s;`\n'
+                '  with: `2`, `True`\n')
+
+    def test_apply_deletions(self, monkeypatch, capsys):
+        def mock_iter(*args):
+            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        monkeypatch.setattr(dmlp, 'conn', MockConn())
+        assert dmlp.apply_deletions([('/', 1)], 'source') == (([(None, 1, True, 1),
+            (None, 1, True, 2)], ['xxx', 'yyy.html']))
+        assert capsys.readouterr().out == (
+                'execute SQL: `select id, docname, target_docid from doc_stats'
+                ' where dir_id = %s and source_deleted = %s;`\n'
+                '  with: `1`, `True`\n'
+                'execute SQL: `delete from documents where id = %s;`\n'
+                '  with: `(11,)`, `(12,)`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+        assert dmlp.apply_deletions([('subdir', 2)], 'other') == (([(None, 1, True, 1),
+            (None, 1, True, 2)], ['subdir/xxx', 'subdir/yyy.html']))
+        assert capsys.readouterr().out == (
+                'execute SQL: `select id, docname, target_docid from doc_stats'
+                ' where dir_id = %s and other_deleted = %s;`\n'
+                '  with: `2`, `True`\n'
+                'execute SQL: `delete from doc_stats where id = %s;`\n'
+                '  with: `(1,)`, `(2,)`\n'
+                'called commit() on connection\n'
+                'called close()\n')
 
     def test_get_doc_stats(self, monkeypatch, capsys):
         def mock_site_id(*args):

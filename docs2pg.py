@@ -717,28 +717,22 @@ def update_html(site_name, doc_name, contents, directory='', dry_run=True):
     cur.close()
 
 
+def list_deletions_target(sitename, directory=''):
+    """list pending deletions in source environment"""
+    return list_deletions(get_dirlist_for_site(sitename, directory), 'source')
+
+
 def apply_deletions_target(site_name, directory=''):
     """Copy deletion markers from source to target environment (if not already there)
     """
-    if not directory:
-        directory = '/'
-    siteid = _get_site_id(site_name)
-    if siteid is None:
-        raise FileNotFoundError('no_site')
-    dirid = _get_dir_id(siteid, directory)
-    if dirid is None:
-        raise FileNotFoundError('no_subdir')
-    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select id, target_docid from {} '
-                'where source_deleted = %s;'.format(TABLES[3]), (True,))
-    deleted = [row for row in cur]
-    docids = [(row['target_docid'],) for row in deleted]
-    cur.executemany('delete from {} where id = %s;'.format(TABLES[4]), docids)
-    deleted = [(None, 1, True, row['id']) for row in deleted]
+    dirlist = get_dirlist_for_site(site_name, directory)
+    deleted, deleted_names = apply_deletions(dirlist, 'source')
+    cur = conn.cursor()
     cur.executemany('update {} set source_deleted = %s, target_docid = %s, target_deleted = %s '
                     'where id = %s;'.format(TABLES[3]), deleted)
     conn.commit()
     cur.close()
+    return deleted_names
 
 
 def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
@@ -793,32 +787,20 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     save_to(path, data, seflinks)
 
 
+def list_deletions_mirror(sitename, directory=''):
+    """list pending deletions in target environment"""
+    return list_deletions(get_dirlist_for_site(sitename, directory), 'target')
+
+
 def apply_deletions_mirror(site_name, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-    if not directory:
-        directory = '/'
-    siteid = _get_site_id(site_name)
-    if siteid is None:
-        raise FileNotFoundError('no_site')
-    dirid = _get_dir_id(siteid, directory)
-    if dirid is None:
-        raise FileNotFoundError('no_subdir')
-    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
-    cur.execute('select id, docname, target_docid from {} '
-                'where target_deleted = %s;'.format(TABLES[3]), (True,))
-    deleted = [row for row in cur]
-    # docids = [(row['target_docid'],) for row in deleted]
-    # cur.executemany('delete from {} where id = %s'.format(TABLES[4]), docids)
-    delids = [(row['id'],) for row in deleted]
-    cur.executemany('delete from {} where id = %s;'.format(TABLES[3]), delids)
-    conn.commit()
-    cur.close()
+    dirlist = get_dirlist_for_site(site_name, directory)
+    deleted = apply_deletions(dirlist, 'target')[1]
 
     path = WEBROOT / site_name
-    if directory != '/':
-        path /= directory
-    deleted = [row['docname'] for row in deleted]
+    # if directory != '/':
+    #     path /= directory
     for doc_name in deleted:
         docpath = path / doc_name
         ext = LOC2EXT['dest']
@@ -826,6 +808,67 @@ def apply_deletions_mirror(site_name, directory=''):
             docpath = docpath.with_suffix(ext)
         if docpath.exists():
             docpath.unlink()
+    return deleted
+
+
+def get_dirlist_for_site(sitename, directory):
+    "get a list of dirids (can be just one)"
+    siteid = _get_site_id(sitename)
+    if siteid is None:
+        raise FileNotFoundError('no_site')
+    if not directory:
+        dirlist = ['/']
+    elif directory == '*':
+        dirlist = ['/'] + list_dirs(sitename, 'src')
+    else:
+        dirlist = [directory]
+    for ix, directory in enumerate(dirlist):
+        dirid = _get_dir_id(siteid, directory)
+        if dirid is None:
+            raise FileNotFoundError('no_subdir')
+        dirlist[ix] = (directory, dirid)
+    return dirlist
+
+
+def list_deletions(dirlist, stage):
+    "list pending deletions for given directories in a given environment"
+    deletions = []
+    for directory, dirid in dirlist:
+        cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+        cur.execute(f'select id, docname, target_docid from {TABLES[3]}'
+                    f' where dir_id = %s and {stage}_deleted = %s;', (dirid, True))
+        to_be_deleted = [row for row in cur]
+        if directory == '/':
+            deletions.extend([row['docname'] for row in to_be_deleted])
+        else:
+            deletions.extend(['/'.join((directory, row['docname'])) for row in to_be_deleted])
+    return deletions
+
+
+def apply_deletions(dirlist, stage):
+    "apply deletions for given directories in the given environment"
+    docids, deleted, deleted_names = [], [], []
+    for directory, dirid in dirlist:
+        cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+        cur.execute(f'select id, docname, target_docid from {TABLES[3]}'
+                    f' where dir_id = %s and {stage}_deleted = %s;', (dirid, True))
+        to_delete = [row for row in cur]
+        if stage == 'source':
+            docids += [(row['target_docid'],) for row in to_delete]
+            from_table = TABLES[4]
+        else:
+            docids = [(row['id'],) for row in to_delete]
+            from_table = TABLES[3]
+        if directory == '/':
+            deleted_names += [row['docname'] for row in to_delete]
+        else:
+            deleted_names += ['/'.join((directory, row['docname'])) for row in to_delete]
+        deleted += [(None, 1, True, row['id']) for row in to_delete]
+
+    cur.executemany(f'delete from {from_table} where id = %s;', docids)
+    conn.commit()
+    cur.close()
+    return deleted, deleted_names
 
 
 def get_doc_stats(site_name, docname, dirname=''):
