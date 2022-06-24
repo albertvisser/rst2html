@@ -467,26 +467,41 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     save_to(path, contents)
 
 
+def list_deletions_target(sitename, directory=''):
+    """list pending deletions in source environment"""
+    to_delete = []
+    root = WEBROOT / sitename / SRC_LOC
+    for dirname in build_dirlist(sitename, directory):
+        path = root / dirname if dirname != '/' else root
+        filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
+        if dirname != '/':
+            filelist = ['/'.join((dirname, x)) for x in filelist]
+        to_delete.extend(filelist)
+    return to_delete
+
+
 def apply_deletions_target(sitename, directory=''):
     """Copy deletion markers from source to target environment
     """
-    path = WEBROOT / sitename / SRC_LOC
-    if directory and directory != '/':
-        path /= directory
     deleted = []
-    for item in path.glob('*' + DELMARK):
-        deleted.append(item.name)
-        item.unlink()
-    path = WEBROOT / sitename / DEST_LOC
-    if directory and directory != '/':
-        path /= directory
+    root = WEBROOT / sitename / SRC_LOC
+    for dirname in build_dirlist(sitename, directory):
+        path = root / dirname if dirname != '/' else root
+        for item in path.glob('*' + DELMARK):
+            if dirname != '/':
+                deleted.append('/'.join((dirname, item.name)))
+            else:
+                deleted.append(item.name)
+            item.unlink()
+    root = WEBROOT / sitename / DEST_LOC
     for item in deleted:
-        newpath = path / item
-        to_delete = newpath.with_suffix(LOC2EXT['dest'])
+        path = root / item
+        to_delete = path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
-            to_delete.rename(newpath)
+            to_delete.rename(path)
         else:
-            newpath.touch()
+            to_delete.touch()
+    return [x.replace(DELMARK, '') for x in deleted]
 
 
 def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
@@ -515,24 +530,50 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
     save_to(path, data)
 
 
+def list_deletions_mirror(sitename, directory=''):
+    """list pending deletions in target environment"""
+    to_delete = []
+    path = WEBROOT / sitename / DEST_LOC
+    for dirname in build_dirlist(sitename, directory):
+        if dirname != '/':
+            path /= dirname
+        filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
+        if dirname != '/':
+            filelist = ['/'.join((dirname, x)) for x in filelist]
+        to_delete.extend(filelist)
+    return to_delete
+
+
 def apply_deletions_mirror(sitename, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-    path = WEBROOT / sitename / DEST_LOC
-    if directory and directory != '/':
-        path /= directory
     deleted = []
-    for item in path.glob('*' + DELMARK):
-        deleted.append(item.name)
-        item.unlink()
-    path = WEBROOT / sitename
-    if directory and directory != '/':
-        path /= directory
+    root = WEBROOT / sitename / DEST_LOC
+    for dirname in build_dirlist(sitename, directory):
+        path = root / dirname if dirname != '/' else root
+        for item in path.glob('*' + DELMARK):
+            if dirname != '/':
+                deleted.append('/'.join((dirname, item.name)))
+            else:
+                deleted.append(item.name)
+            item.unlink()
+    root = WEBROOT / sitename
     for item in deleted:
-        newpath = path / item
-        to_delete = newpath.with_suffix(LOC2EXT['dest'])
+        path = root / item
+        to_delete = path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
             to_delete.unlink()
+    return [x.replace(DELMARK, '') for x in deleted]
+
+
+def build_dirlist(sitename, directory):
+    if directory == '':
+        dirlist = ['/']
+    elif directory == '*':
+        dirlist = ['/'] + list_dirs(sitename)
+    else:
+        dirlist = [directory]
+    return dirlist
 
 
 def remove_doc(sitename, docname, directory=''):

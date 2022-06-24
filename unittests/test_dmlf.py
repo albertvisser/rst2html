@@ -4,22 +4,6 @@ import pytest
 import docs2fs as dmlf
 
 
-def mock_settings_seflinks_yes(*args):
-    return {'seflinks': True}
-
-
-def mock_settings_seflinks_no(*args):
-    return {}
-
-
-def return_true(*args):
-    return True
-
-
-def return_false(*args):
-    return False
-
-
 def mock_copyfile(*args):
     print('called copyfile: from `{}` to `{}`'.format(args[0], args[1]))
 
@@ -61,27 +45,27 @@ class TestNonApiFunctions:
             return result
         def mock_stat_error(*args):
             raise FileNotFoundError
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir_src)
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_file', mock_is_file)
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', mock_is_dir)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to', mock_relative_to)
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat)
         assert dmlf._get_dir_ftype_stats('sitename', 'src') == []
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: False)
         assert dmlf._get_dir_ftype_stats('sitename', 'src', '') == [('index', 'x')]
 
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir_dest)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: True)
         assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('index', 'x')]
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: False)
         assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('subdir', 'x'),
                                                                        ('index', 'x')]
         # import pdb; pdb.set_trace()
         assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('subdir', 'x')]
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
         assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('index', 'x')]
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat_error)
         assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == []
@@ -149,7 +133,7 @@ class TestNonApiFunctions:
         def mock_readlines(*args):
             return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to',  mock_relative_to)
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_utf)
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('',
                                                                         'regel 1\nregel 2\nregel 3\n')
@@ -160,7 +144,7 @@ class TestNonApiFunctions:
         monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_utf_err)
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('IO error on utf file', '')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname.rst`\n'
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
         monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_iso)
         # blijkbaar gaat dit ook mis als hij het iso file gaat proberen te lezen...
         # assert dmlf.read_data(pathlib.Path('sitename/docname.html')) == ('',
@@ -186,31 +170,31 @@ class TestNonApiFunctions:
             os.unlink(filename)
             return data
         fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname'
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_err)
         assert dmlf.save_to(fulldocname, 'data') == 'OSError without message'
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.shutil, 'copyfile', mock_copyfile)
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == ''
         assert read_and_remove(tmpfilename) == 'data'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname.rst'
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == 'called copyfile: from `{}` to `{}`\n'.format(
             str(fulldocname), str(fulldocname) + '.bak')
         assert read_and_remove(tmpfilename) == 'data'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname.html'
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == 'called mkdir for `{}`\n'.format(
             str(fulldocname).replace('.html', ''))
         assert read_and_remove(tmpfilename) == 'data'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'replace', mock_replace)
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == ''.join((
@@ -368,7 +352,7 @@ class TestSiteLevel:
             return open('/tmp/dmlfupd_sett', 'w')
         def mock_save_config_data(*args, **kwargs):
             print('called save_config_data')
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         monkeypatch.setattr(dmlf, 'save_config_data', mock_save_config_data)
         sitename = 'testsite'
@@ -376,7 +360,7 @@ class TestSiteLevel:
         assert dmlf.update_settings(sitename, {'x': 'y'}) == 'ok'
         assert capsys.readouterr().out == ''.join(('called open() for file `{}`\n'.format(settfile),
                                                    'called save_config_data\n'))
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.shutil, 'copyfile', mock_copyfile)
         assert dmlf.update_settings(sitename, {'x': 'y'}) == 'ok'
         assert capsys.readouterr().out == ''.join((
@@ -395,26 +379,26 @@ class TestSiteLevel:
             print('called iterdir for path `{}`'.format(self))
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'))
         sitename = 'testsite'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf, '_locify', mock_locify)
         with pytest.raises(FileNotFoundError):
             dmlf.list_dirs(sitename)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: True)
         assert dmlf.list_dirs(sitename) == ['.x', 'css', 'subdir']
         sitepath = dmlf.WEBROOT / sitename
         assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: False)
         assert dmlf.list_dirs(sitename, loc='dest') == []
         sitepath = dmlf.WEBROOT / sitename / 'dest'
         assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: True)
         assert dmlf.list_dirs(sitename, loc='src') == ['.x', 'css', 'subdir']
         sitepath = dmlf.WEBROOT / sitename / 'src'
         assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         assert dmlf.list_dirs(sitename, loc='src') == ['.x', 'css', 'subdir']
         assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
 
@@ -447,7 +431,7 @@ class TestDocLevel:
         def mock_iterdir(self, *args, **kwargs):
             return [dmlf.pathlib.Path(x) for x in ['file2', 'file3.rst', 'file5.html', 'file1.rst',
                                                    'file4.html', 'file0.deleted']]
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         with pytest.raises(FileNotFoundError):
             dmlf.list_docs('testsite', 'x')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', mock_exists_1)
@@ -456,18 +440,18 @@ class TestDocLevel:
         assert dmlf.list_docs('testsite') == []
         self.times_called = 0
         assert dmlf.list_docs('testsite', 'src', 'subdir') == []
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_file', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_file', lambda x: False)
         assert dmlf.list_docs('testsite', 'src') == []
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_file', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_file', lambda x: True)
         assert dmlf.list_docs('testsite', 'src') == ['file3', 'file1']
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_no)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
         assert dmlf.list_docs('testsite', 'dest') == ['file5', 'file4']
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_false)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: False)
         assert dmlf.list_docs('testsite', 'dest', 'directory') == []
-        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: True)
         assert dmlf.list_docs('testsite', 'dest', 'directory') == ['file2', 'file3', 'file5',
                                                                    'file1', 'file4', 'file0']
         assert dmlf.list_docs('testsite', 'dest', ) == ['file2', 'file3', 'file5', 'file1',
@@ -479,10 +463,10 @@ class TestDocLevel:
             return (pathlib.Path('x'), pathlib.Path('y.rst'), pathlib.Path('y.html'),
                     pathlib.Path('z.tpl'), pathlib.Path('a.tpl'))
         sitename = 'testsite'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir)
         assert dmlf.list_templates(sitename) == []
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         assert dmlf.list_templates(sitename) == ['a.tpl', 'z.tpl']
 
     def test_read_template(self, monkeypatch, capsys):
@@ -507,7 +491,7 @@ class TestDocLevel:
         def mock_mkdir(self, *args, **kwargs):
             print('called mkdir() for `{}`'.format(self))
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.shutil, 'copyfile', mock_copyfile)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         assert dmlf.write_template('sitename', 'fnaam', 'data') == ''
@@ -516,7 +500,7 @@ class TestDocLevel:
         with open(tmpfilename) as out:
             testdata = out.read()
         assert testdata == 'data'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_err)
         assert dmlf.write_template('sitename', 'fnaam', 'data') == 'file open failed'
         assert capsys.readouterr().out == ''.join((
@@ -528,10 +512,10 @@ class TestDocLevel:
             print('called touch() for `{}`'.format(self))
         with pytest.raises(AttributeError):
             dmlf.create_new_doc('sitename', '')
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         with pytest.raises(FileNotFoundError):
             dmlf.create_new_doc('sitename', 'docname')
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
         path = dmlf.WEBROOT / 'sitename' / '.source' / ('docname' + '.rst')
         dmlf.create_new_doc('sitename', 'docname')
@@ -679,8 +663,38 @@ class TestDocLevel:
             'called mkdir() for `{}`\n'.format(path.parent),
             'call save_to(): save `contents` in `{}`\n'.format(path)))
 
+    def test_list_deletions_target(self, monkeypatch, capsys):
+        def mock_build_dirlist(*args):
+            if args[1] == '':
+                return ['/']
+            elif args[1] == '*':
+                return ['/', 'subdir']
+            return [args[1]]
+        def mock_glob(self, *args):
+            name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            return [self / 'file1.deleted', self / 'file2.deleted']
+        monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
+        assert dmlf.list_deletions_target('sitename', '') == ['file1', 'file2']
+        assert capsys.readouterr().out == "called path.glob() for *.deleted in .source\n"
+        assert dmlf.list_deletions_target('sitename', '*') == ['file1', 'file2', 'subdir/file1',
+                                                               'subdir/file2']
+        assert capsys.readouterr().out == ("called path.glob() for *.deleted in .source\n"
+                                           "called path.glob() for *.deleted in .source/subdir\n")
+        assert dmlf.list_deletions_target('sitename', 'dirname') == ['dirname/file1', 'dirname/file2']
+        assert capsys.readouterr().out == "called path.glob() for *.deleted in .source/dirname\n"
+
     def test_apply_deletions_target(self, monkeypatch, capsys):
+        def mock_build_dirlist(*args):
+            if args[1] == '':
+                return ['/']
+            elif args[1] == '*':
+                return ['/', 'subdir']
+            return [args[1]]
         def mock_glob(self, *args, **kwargs):
+            name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
             print('deleted file `{}`'.format(self))
@@ -688,26 +702,50 @@ class TestDocLevel:
             print('renamed file `{}`'.format(self))
         def mock_touch(self, *args, **kwargs):
             print('created file `{}`'.format(self))
+        monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(dmlf.pathlib.Path, 'unlink', mock_unlink)
         monkeypatch.setattr(dmlf.pathlib.Path, 'rename', mock_rename)
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
-        dmlf.apply_deletions_target('sitename')
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         old = dmlf.WEBROOT / 'sitename' / '.source'
         loc = dmlf.WEBROOT / 'sitename' / '.target'
-        assert capsys.readouterr().out == ''.join(('deleted file `{}/file1.deleted`\n'.format(old),
-                                                   'deleted file `{}/file2.deleted`\n'.format(old),
-                                                   'renamed file `{}/file1.html`\n'.format(loc),
-                                                   'renamed file `{}/file2.html`\n'.format(loc)))
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
-        dmlf.apply_deletions_target('sitename', 'directory')
-        old = dmlf.WEBROOT / 'sitename' / '.source' / 'directory'
-        loc = dmlf.WEBROOT / 'sitename' / '.target' / 'directory'
-        assert capsys.readouterr().out == ''.join(('deleted file `{}/file1.deleted`\n'.format(old),
-                                                   'deleted file `{}/file2.deleted`\n'.format(old),
-                                                   'created file `{}/file1.deleted`\n'.format(loc),
-                                                   'created file `{}/file2.deleted`\n'.format(loc)))
+        assert dmlf.apply_deletions_target('sitename', '') == ['file1', 'file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source\n'
+                                           f'deleted file `{old}/file1.deleted`\n'
+                                           f'deleted file `{old}/file2.deleted`\n'
+                                           f'renamed file `{loc}/file1.html`\n'
+                                           f'renamed file `{loc}/file2.html`\n')
+        oldsub = dmlf.WEBROOT / 'sitename' / '.source' / 'subdir'
+        locsub = dmlf.WEBROOT / 'sitename' / '.target' / 'subdir'
+        assert dmlf.apply_deletions_target('sitename', '*') == ['file1', 'file2', 'subdir/file1',
+                                                                'subdir/file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source\n'
+                                           f'deleted file `{old}/file1.deleted`\n'
+                                           f'deleted file `{old}/file2.deleted`\n'
+                                           'called path.glob() for *.deleted in .source/subdir\n'
+                                           f'deleted file `{oldsub}/file1.deleted`\n'
+                                           f'deleted file `{oldsub}/file2.deleted`\n'
+                                           f'renamed file `{loc}/file1.html`\n'
+                                           f'renamed file `{loc}/file2.html`\n'
+                                           f'renamed file `{locsub}/file1.html`\n'
+                                           f'renamed file `{locsub}/file2.html`\n')
+        oldsub = dmlf.WEBROOT / 'sitename' / '.source' / 'dirname'
+        locsub = dmlf.WEBROOT / 'sitename' / '.target' / 'dirname'
+        assert dmlf.apply_deletions_target('sitename', 'dirname') == ['dirname/file1',
+                                                                      'dirname/file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source/dirname\n'
+                                           f'deleted file `{oldsub}/file1.deleted`\n'
+                                           f'deleted file `{oldsub}/file2.deleted`\n'
+                                           f'renamed file `{locsub}/file1.html`\n'
+                                           f'renamed file `{locsub}/file2.html`\n')
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
+        dmlf.apply_deletions_target('sitename', 'dirname')
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source/dirname\n'
+                                           f'deleted file `{oldsub}/file1.deleted`\n'
+                                           f'deleted file `{oldsub}/file2.deleted`\n'
+                                           f'created file `{locsub}/file1.html`\n'
+                                           f'created file `{locsub}/file2.html`\n')
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_mkdir(self, *args, **kwargs):
@@ -735,26 +773,91 @@ class TestDocLevel:
             'called mkdir() for `{}`\n'.format(loc.parent),
             'called save_to(): save `data` in `{}`\n'.format(loc)))
 
+    def test_list_deletions_mirror(self, monkeypatch, capsys):
+        def mock_build_dirlist(*args):
+            if args[1] == '':
+                return ['/']
+            elif args[1] == '*':
+                return ['/', 'subdir']
+            return [args[1]]
+        def mock_glob(self, *args):
+            name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            return [self / 'file1.deleted', self / 'file2.deleted']
+        monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
+        assert dmlf.list_deletions_mirror('sitename', '') == ['file1', 'file2']
+        assert capsys.readouterr().out == "called path.glob() for *.deleted in .target\n"
+        assert dmlf.list_deletions_mirror('sitename', '*') == ['file1', 'file2', 'subdir/file1',
+                                                               'subdir/file2']
+        assert capsys.readouterr().out == ("called path.glob() for *.deleted in .target\n"
+                                           "called path.glob() for *.deleted in .target/subdir\n")
+        assert dmlf.list_deletions_mirror('sitename', 'dirname') == ['dirname/file1', 'dirname/file2']
+        assert capsys.readouterr().out == "called path.glob() for *.deleted in .target/dirname\n"
+
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
+        def mock_build_dirlist(*args):
+            if args[1] == '':
+                return ['/']
+            elif args[1] == '*':
+                return ['/', 'subdir']
+            return [args[1]]
         def mock_glob(self, *args, **kwargs):
+            name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
             print('deleted file `{}`'.format(self))
+        monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(dmlf.pathlib.Path, 'unlink', mock_unlink)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
-        dmlf.apply_deletions_mirror('sitename')
-        loc = dmlf.WEBROOT / 'sitename' / '.target'
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
+        src = dmlf.WEBROOT / 'sitename' / '.target'
         dest = dmlf.WEBROOT / 'sitename'
-        assert capsys.readouterr().out == ''.join(('deleted file `{}/file1.deleted`\n'.format(loc),
-                                                   'deleted file `{}/file2.deleted`\n'.format(loc),
-                                                   'deleted file `{}/file1.html`\n'.format(dest),
-                                                   'deleted file `{}/file2.html`\n'.format(dest)))
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        assert dmlf.apply_deletions_mirror('sitename', '') == ['file1', 'file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target\n'
+                                           f'deleted file `{src}/file1.deleted`\n'
+                                           f'deleted file `{src}/file2.deleted`\n'
+                                           f'deleted file `{dest}/file1.html`\n'
+                                           f'deleted file `{dest}/file2.html`\n')
+        srcsub = dmlf.WEBROOT / 'sitename' / '.target' / 'subdir'
+        destsub = dmlf.WEBROOT / 'sitename' / 'subdir'
+        assert dmlf.apply_deletions_mirror('sitename', '*') == ['file1', 'file2', 'subdir/file1',
+                                                                'subdir/file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target\n'
+                                           f'deleted file `{src}/file1.deleted`\n'
+                                           f'deleted file `{src}/file2.deleted`\n'
+                                           'called path.glob() for *.deleted in .target/subdir\n'
+                                           f'deleted file `{srcsub}/file1.deleted`\n'
+                                           f'deleted file `{srcsub}/file2.deleted`\n'
+                                           f'deleted file `{dest}/file1.html`\n'
+                                           f'deleted file `{dest}/file2.html`\n'
+                                           f'deleted file `{destsub}/file1.html`\n'
+                                           f'deleted file `{destsub}/file2.html`\n')
+        srcsub = dmlf.WEBROOT / 'sitename' / '.target' / 'dirname'
+        destsub = dmlf.WEBROOT / 'sitename' / 'dirname'
+        assert dmlf.apply_deletions_mirror('sitename', 'dirname') == ['dirname/file1',
+                                                                      'dirname/file2']
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target/dirname\n'
+                                           f'deleted file `{srcsub}/file1.deleted`\n'
+                                           f'deleted file `{srcsub}/file2.deleted`\n'
+                                           f'deleted file `{destsub}/file1.html`\n'
+                                           f'deleted file `{destsub}/file2.html`\n')
+
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         dmlf.apply_deletions_mirror('sitename', 'directory')
         loc = dmlf.WEBROOT / 'sitename' / '.target' / 'directory'
-        assert capsys.readouterr().out == ''.join(('deleted file `{}/file1.deleted`\n'.format(loc),
-                                                   'deleted file `{}/file2.deleted`\n'.format(loc)))
+        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target/directory\n'
+                                           f'deleted file `{loc}/file1.deleted`\n'
+                                           f'deleted file `{loc}/file2.deleted`\n')
+
+    def test_build_dirlist(self, monkeypatch, capsys):
+        def mock_list_dirs(*args):
+            return ['subdir1', 'subdir2']
+        monkeypatch.setattr(dmlf, 'list_dirs', mock_list_dirs)
+        assert dmlf.build_dirlist('sitename', '') == ['/']
+        assert dmlf.build_dirlist('sitename', '*') == ['/', 'subdir1', 'subdir2']
+        assert dmlf.build_dirlist('sitename', 'dirname') == ['dirname']
 
     def test_remove_doc(self):
         with pytest.raises(NotImplementedError):
@@ -766,14 +869,14 @@ class TestDocLevel:
             result = types.SimpleNamespace()
             result.st_mtime = 1
             return result
-        monkeypatch.setattr(dmlf, 'read_settings', mock_settings_seflinks_yes)
-        # monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_false)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
+        # monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat)
         assert dmlf.get_doc_stats('sitename', 'docname') == dmlf.Stats(dmlf.datetime.datetime.min,
                                                                        dmlf.datetime.datetime.min,
                                                                        dmlf.datetime.datetime.min)
-        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', return_true)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         assert dmlf.get_doc_stats('sitename', 'docname', 'dirname') == dmlf.Stats(
                 dmlf.datetime.datetime.fromtimestamp(1),
                 dmlf.datetime.datetime.fromtimestamp(1),
