@@ -566,7 +566,7 @@ def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=
     except FileNotFoundError:
         items = []
         if current == '' and deleted is False:
-            return "Site not found"
+            return "Site not found"  #FIXME dit komt letterlijk zo in de html en is dus onzichtbaar
 
     if items is None:
         return 'Wrong type: `{}`'.format(ext)
@@ -621,6 +621,8 @@ def read_html_data(sitename, current, fname):
 
 
 def compare_source(sitename, current, rstfile):
+    """compare current version of the document with the previous one if presentI
+    """
     rstdata = ''
     if rstfile.endswith('/') or rstfile.endswith('.tpl'):
         mld = 'incorrect_name'
@@ -631,7 +633,9 @@ def compare_source(sitename, current, rstfile):
         # diff = difflib.context_diff(newsource.split('\n'), oldsource.split('\n'),
         #                             fromfile='current text', tofile='previous text')
         # diff = difflib.ndiff(oldsource.split('\n'), newsource.split('\n'))
-        diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
+        # diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
+        diff = difflib.unified_diff(dml.split_for_comparison(oldsource),
+                                    dml.split_for_comparison(newsource),
                                     fromfile='current text', tofile='previous text')
         # diff = difflib.HtmlDiff().make_file(oldsource, newsource)
         mld, rstdata = '', ''.join([x for x in diff])
@@ -1103,7 +1107,7 @@ class TrefwoordenLijst:
 
     def start_new_letter(self):
         """produceer het begin voor een letter"""
-        loc = 3 if self.sitename == 'magiokis' else 6
+        loc = 3 if self.sitename == 'magiokis' else 4
         self.data[loc] += "{}_ ".format(self.current_letter)
         self.data.append("")
         if self.sitename == 'magiokis':
