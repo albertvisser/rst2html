@@ -37,14 +37,20 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
     do_seflinks = read_settings(sitename).get('seflinks')
     ext = '.rst' if not ftype else LOC2EXT[ftype]
     result = []
+    deleted = []
     path = _locify(WEBROOT / sitename, ftype)
     if dirname:
         path = path / dirname
     if path.exists():
         for item in path.iterdir():
+            # hidden files en css niet meenemen
             if item.name.startswith('.') or item.name == 'css':  # in ('css', SRC_LOC, DEST_LOC):
                 continue
+            # resultaten copy-to-file functies niet meenemen
+            if item.name.startswith('overview-') or item.name.startswith('search-results-'):
+                continue
             if ftype in LOCS[1:] and do_seflinks:
+                # TODO hoe ziet een deleted file er uit in dit geval
                 docname = item.stem
                 check_item = ''
                 if item.is_dir() and not item.is_symlink():
@@ -56,7 +62,10 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
             else:
                 if not item.is_file() or item.is_symlink():
                     continue
-                if item.suffix and item.suffix != ext:
+                elif item.suffix and item.suffix == DELMARK:
+                    deleted.append(item.stem)
+                    continue
+                elif item.suffix and item.suffix != ext:
                     continue
                 docname = item.relative_to(path).stem
                 check_item = item
@@ -64,7 +73,7 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
                 result.append((docname, check_item.stat().st_mtime))
             except FileNotFoundError:
                 continue
-    return result
+    return result, deleted
 
 
 def _get_dir_stats(site_name, dirname=''):
@@ -72,7 +81,7 @@ def _get_dir_stats(site_name, dirname=''):
     result = defaultdict(lambda: [datetime.datetime.min, datetime.datetime.min,
                                   datetime.datetime.min])
     for ix, ftype in enumerate(LOCS):
-        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
+        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)[0]
         for name, mtime in statslist:
             result[name][ix] = datetime.datetime.fromtimestamp(mtime)
     return sorted([(x, Stats(*y)) for x, y in result.items()])
@@ -85,18 +94,24 @@ def _get_dir_stats_for_docitem(site_name, dirname=''):
     result_dict = defaultdict(
         lambda: {x: {'updated': datetime.datetime.min} for x in LOCS})
     for ftype in LOCS:
-        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)
+        statslist, deleted = _get_dir_ftype_stats(site_name, ftype, dirname)
         for name, mtime in statslist:
             if ftype != 'mirror':  # for comparability with other backends
                 docid += 1
                 result_dict[name][ftype]['docid'] = docid
             result_dict[name][ftype]['updated'] = datetime.datetime.fromtimestamp(mtime)
+        for name in deleted:
+            result_dict[name][ftype]['deleted'] = True
     result = {}
     for name in result_dict:
         value = {}
         for ftype in result_dict[name]:
             if result_dict[name][ftype]['updated'] != datetime.datetime.min:
                 value[ftype] = result_dict[name][ftype]
+            elif result_dict[name][ftype].get('deleted', False):
+                value[ftype] = result_dict[name][ftype]
+                if result_dict[name][ftype]['updated'] == datetime.datetime.min:
+                    value[ftype].pop('updated')
         result[name] = value
     ## return sorted((x, y) for x, y in result.items())
 

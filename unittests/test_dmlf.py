@@ -29,10 +29,14 @@ class TestNonApiFunctions:
             return False if args[0].suffix else True
         def mock_iterdir_src(*args):
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
-                    pathlib.Path('index.rst'), pathlib.Path('test.src'))
+                    pathlib.Path('index.rst'), pathlib.Path('test.src'),
+                    pathlib.Path('revived.deleted'), pathlib.Path('revived.rst'),
+                    pathlib.Path('removed.deleted'))
         def mock_iterdir_dest(*args):
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
-                    pathlib.Path('index.html'), pathlib.Path('test.src'))
+                    pathlib.Path('index.html'), pathlib.Path('test.src'),
+                    pathlib.Path('revived.deleted'), pathlib.Path('revived.html'),
+                    pathlib.Path('removed.deleted'))
         def mock_iterdir_dest_sef(*args):
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('hello'),
                     pathlib.Path('kitty'))
@@ -53,22 +57,25 @@ class TestNonApiFunctions:
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to', mock_relative_to)
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat)
-        assert dmlf._get_dir_ftype_stats('sitename', 'src') == []
+        assert dmlf._get_dir_ftype_stats('sitename', 'src') == ([], [])
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: False)
-        assert dmlf._get_dir_ftype_stats('sitename', 'src', '') == [('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'src', '') == (
+                [('index', 'x'), ('revived', 'x')], ['revived', 'removed'])
 
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir_dest)
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: True)
-        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == ([('index', 'x')], [])
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_symlink', lambda x: False)
-        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == [('subdir', 'x'),
-                                                                       ('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest') == ([('subdir', 'x'), ('index', 'x')],
+                                                                 [])
         # import pdb; pdb.set_trace()
-        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('subdir', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == ([('subdir', 'x')], [])
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
-        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == [('index', 'x')]
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == (
+                [('index', 'x'), ('revived', 'x')], ['revived', 'removed'])
         monkeypatch.setattr(dmlf.pathlib.Path, 'stat', mock_stat_error)
-        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == []
+        assert dmlf._get_dir_ftype_stats('sitename', 'dest', 'dirname') == (
+                [], ['revived', 'removed'])
 
     def test_get_dir_stats(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):
@@ -81,20 +88,20 @@ class TestNonApiFunctions:
 
     def test_get_dir_stats_for_docitem(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):
-            return ('name2', 2), ('name1', 1)
+            return [('name2', 2), ('name1', 1)], ['name2', 'name3']
         monkeypatch.setattr(dmlf, '_get_dir_ftype_stats', mock_get_dir_ftype_stats)
         time1 = dmlf.datetime.datetime.fromtimestamp(1)
         time2 = dmlf.datetime.datetime.fromtimestamp(2)
-        assert dmlf._get_dir_stats_for_docitem('testsite') == {'name1': {'dest': {'docid': 4,
-                                                                                   'updated': time1},
-                                                                          'mirror': {'updated': time1},
-                                                                          'src': {'docid': 2,
-                                                                                  'updated': time1}},
-                                                                'name2': {'dest': {'docid': 3,
-                                                                                   'updated': time2},
-                                                                          'mirror': {'updated': time2},
-                                                                          'src': {'docid': 1,
-                                                                                  'updated': time2}}}
+        assert dmlf._get_dir_stats_for_docitem('testsite') == {
+                'name1': {'dest': {'docid': 4, 'updated': time1},
+                          'mirror': {'updated': time1},
+                          'src': {'docid': 2, 'updated': time1}},
+                'name2': {'dest': {'deleted': True, 'docid': 3, 'updated': time2},
+                          'mirror': {'deleted': True, 'updated': time2},
+                          'src': {'deleted': True, 'docid': 1, 'updated': time2}},
+                'name3': {'dest': {'deleted': True},
+                          'mirror': {'deleted': True},
+                          'src': {'deleted': True}}}
 
     def test_get_sitedoc_data(self, monkeypatch):
         def mock_get_docitem_stats(*args):
