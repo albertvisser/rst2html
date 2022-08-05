@@ -164,23 +164,6 @@ class TestTestApi:
                     {'_id': ('doc1', 'mirror')}, {'_id': ('doc1', 'src')}
                 ]
         assert dmlm.list_site_data('sitename') == (sitedoc, doclist)
-        # maar dat ziet er toch wel heel anders uit dan dit:
-        # (afkomstig uit de file system verssie)
-        #   ({'_id': 0, 'name': 'testsite',
-        #     'settings': 'called read_settings for `testsite`',
-        #     'docs': 'called get_sitedoc_data for `testsite`'},
-        #    [{'_id': ('dir1/doc1', 'dest'),
-        #      'current': 'called read_data for {}/.target/dir1/doc1.html'.format(siteloc),
-        #      'previous': 'called read_data for {}/.target/dir1/doc1.html.bak'.format(siteloc)},
-        #     {'_id': ('dir1/doc1', 'src'),
-        #      'current': 'called read_data for {}/.source/dir1/doc1.rst'.format(siteloc),
-        #      'previous': 'called read_data for {}/.source/dir1/doc1.rst.bak'.format(siteloc)},
-        #     {'_id': ('doc1', 'dest'),
-        #      'current': 'called read_data for {}/.target/doc1.html'.format(siteloc),
-        #      'previous': 'called read_data for {}/.target/doc1.html.bak'.format(siteloc)},
-        #     {'_id': ('doc1', 'src'),
-        #      'current': 'called read_data for {}/.source/doc1.rst'.format(siteloc),
-        #      'previous': 'called read_data for {}/.source/doc1.rst.bak'.format(siteloc)}])
 
     def test_clear_site_data(self, monkeypatch, capsys):
         def mock_find_delete_ok(self, *args, **kwargs):
@@ -755,3 +738,10 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, '_get_stats', mock_get_stats)
         assert dmlm.get_all_doc_stats('site_name') == [('/', [('docname', 'stats for docname')]),
             ('dirname', [('docname2', 'stats for docname2')])]
+
+    def test_split_for_comparison(self, monkeypatch):
+        assert dmlm.split_for_comparison('') == ['\n']
+        assert dmlm.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\nmet\nalleen\nlf\n']
+        assert dmlm.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
+        assert dmlm.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\n', 'met\n',
+                                                                          'beide\n']

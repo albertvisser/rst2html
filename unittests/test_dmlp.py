@@ -1311,3 +1311,10 @@ class TestDocLevel:
             '  with: `[1, 2, 3]`\n',
             'called commit() on connection\n',
             'called close()\n'))
+
+    def test_split_for_comparison(self, monkeypatch):
+        assert dmlp.split_for_comparison('') == ['\n']
+        assert dmlp.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\nmet\nalleen\nlf\n']
+        assert dmlp.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
+        assert dmlp.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\n', 'met\n',
+                                                                          'beide\n']

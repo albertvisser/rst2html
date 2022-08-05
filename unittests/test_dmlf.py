@@ -230,6 +230,8 @@ class TestTestApi:
             return ['dir1']
         def mock_read_data(*args):
             return '', 'called read_data for {}'.format(args[0])
+        # formeel kloppen deze returns maar hou er rekening mee dat dit niks zegt over hoe de gegevens
+        # er uit zien
         sitename = 'testsite'
         monkeypatch.setattr(dmlf, 'read_settings', mock_read_settings)
         monkeypatch.setattr(dmlf, '_get_sitedoc_data', mock_get_sitedoc_data)
@@ -892,3 +894,11 @@ class TestDocLevel:
         assert dmlf.get_all_doc_stats('sitename') == [('/', 'hello, world!'),
                                                       ('x', 'hello, world!'),
                                                       ('y', 'hello, world!')]
+
+    def test_split_for_comparison(self, monkeypatch):
+        assert dmlf.split_for_comparison('') == ['\n']
+        assert dmlf.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\n', 'met\n',
+                                                                       'alleen\n', 'lf\n']
+        assert dmlf.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
+        assert dmlf.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\r\n', 'met\r\n',
+                                                                      'beide\n']
