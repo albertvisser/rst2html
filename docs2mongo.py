@@ -585,11 +585,6 @@ def get_all_doc_stats(site_name):
     return filelist
 
 
-def split_for_comparison(text):
-    newtext = text.split('\r\n')
-    return [x + '\n' for x in newtext]
-
-
 # deze worden niet gebruikt door de applicatie, maar wel door de testroutines
 def list_site_data(site_name):
     """list all data on the site in a readable form
