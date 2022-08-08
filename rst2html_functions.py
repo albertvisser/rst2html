@@ -633,7 +633,9 @@ def compare_source(sitename, current, rstfile):
         # diff = difflib.context_diff(newsource.split('\n'), oldsource.split('\n'),
         #                             fromfile='current text', tofile='previous text')
         # diff = difflib.ndiff(oldsource.split('\n'), newsource.split('\n'))
-        diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
+        # diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
+        diff = difflib.unified_diff([x + '\n' for x in oldsource.split('\n')],
+                                    [x + '\n' for x in newsource.split('\n')],
                                     fromfile='current text', tofile='previous text')
         # diff = difflib.HtmlDiff().make_file(oldsource, newsource)
         mld, rstdata = '', ''.join([x for x in diff])
