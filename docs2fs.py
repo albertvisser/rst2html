@@ -492,7 +492,7 @@ def list_deletions_target(sitename, directory=''):
         if dirname != '/':
             filelist = ['/'.join((dirname, x)) for x in filelist]
         to_delete.extend(filelist)
-    return to_delete
+    return sorted(to_delete)
 
 
 def apply_deletions_target(sitename, directory=''):
@@ -515,8 +515,8 @@ def apply_deletions_target(sitename, directory=''):
         if to_delete.exists():
             to_delete.rename(path)
         else:
-            to_delete.touch()
-    return [x.replace(DELMARK, '') for x in deleted]
+            path.touch()
+    return sorted([x.replace(DELMARK, '') for x in deleted])
 
 
 def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
@@ -556,7 +556,7 @@ def list_deletions_mirror(sitename, directory=''):
         if dirname != '/':
             filelist = ['/'.join((dirname, x)) for x in filelist]
         to_delete.extend(filelist)
-    return to_delete
+    return sorted(to_delete)
 
 
 def apply_deletions_mirror(sitename, directory=''):
@@ -578,7 +578,7 @@ def apply_deletions_mirror(sitename, directory=''):
         to_delete = path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
             to_delete.unlink()
-    return [x.replace(DELMARK, '') for x in deleted]
+    return sorted([x.replace(DELMARK, '') for x in deleted])
 
 
 def build_dirlist(sitename, directory):

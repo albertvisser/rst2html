@@ -728,11 +728,15 @@ def apply_deletions_target(site_name, directory=''):
     dirlist = get_dirlist_for_site(site_name, directory)
     deleted, deleted_names = apply_deletions(dirlist, 'source')
     cur = conn.cursor()
-    cur.executemany('update {} set source_deleted = %s, target_docid = %s, target_deleted = %s '
-                    'where id = %s;'.format(TABLES[3]), deleted)
+    # regels komen terug als None, 1, True, row['id']
+    # effectief gebeurt er niks met source_id
+    deleted = [(x[0], x[0], x[0], x[1], x[2], x[3]) for x in deleted]
+    cur.executemany('update {} set source_docid = %s, source_updated = %s, source_deleted = %s,'
+                    ' target_docid = %s, target_deleted = %s'
+                    ' where id = %s;'.format(TABLES[3]), deleted)
     conn.commit()
     cur.close()
-    return deleted_names
+    return sorted(deleted_names)
 
 
 def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
@@ -796,19 +800,26 @@ def apply_deletions_mirror(site_name, directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
     dirlist = get_dirlist_for_site(site_name, directory)
-    deleted = apply_deletions(dirlist, 'target')[1]
+    deleted, deleted_names = apply_deletions(dirlist, 'target')
+    cur = conn.cursor()
+    deleted = [(x[3],) for x in deleted]
+    # regels komen terug als None, 1, True, row['id']
+    # effectief gebeurt er niks met source_id
+    cur.executemany('delete from {} where id = %s;'.format(TABLES[3]), deleted)
+    conn.commit()
+    cur.close()
 
     path = WEBROOT / site_name
     # if directory != '/':
     #     path /= directory
-    for doc_name in deleted:
+    for doc_name in deleted_names:
         docpath = path / doc_name
         ext = LOC2EXT['dest']
         if docpath.suffix != ext:
             docpath = docpath.with_suffix(ext)
         if docpath.exists():
             docpath.unlink()
-    return deleted
+    return sorted(deleted_names)
 
 
 def get_dirlist_for_site(sitename, directory):
@@ -842,7 +853,7 @@ def list_deletions(dirlist, stage):
             deletions.extend([row['docname'] for row in to_be_deleted])
         else:
             deletions.extend(['/'.join((directory, row['docname'])) for row in to_be_deleted])
-    return deletions
+    return sorted(deletions)
 
 
 def apply_deletions(dirlist, stage):

@@ -446,7 +446,8 @@ def apply_deletions_target(site_name, directory=''):
             # print('checking deletion mark for', doc_name)
             # print(sitedoc['docs'][directory][doc_name])
             if sitedoc['docs'][directory][doc_name]['src'].get('deleted', False):
-                sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
+                # sitedoc['docs'][directory][doc_name]['src']['deleted'] = False
+                sitedoc['docs'][directory][doc_name].pop('src')
                 if 'dest' not in sitedoc['docs'][directory][doc_name]:
                     htmldoc = {'current': '', 'previous': ''}
                     doc_id = _add_doc(htmldoc)
@@ -598,7 +599,8 @@ def list_site_data(site_name):
     for dirname, diritem in sitedoc['docs'].items():
         for docname, docitem in diritem.items():
             for locname, locitem in docitem.items():
-                if 'docid' in locitem:
+                # if 'docid' in locitem:
+                if 'docid' in locitem and 'deleted' not in locitem:
                     id_list.append(locitem['docid'])
                     id_dict[locitem['docid']] = (docname, locname, dirname)
     data = []
