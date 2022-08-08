@@ -1,0 +1,1 @@
+cp app_settings_mongo.py app_settings.py

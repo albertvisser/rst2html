@@ -1,0 +1,7 @@
+# execute test_scenario_1 for dml system(s) of choice
+./use_fs
+pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_fs.out
+./use_mongo
+pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_mongo.out
+./use_pg
+pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_pg.out

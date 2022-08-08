@@ -1,0 +1,1 @@
+cp app_settings_postgres.py app_settings.py

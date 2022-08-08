@@ -1,0 +1,1 @@
+cp app_settings_fs.py app_settings.py

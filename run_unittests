@@ -27,18 +27,18 @@ if backend not in backends:
     ok = False
 if ok:
     if do in ('all', 'r2h'):
-        subprocess.run(['covtest', 'unittests/test_r2h.py', 'rst2html.py'])               # 100% 
+        subprocess.run(['covtest', 'test/unittests/test_r2h.py', 'rst2html.py'])               # 100% 
     if do in ('all', 'rhfn'):
         shutil.copyfile('app_settings_{}.py'.format(backend), 'app_settings.py')
-        subprocess.run(['covtest', 'unittests/test_rhfn.py', 'rst2html_functions.py'])    # 98% 
+        subprocess.run(['covtest', 'test/unittests/test_rhfn.py', 'rst2html_functions.py'])    # 98% 
     if do in ('all', 'rhdir'):
-        subprocess.run(['covtest', 'unittests/test_rhdir.py', 'rst2html_directives.py'])  # 100% 
+        subprocess.run(['covtest', 'test/unittests/test_rhdir.py', 'rst2html_directives.py'])  # 100% 
     if do in ('all', 'dmlf'):
-        subprocess.run(['covtest', 'unittests/test_dmlf.py', 'docs2fs.py'])	              # 97% 
+        subprocess.run(['covtest', 'test/unittests/test_dmlf.py', 'docs2fs.py'])	           # 97% 
     if do in ('all', 'dmlm'):
-        subprocess.run(['covtest', 'unittests/test_dmlm.py', 'docs2mongo.py'])	          # 99% 
+        subprocess.run(['covtest', 'test/unittests/test_dmlm.py', 'docs2mongo.py'])	           # 99% 
     if do in ('all', 'dmlp'):
-        subprocess.run(['covtest', 'unittests/test_dmlp.py', 'docs2pg.py'])	              # 98% 
+        subprocess.run(['covtest', 'test/unittests/test_dmlp.py', 'docs2pg.py'])	           # 98% 
 else:
     print(usage)
 
