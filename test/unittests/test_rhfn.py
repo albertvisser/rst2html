@@ -586,9 +586,9 @@ class TestSiteRelated:
         monkeypatch.setattr(rhfn.dml, 'list_docs', mock_list_docs)
         assert rhfn.list_files(sitename, deleted=True) == ['luxury-yacht', 'throatwobbler-mangrove']
         monkeypatch.setattr(rhfn.dml, 'list_templates', mock_list_templates_empty)
+        monkeypatch.setattr(rhfn, 'list_subdirs', mock_list_subdirs_empty)
         assert rhfn.list_files(sitename) == ('<option>luxury-yacht.rst</option>'
                                              '<option>throatwobbler-mangrove.rst</option>')
-        monkeypatch.setattr(rhfn, 'list_subdirs', mock_list_subdirs_empty)
         assert rhfn.list_files(sitename, current='enormous') == (
                 '<option>..</option>'
                 '<option>luxury-yacht.rst</option>'
@@ -794,7 +794,7 @@ class TestSourceRelated:
             "called rhfn.read_src_data() with args ('sitename', '', 'docname')\n"
             "called dml.read_src_data() with args ('sitename', 'docname', 'src', '')"
             " {'previous': True}\n"
-            "called unified_diff() with args (['old source'], ['new source'])\n")
+            "called unified_diff() with args (['old source\\n'], ['new source\\n'])\n")
 
 class TestTargetRelated:
     sitename, filename = 'testsite', 'testname'
@@ -1099,10 +1099,10 @@ class TestTrefwLijst:
         assert testobj.titel == ['.. _A:\n\n**A**', '']
         assert testobj.linkno == 0
         testobj = rhfn.TrefwoordenLijst('testsite')
-        testobj.data = ['', '', '', '', '', '', ' ']
+        testobj.data = ['', '', '', '', ' ']
         testobj.current_letter = 'X'
         testobj.start_new_letter()
-        assert testobj.data == ['', '', '', '', '', '', ' X_ ', '']
+        assert testobj.data == ['', '', '', '', ' X_ ', '']
         assert testobj.titel == ['X', '-']
         assert testobj.linkno == 0
 

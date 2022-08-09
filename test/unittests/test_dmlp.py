@@ -965,27 +965,27 @@ class TestDocLevel:
         assert capsys.readouterr().out == (
                 "called get_dirlist_for_site() met args = ('sitename', '')\n"
                 "called apply_deletions() met args = ([('/', 99)], 'source')\n"
-                "execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,"
-                " target_deleted = %s where id = %s;`\n"
-                "  with: `('x', 1, 'y', 99)`, `('x', 1, 'y', 98)`\n"
+                "execute SQL: `update doc_stats set source_docid = %s, source_updated = %s,"
+                " source_deleted = %s, target_docid = %s, target_deleted = %s where id = %s;`\n"
+                "  with: `('x', 'x', 'x', 1, 'y', 99)`, `('x', 'x', 'x', 1, 'y', 98)`\n"
                 "called commit() on connection\n"
                 "called close()\n")
         dmlp.apply_deletions_target('sitename', '*')
         assert capsys.readouterr().out == (
                 "called get_dirlist_for_site() met args = ('sitename', '*')\n"
                 "called apply_deletions() met args = ([('/', 99), ('subdir', 99)], 'source')\n"
-                "execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,"
-                " target_deleted = %s where id = %s;`\n"
-                "  with: `('x', 1, 'y', 99)`, `('x', 1, 'y', 98)`\n"
+                "execute SQL: `update doc_stats set source_docid = %s, source_updated = %s,"
+                " source_deleted = %s, target_docid = %s, target_deleted = %s where id = %s;`\n"
+                "  with: `('x', 'x', 'x', 1, 'y', 99)`, `('x', 'x', 'x', 1, 'y', 98)`\n"
                 "called commit() on connection\n"
                 "called close()\n")
         dmlp.apply_deletions_target('sitename', 'dirname')
         assert capsys.readouterr().out == (
                 "called get_dirlist_for_site() met args = ('sitename', 'dirname')\n"
                 "called apply_deletions() met args = ([('dirname', 99)], 'source')\n"
-                "execute SQL: `update doc_stats set source_deleted = %s, target_docid = %s,"
-                " target_deleted = %s where id = %s;`\n"
-                "  with: `('x', 1, 'y', 99)`, `('x', 1, 'y', 98)`\n"
+                "execute SQL: `update doc_stats set source_docid = %s, source_updated = %s,"
+                " source_deleted = %s, target_docid = %s, target_deleted = %s where id = %s;`\n"
+                "  with: `('x', 'x', 'x', 1, 'y', 99)`, `('x', 'x', 'x', 1, 'y', 98)`\n"
                 "called commit() on connection\n"
                 "called close()\n")
 
@@ -1174,8 +1174,8 @@ class TestDocLevel:
         assert dmlp.list_deletions([], 'x') == []
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
-        assert dmlp.list_deletions([('/', 1), ('subdir', 2)], 'stage') == ['xxx', 'yyy.html',
-                'subdir/xxx', 'subdir/yyy.html']
+        assert dmlp.list_deletions([('/', 1), ('subdir', 2)], 'stage') == sorted(['xxx', 'yyy.html',
+                'subdir/xxx', 'subdir/yyy.html'])
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, docname, target_docid from doc_stats'
                 ' where dir_id = %s and stage_deleted = %s;`\n'
@@ -1311,10 +1311,3 @@ class TestDocLevel:
             '  with: `[1, 2, 3]`\n',
             'called commit() on connection\n',
             'called close()\n'))
-
-    def test_split_for_comparison(self, monkeypatch):
-        assert dmlp.split_for_comparison('') == ['\n']
-        assert dmlp.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\nmet\nalleen\nlf\n']
-        assert dmlp.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
-        assert dmlp.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\n', 'met\n',
-                                                                          'beide\n']

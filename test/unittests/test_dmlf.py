@@ -79,7 +79,7 @@ class TestNonApiFunctions:
 
     def test_get_dir_stats(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):
-            return ('name2', 2), ('name1', 1)
+            return (('name2', 2), ('name1', 1)), []
         monkeypatch.setattr(dmlf, '_get_dir_ftype_stats', mock_get_dir_ftype_stats)
         time1 = dmlf.datetime.datetime.fromtimestamp(1)
         time2 = dmlf.datetime.datetime.fromtimestamp(2)
@@ -753,8 +753,8 @@ class TestDocLevel:
         assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source/dirname\n'
                                            f'deleted file `{oldsub}/file1.deleted`\n'
                                            f'deleted file `{oldsub}/file2.deleted`\n'
-                                           f'created file `{locsub}/file1.html`\n'
-                                           f'created file `{locsub}/file2.html`\n')
+                                           f'created file `{locsub}/file1.deleted`\n'
+                                           f'created file `{locsub}/file2.deleted`\n')
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_mkdir(self, *args, **kwargs):
@@ -901,11 +901,3 @@ class TestDocLevel:
         assert dmlf.get_all_doc_stats('sitename') == [('/', 'hello, world!'),
                                                       ('x', 'hello, world!'),
                                                       ('y', 'hello, world!')]
-
-    def test_split_for_comparison(self, monkeypatch):
-        assert dmlf.split_for_comparison('') == ['\n']
-        assert dmlf.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\n', 'met\n',
-                                                                       'alleen\n', 'lf\n']
-        assert dmlf.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
-        assert dmlf.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\r\n', 'met\r\n',
-                                                                      'beide\n']

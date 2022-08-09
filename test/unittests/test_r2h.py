@@ -362,17 +362,6 @@ class TestRst2Html:
                                                   ' {}'.format(testsubj.state))
         assert capsys.readouterr().out == 'called R2hState.propagate_deletions\n'
 
-    def test_status(self, monkeypatch, capsys):
-        def mock_status(*args):
-            return 'message'
-        testsubj = r2h.Rst2Html()
-        monkeypatch.setattr(testsubj.state, 'status', mock_status)
-        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.status(settings='s', rstfile='r',
-                               htmlfile='h', newfile='n',
-                               rstdata='d') == ('format_output for r, h, n, message, d,'
-                                                ' s, {}'.format(testsubj.state))
-
     def test_makerefdoc(self, monkeypatch, capsys):
         def mock_makerefdoc(*args):
             return 'ok', 'rref', 'href', 'dref'

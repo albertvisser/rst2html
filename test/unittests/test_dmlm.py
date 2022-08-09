@@ -585,7 +585,7 @@ class TestDocLevel:
         assert dmlm.apply_deletions_target('site_name') == ['doc1']
         assert capsys.readouterr().out == ''.join((
             "called update_site_doc() with args `site_name`, `{'/':"
-            " {'doc1': {'src': {'docid': 'x', 'deleted': False}, 'dest': {'deleted': True}},"
+            " {'doc1': {'dest': {'deleted': True}},"
             " 'doc2': {'src': {'deleted': {}}}},"
             " 'dirname': {'doc3': {'src': {'deleted': True}},"
             " 'doc4': {'src': {'deleted': False}}}}`\n"))
@@ -594,17 +594,17 @@ class TestDocLevel:
             "called add_doc() with args `{'current': '', 'previous': ''}`\n",
             "called update_site_doc() with args `site_name`, `{'/':"
             " {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},"
-            " 'doc2': {'src': {'deleted': {}}}}, 'dirname': {'doc3': {'src':"
-            " {'deleted': False}, 'dest': {'docid': 'doc_id', 'deleted': True}},"
+            " 'doc2': {'src': {'deleted': {}}}},",
+            " 'dirname': {'doc3': {'dest': {'docid': 'doc_id', 'deleted': True}},"
             " 'doc4': {'src': {'deleted': False}}}}`\n"))
         assert dmlm.apply_deletions_target('site_name', '*') == ['doc1', 'dirname/doc3']
         assert capsys.readouterr().out == ''.join((
             "called add_doc() with args `{'current': '', 'previous': ''}`\n",
             "called update_site_doc() with args `site_name`, `{'/':"
-            " {'doc1': {'src': {'docid': 'x', 'deleted': False}, 'dest': {'deleted': True}},"
+            " {'doc1': {'dest': {'deleted': True}},"
             " 'doc2': {'src': {'deleted': {}}}},"
-            " 'dirname': {'doc3': {'src': {'deleted': False}, 'dest': {'docid': 'doc_id',"
-            " 'deleted': True}}, 'doc4': {'src': {'deleted': False}}}}`\n"))
+            " 'dirname': {'doc3': {'dest': {'docid': 'doc_id', 'deleted': True}},"
+            " 'doc4': {'src': {'deleted': False}}}}`\n"))
         monkeypatch.setattr(dmlm, '_get_site_doc', lambda x: {'docs':
             {'/': {'doc1': {'src': {}, 'dest': {}},
                    'doc2': {'src': {}}},
@@ -738,10 +738,3 @@ class TestDocLevel:
         monkeypatch.setattr(dmlm, '_get_stats', mock_get_stats)
         assert dmlm.get_all_doc_stats('site_name') == [('/', [('docname', 'stats for docname')]),
             ('dirname', [('docname2', 'stats for docname2')])]
-
-    def test_split_for_comparison(self, monkeypatch):
-        assert dmlm.split_for_comparison('') == ['\n']
-        assert dmlm.split_for_comparison('tekst\nmet\nalleen\nlf') == ['tekst\nmet\nalleen\nlf\n']
-        assert dmlm.split_for_comparison('tekst\rmet\ralleen\rcr') == ['tekst\rmet\ralleen\rcr\n']
-        assert dmlm.split_for_comparison('tekst\r\nmet\r\nbeide') == ['tekst\n', 'met\n',
-                                                                          'beide\n']
