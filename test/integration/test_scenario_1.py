@@ -473,9 +473,8 @@ def main(monkeypatch, capsys):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    # assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-    #         '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
-    assert htmldata['textdata'] == rstdata_1()
+    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
+            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
     dbdata, htmldata = comp.dump_data_and_compare('23b_migdel_exec_src',
         app.migdel(app.state.settings, 'testdoc3.rst', 'testdoc3.html', '', rstdata_1(), '1'))
     assert sorted(dbdata) == sorted(['site docs have not changed',
@@ -496,9 +495,8 @@ def main(monkeypatch, capsys):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    # assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-    #         '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
-    assert htmldata['textdata'] == rstdata_1()
+    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
+            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
     dbdata, htmldata = comp.dump_data_and_compare('23d_migdel_exec_dest',
         app.migdel(app.state.settings, 'testdoc3.rst', 'testdoc3.html', '', rstdata_1(), '3'))
     assert dbdata == ['site docs have not changed']  # hier ontbreekt wat
