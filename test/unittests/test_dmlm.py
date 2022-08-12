@@ -118,7 +118,9 @@ class TestNonApiFunctions:
         docinfo = {'src': {'updated': 1}, 'dest': {'updated': 2}, 'mirror': {'updated': 3}}
         assert dmlm._get_stats(docinfo) == dmlm.Stats(1, 2, 3)
         docinfo = {'src': {'deleted': 1}, 'dest': {'updated': 2}, 'mirror': {'updated': 3}}
-        assert not dmlm._get_stats(docinfo)
+        assert dmlm._get_stats(docinfo) == dmlm.Stats('[deleted]', 2, 3)
+        docinfo = {'dest': {'deleted': 2}, 'mirror': {}}
+        assert dmlm._get_stats(docinfo) == dmlm.Stats(datetime.datetime.min, '[deleted]', '')
 
 
 class TestTestApi:

@@ -796,6 +796,7 @@ class TestSourceRelated:
             " {'previous': True}\n"
             "called unified_diff() with args (['old source\\n'], ['new source\\n'])\n")
 
+
 class TestTargetRelated:
     sitename, filename = 'testsite', 'testname'
 
@@ -936,20 +937,35 @@ class TestTargetRelated:
 
 class TestProgressList:
     def test_build_progress_list(self, monkeypatch):
+        date_1 = datetime.datetime(2020, 1, 1)
+        date_2 = datetime.datetime(2020, 1, 2)
+        date_3 = datetime.datetime(2020, 1, 3)
         def mock_get_all_doc_stats_empty(*args):
             return []
         def mock_get_all_doc_stats(*args):
-            return [('testdir2', [('test', (3, 2, 1)), ('index', (1, 2, 3))]),
-                    ('testdir1', [('index', (2, 2, 2))]),
-                    ('/', [('index', (1, 1, 2)), ('about', (2, 2, 1))])]
+            nonlocal date_1, date_2, date_3
+            return [('testdir2', [('test', (date_3, date_2, date_1)),
+                                  ('index', (date_1, date_2, date_3)),
+                                  ('removed', ('[deleted]', date_2, date_3)),
+                                  ('twice_removed', ('', '[deleted]', date_3)),
+                                  ('all_gone', ('', '', '')),
+                                      ]),
+                    ('testdir1', [('index', (date_2, date_2, date_2))]),
+                    ('/', [('index', (date_1, date_1, date_2)),
+                           ('about', (date_2, date_2, date_1))])]
         monkeypatch.setattr(rhfn.dml, 'get_all_doc_stats', mock_get_all_doc_stats_empty)
         assert rhfn.build_progress_list('testsite') == []
         monkeypatch.setattr(rhfn.dml, 'get_all_doc_stats', mock_get_all_doc_stats)
-        assert rhfn.build_progress_list('') == [('/', 'about', 1, (2, 2, 1)),
-                                                ('/', 'index', 2, (1, 1, 2)),
-                                                ('testdir1', 'index', 2, (2, 2, 2)),
-                                                ('testdir2', 'index', 2, (1, 2, 3)),
-                                                ('testdir2', 'test', 0, (3, 2, 1))]
+        assert rhfn.build_progress_list('') == [('/', 'about', 1, (date_2, date_2, date_1)),
+                                                ('/', 'index', 2, (date_1, date_1, date_2)),
+                                                ('testdir1', 'index', 2, (date_2, date_2, date_2)),
+                                                ('testdir2', 'all_gone', 2, ('', '', '')),
+                                                ('testdir2', 'index', 2, (date_1, date_2, date_3)),
+                                                ('testdir2', 'removed', 0, ('[deleted]', date_2,
+                                                    date_3)),
+                                                ('testdir2', 'test', 0, (date_3, date_2, date_1)),
+                                                ('testdir2', 'twice_removed', 1, ('', '[deleted]',
+                                                    date_3))]
 
     def test_get_copystand_filepath(self, monkeypatch):
         monkeypatch.setattr(rhfn.datetime, 'datetime', MockDatetime)

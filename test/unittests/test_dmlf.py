@@ -79,12 +79,20 @@ class TestNonApiFunctions:
 
     def test_get_dir_stats(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):
-            return (('name2', 2), ('name1', 1)), []
+            if args[1] == 'src':
+                return (('name2', 2), ('name1', 1)), ['name3']
+            elif args[1] == 'dest':
+                return (('name2', 2), ('name1', 1), ('name3', 1)), ['name4']
+            elif args[1] == 'mirror':
+                return (('name2', 2), ('name1', 1), ('name3', 2), ('name4', 2)), []
         monkeypatch.setattr(dmlf, '_get_dir_ftype_stats', mock_get_dir_ftype_stats)
         time1 = dmlf.datetime.datetime.fromtimestamp(1)
         time2 = dmlf.datetime.datetime.fromtimestamp(2)
+        null = dmlf.datetime.datetime.min
         assert dmlf._get_dir_stats('testsite') == [('name1', dmlf.Stats(time1, time1, time1)),
-                                                   ('name2', dmlf.Stats(time2, time2, time2))]
+                                                   ('name2', dmlf.Stats(time2, time2, time2)),
+                                                   ('name3', dmlf.Stats('[deleted]', time1, time2)),
+                                                   ('name4', dmlf.Stats(null, '[deleted]', time2))]
 
     def test_get_dir_stats_for_docitem(self, monkeypatch):
         def mock_get_dir_ftype_stats(*args):

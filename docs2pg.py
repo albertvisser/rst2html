@@ -160,12 +160,24 @@ def _add_doc():
 
 def _get_stats(docinfo):
     """retrieve site stats from database"""
+    source_updated, source_deleted, target_updated, target_deleted, mirror_updated = docinfo
     stats = []
-    for value in docinfo:
-        if value:
-            stats.append(value)
-        else:
-            stats.append(datetime.datetime.min)
+    if source_deleted:
+        stats.append('[deleted]')
+    elif source_updated:
+        stats.append(source_updated)
+    else:
+        stats.append(datetime.datetime.min)
+    if target_deleted:
+        stats.append('[deleted]')
+    elif target_updated:
+        stats.append(target_updated)
+    else:
+        stats.append(datetime.datetime.min)
+    if mirror_updated:
+        stats.append(mirror_updated)
+    else:
+        stats.append(datetime.datetime.min)
     return Stats(*stats)
 
 
@@ -898,8 +910,8 @@ def get_doc_stats(site_name, docname, dirname=''):
         raise FileNotFoundError("no_document")
 
     cur = conn.cursor()
-    cur.execute('select source_updated, target_updated, mirror_updated from {} '
-                'where id = %s;'.format(TABLES[3]), (doc_id,))
+    cur.execute('select source_updated, source_deleted, target_updated, target_deleted,'
+                ' mirror_updated from {} where id = %s;'.format(TABLES[3]), (doc_id,))
     docinfo = cur.fetchone()
     cur.close()
     return _get_stats(docinfo)
@@ -921,8 +933,8 @@ def get_all_doc_stats(site_name):
                 ' and dir_id = any(%s);'.format(TABLES[3], TABLES[2]), (dirids,))
     all_stats = [(row['dirname'],
                   row['docname'],
-                  _get_stats((row['source_updated'], row['target_updated'], row['mirror_updated'])))
-                 for row in cur if not any((row['source_deleted'], row['target_deleted']))]
+                  _get_stats((row['source_updated'], row['source_deleted'], row['target_updated'],
+                              row['target_deleted'], row['mirror_updated']))) for row in cur]
     conn.commit()
     cur.close()
 

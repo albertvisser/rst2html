@@ -846,8 +846,13 @@ def build_progress_list(sitename):
         data.insert(0, rootitem)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
-            maxval = max(stats)
+            altstats = [datetime.datetime.min if x in ('[deleted]', '') else x for x in stats]
+            maxval = max(altstats)
+            maxidx = 2
             for idx, val in enumerate(stats):
+                if val == '[deleted]':
+                    maxidx = idx
+                    break
                 if maxval == val:
                     maxidx = idx
             result.append((dirname, docname, maxidx, stats))
@@ -877,8 +882,10 @@ def get_progress_line_values(docinfo):
     for idx, dts in enumerate(stats):
         if dts == datetime.datetime.min:
             timestring = "n/a"
-        else:
+        elif dts and dts != '[deleted]':
             timestring = dts.strftime('%d-%m-%Y %H:%M:%S')
+        else:
+            timestring = dts
         if idx == maxidx:
             timestring = timestring.join(('--> ', ' <--'))
         result.append(timestring)

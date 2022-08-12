@@ -62,18 +62,21 @@ def _update_doc(docid, doc):
 def _get_stats(docinfo):
     """retrieve site stats from database"""
     stats = []
-    deleted = False
+    # deleted = False
     for key in LOCS:
         if key in docinfo:
             if 'deleted' in docinfo[key]:
-                deleted = True
-                break
-            if 'updated' in docinfo[key]:
+                # deleted = True
+                # break
+                stats.append('[deleted]')
+            elif 'updated' in docinfo[key]:
                 stats.append(docinfo[key]['updated'])
+            else:
+                stats.append('')
         else:
             stats.append(datetime.datetime.min)
-    if deleted:
-        return None
+    # if deleted:
+    #    return None
     return Stats(*stats)
 
 

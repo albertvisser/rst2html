@@ -81,9 +81,11 @@ def _get_dir_stats(site_name, dirname=''):
     result = defaultdict(lambda: [datetime.datetime.min, datetime.datetime.min,
                                   datetime.datetime.min])
     for ix, ftype in enumerate(LOCS):
-        statslist = _get_dir_ftype_stats(site_name, ftype, dirname)[0]
+        statslist, deleted = _get_dir_ftype_stats(site_name, ftype, dirname)
         for name, mtime in statslist:
             result[name][ix] = datetime.datetime.fromtimestamp(mtime)
+        for name in deleted:
+            result[name][ix] = '[deleted]'
     return sorted([(x, Stats(*y)) for x, y in result.items()])
 
 

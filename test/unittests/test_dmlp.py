@@ -169,8 +169,12 @@ class TestNonApiFunctions:
             'called close()\n'))
 
     def test_get_stats(self, monkeypatch, capsys):
-        assert dmlp._get_stats(('docinfo', '', 0)) == dmlp.Stats('docinfo', datetime.datetime.min,
-                datetime.datetime.min)
+        mindate = datetime.datetime.min
+        assert dmlp._get_stats((1, None, 2, None, 3)) == dmlp.Stats(1, 2, 3)
+        assert dmlp._get_stats((1, True, 2, True, 0)) == dmlp.Stats('[deleted]', '[deleted]', mindate)
+        assert dmlp._get_stats((0, None, 0, None, 0)) == dmlp.Stats(mindate, mindate, mindate)
+        with pytest.raises(ValueError):
+            assert dmlp._get_stats(()) == dmlp.Stats('', '', '')
 
 
 class TestTestApi:
@@ -1257,8 +1261,8 @@ class TestDocLevel:
                                                               'target_updated': 2,
                                                               'mirror_updated': 3}
         assert capsys.readouterr().out == ''.join((
-            'execute SQL: `select source_updated, target_updated, mirror_updated from doc_stats'
-            ' where id = %s;`\n',
+            'execute SQL: `select source_updated, source_deleted, target_updated, target_deleted,'
+            ' mirror_updated from doc_stats where id = %s;`\n',
             '  with: `1`\n',
             'called close()\n'))
 
@@ -1277,11 +1281,11 @@ class TestDocLevel:
                                      'mirror_updated': 5, 'source_deleted': None,
                                      'target_deleted': None, 'dirname': '/'},
                                     {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': 8, 'target_deleted': None,
-                                     'dirname': '/'},
+                                     'mirror_updated': 5, 'source_deleted': 8,
+                                     'target_deleted': None, 'dirname': '/'},
                                     {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': 8, 'target_deleted': 9,
-                                     'dirname': '/'},
+                                     'mirror_updated': 5, 'source_deleted': 8,
+                                     'target_deleted': 9, 'dirname': '/'},
                                     {'docname': 'a', 'source_updated': 2, 'target_updated': 4,
                                      'mirror_updated': 5, 'source_deleted': None,
                                      'target_deleted': None, 'dirname': 'subdir'},
@@ -1297,7 +1301,9 @@ class TestDocLevel:
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         assert dmlp.get_all_doc_stats('site_name') == [
                 ('/', [('x', dmlp.Stats(src=1, dest=2, mirror=3)),
-                       ('y', dmlp.Stats(src=1, dest=4, mirror=5))]),
+                       ('y', dmlp.Stats(src=1, dest=4, mirror=5)),
+                       ('y', dmlp.Stats(src='[deleted]', dest=4, mirror=5)),
+                       ('y', dmlp.Stats(src='[deleted]', dest='[deleted]', mirror=5))]),
                 ('subdir',
                       [('a', dmlp.Stats(src=2, dest=4, mirror=5)),
                        ('b', dmlp.Stats(src=3, dest=4, mirror=6))])]
