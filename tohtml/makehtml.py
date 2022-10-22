@@ -2,6 +2,7 @@
 
 PyQt5 versie
 """
+import os
 import sys
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as gui
@@ -9,13 +10,14 @@ import PyQt5.QtCore as core
 import PyQt5.QtWebKitWidgets as webkit
 from docutils.core import publish_string
 import markdown
-
+HERE = os.path.dirname(os.path.dirname(__file__))
 
 def zetom_rest(data):
     """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
         "embed_stylesheet": True,
-        "stylesheet_path": '/usr/share/docutils/writers/html4css1/html4css1.css',
+        # "stylesheet_path": '/usr/share/docutils/writers/html4css1/html4css1.css',
+        "stylesheet_path": os.path.join(HERE, 'static', 'html4css1.css'),
         "report_level": 3}
     return str(publish_string(source=data,
                               destination_path="/tmp/omgezet.html",
@@ -44,28 +46,28 @@ class MainFrame(qtw.QMainWindow):
         self.resize(1000, 600)
         self.html = webkit.QWebView(self)
         self.setCentralWidget(self.html)
-        title = '{} via htmlfrom{}.py'.format(input, mode)
+        title = f'{input} via htmlfrom{mode}.py'
         self.setWindowTitle(title)
-        failed = self.refresh_display(input, mode)
+        failed = self.refresh_display()
         if failed:
             sys.exit()
         self.show()
         sys.exit(self.app.exec_())
 
-    def refresh_display(self, input, mode):
+    def refresh_display(self):
         """(re)show the converted input"""
         failed = False
         self.app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
         try:
-            f_in = open(input)
+            f_in = open(self.input)
         except FileNotFoundError:
             failed = True
             self.app.restoreOverrideCursor()
-            qtw.QMessageBox.critical(self, '{}view'.format(mode),
-                                     'File {} does not exist'.format(input))
+            qtw.QMessageBox.critical(self, '{}view'.format(self.mode),
+                                     'File {} does not exist'.format(self.input))
             return failed
         except UnicodeDecodingError:
-            f_in = open(input, encoding='latin-1')
+            f_in = open(self.input, encoding='latin-1')
         with f_in:
             data = ''.join([x for x in f_in])
         self.html.setHtml(zetom[self.mode](data))
