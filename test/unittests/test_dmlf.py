@@ -31,6 +31,7 @@ class TestNonApiFunctions:
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
                     pathlib.Path('index.rst'), pathlib.Path('test.src'),
                     pathlib.Path('revived.deleted'), pathlib.Path('revived.rst'),
+                    pathlib.Path('overview-xxx'), pathlib.Path('search-results-xxx'),
                     pathlib.Path('removed.deleted'))
         def mock_iterdir_dest(*args):
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
