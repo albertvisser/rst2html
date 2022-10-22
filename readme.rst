@@ -27,7 +27,7 @@ The latest addition is the possibility to easily plug in a different data storag
 How to use
 ----------
 
-1. setting up a site on your local webserver
+1. *setting up a site on your local webserver*
 
 When starting a new site, begin by choosing what kind of implementation to use. For Mongo or Postgres you may have some preparation to do e.g. setting up a database server. With the right configuration and startup script (see below), start up the application and choose "load settings", then enter a nice name and choose "save settings". This will create a destination site in a standard location as well as define locations for keeping the intermediary results. You can then map the location to a url for your local webserver so that you can view the result in all its glory.
 
@@ -38,7 +38,7 @@ What backend to use is also defined in `app_settings.py` (the DML variable).
 
 Note that when using CodeMirror for syntax highlighting, the size of the editor window becomes fixed and can only be set from within `static/codemirror/lib/codemirror.js` (as far as I've been able to determine). So controlling it from the site settings becomes impossible.
 
-2. setting up the application
+2. *setting up the application*
 
 Use ``cherryd`` or similar to run ``start_rst2html.py`` with the .conf file in this directory.
 
@@ -48,7 +48,11 @@ Configure your local webserver to pick up the output from the port and assign it
 
 Of course you can also pick up the output directly in the web browser by specifying localhost:port.
 
-3. setting up codemirror
+To make the styling of the converted text work you may also need to change the symlink `static/html4css1.css` because it points to the location where docutils is installed.
+
+3. *setting up codemirror*
+
+The below instruction is for codemirror version 5; I recently noticed that for version 6 it's a little more complicated and I haven't tried it out yet:
 
 Extract codemirror.zip nto the "static" directory - this creates a subdirectory codemirror-<versie>. You need to remove the version number to make it work.
 
@@ -58,7 +62,7 @@ Requirements
 ------------
 
 - Python(3)
-- Docutils for the restsructured text stuff
+- Docutils for the restructured text stuff
 - CherryPy for the web application
 - yaml for the config parsing stuff
 - CodeMirror(.js) for the syntax highlighting (you can do without it I think)
