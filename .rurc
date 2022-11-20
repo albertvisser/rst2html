@@ -1,0 +1,23 @@
+# configuration for run_unittests script to run (selected) unittests with coverage
+
+# location of testscripts
+[testdir]
+test/unittests
+
+# mapping of parameter values to testscripts
+[testscripts]
+r2h:   test_r2h.py
+rhfn:  test_rhfn.py
+rhdir: test_rhdir.py
+dmlf:  test_dmlf.py
+dmlm:  test_dmlm.py
+dmlp:  test_dmlp.py
+
+# mapping of parameter values to scripts to test
+[testees]
+r2h:   rst2html.py
+rhfn:  rst2html_functions.py
+rhdir: rst2html_directives.py
+dmlf:  docs2fs.py
+dmlm:  docs2mongo.py
+dmlp:  docs2pg.py
