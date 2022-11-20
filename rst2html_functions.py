@@ -165,7 +165,7 @@ def rst2html(data, css):
     #                       writer_name='html',
     #                       settings_overrides=overrides)
     newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
-                                 writer_name='html', settings_overrides=overrides),
+                                 writer_name='html5', settings_overrides=overrides),
                   encoding='utf-8')
     newdata = post_process_title(newdata)
     return newdata
