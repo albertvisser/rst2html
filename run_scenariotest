@@ -1,13 +1,13 @@
 # execute test_scenario_1 for dml system(s) of choice
 if [ -z $1 ] || [ '$1' == 'fs']; then
   ./use_fs
-  pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_fs.out
+  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_fs.out
 fi
 if [ -z $1 ] || [ '$1' == 'mongo']; then
   ./use_mongo
-  pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_mongo.out
+  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_mongo.out
 fi
 if [ -z $1 ] || [ '$1' == 'pg']; then
   ./use_pg
-  pytest test/integration/test_scenario_1.py -vv > /tmp/test_scenario_1_pg.out
+  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_pg.out
 fi

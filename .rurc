@@ -2,7 +2,7 @@
 
 # location of testscripts
 [testdir]
-test/unittests
+unittests
 
 # mapping of parameter values to testscripts
 [testscripts]
