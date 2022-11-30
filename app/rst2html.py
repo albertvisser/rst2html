@@ -8,9 +8,9 @@ import pathlib
 import datetime
 import cherrypy
 ## sys.path.append('.')
-import rst2html_functions as rhfn
+import app.rst2html_functions as rhfn
 HERE = pathlib.Path(__file__).parent
-TEMPLATE = HERE / "rst2html.html"
+# TEMPLATE = HERE / "rst2html.html"
 previewbutton = ('<div style="border: 3px ridge #3a5fcd; border-radius:20px; '
                  'background-color: #C6E2FF; text-align: center; position: fixed">'
                  '<a href={}><button accesskey="b">'

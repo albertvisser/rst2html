@@ -15,9 +15,9 @@ dmlp:  test_dmlp.py
 
 # mapping of parameter values to scripts to test
 [testees]
-r2h:   rst2html.py
-rhfn:  rst2html_functions.py
-rhdir: rst2html_directives.py
-dmlf:  docs2fs.py
-dmlm:  docs2mongo.py
-dmlp:  docs2pg.py
+r2h:   app/rst2html.py
+rhfn:  app/rst2html_functions.py
+rhdir: app/rst2html_directives.py
+dmlf:  app/docs2fs.py
+dmlm:  app/docs2mongo.py
+dmlp:  app/docs2pg.py

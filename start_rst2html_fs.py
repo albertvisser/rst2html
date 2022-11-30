@@ -5,16 +5,15 @@ import sys
 import os
 import pathlib
 import shutil
-## sys.stdout = sys.stderr
-import cgitb
+# import cgitb
 import cherrypy
-cgitb.enable()
+# cgitb.enable()
 
 ROOT = pathlib.Path(__file__).parent.resolve()  # '/home/albert/rst2html'
 os.chdir(str(ROOT))
-sys.path.insert(0, str(ROOT))
+# sys.path.insert(0, str(ROOT))
 shutil.copyfile('app_settings_fs.py', 'app_settings.py')
-from rst2html import Rst2Html
+from app.rst2html import Rst2Html
 
 application = cherrypy.tree.mount(Rst2Html())
 cherrypy.config.update({'environment': 'embedded'})

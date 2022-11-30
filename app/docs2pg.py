@@ -7,7 +7,7 @@ import pathlib
 import psycopg2 as pg
 import psycopg2.extras as pgx
 from app_settings_postgres import user, password, Stats, WEBROOT, LOC2EXT  # , LOCS
-from docs2fs import save_to
+from .docs2fs import save_to
 conn = pg.connect(database="rst2html", user=user, password=password)
 TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents', 'templates')
 

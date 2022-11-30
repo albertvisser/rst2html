@@ -19,18 +19,18 @@ import collections
 
 from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
 if DML == 'fs':
-    import docs2fs as dml
+    import app.docs2fs as dml
 elif DML == 'mongo':
-    import docs2mongo as dml
+    import app.docs2mongo as dml
 elif DML == 'postgres':
-    import docs2pg as dml
-from docs2fs import read_data, save_to, load_config_data, ParserError, save_config_data
+    import app.docs2pg as dml
+from app.docs2fs import read_data, save_to, load_config_data, ParserError, save_config_data
 #
 # docutils stuff (including directives
 #
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
-import rst2html_directives as rhdir
+import app.rst2html_directives as rhdir
 standard_directives = {"startc": rhdir.StartCols,
                        "endc": rhdir.EndCols,
                        "firstc": rhdir.FirstCol,
@@ -68,8 +68,8 @@ standard_directives = {"startc": rhdir.StartCols,
 # internals
 #
 HERE = pathlib.Path(__file__).parent
-custom_directives = HERE / 'custom_directives.py'
-custom_directives_template = HERE / 'custom_directives_template.py'
+custom_directives = HERE.parent / 'custom_directives.py'
+custom_directives_template = HERE.parent / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': []}
@@ -421,7 +421,7 @@ def init_css(sitename):
                 break
         if not got_css:
             cssdir.mkdir(exist_ok=True)
-            src = str(HERE / 'static' / cssfile)
+            src = str(HERE.parent / 'static' / cssfile)
             dest = str(cssdir / cssfile)
             shutil.copyfile(src, dest)
             conf['css'].append('url + css/' + cssfile)

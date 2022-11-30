@@ -6,7 +6,7 @@ import pathlib
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
-from docs2fs import save_to
+from .docs2fs import save_to
 cl = MongoClient()
 db = cl.rst2html_database
 site_coll = db.site_coll
