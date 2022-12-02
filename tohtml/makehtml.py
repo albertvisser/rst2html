@@ -7,7 +7,8 @@ import sys
 import PyQt5.QtWidgets as qtw
 import PyQt5.QtGui as gui
 import PyQt5.QtCore as core
-import PyQt5.QtWebKitWidgets as webkit
+# import PyQt5.QtWebKitWidgets as webkit
+import PyQt5.QtWebEngineWidgets as webeng
 from docutils.core import publish_string
 import markdown
 HERE = os.path.dirname(os.path.dirname(__file__))
@@ -44,7 +45,8 @@ class MainFrame(qtw.QMainWindow):
         self.mode = mode
         super().__init__()
         self.resize(1000, 600)
-        self.html = webkit.QWebView(self)
+        # self.html = webkit.QWebView(self)
+        self.html = webeng.QWebEngineView(self)
         self.setCentralWidget(self.html)
         title = f'{input} via htmlfrom{mode}.py'
         self.setWindowTitle(title)
