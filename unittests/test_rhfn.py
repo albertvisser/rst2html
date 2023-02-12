@@ -11,7 +11,7 @@ import shutil
 import datetime
 import pytest
 
-import rst2html_functions as rhfn
+import app.rst2html_functions as rhfn
 
 FIXDATE = datetime.datetime(2020, 1, 1)
 
@@ -118,7 +118,8 @@ class TestR2HRelated:
                                            'args for directives.register_directive: `name2`'
                                            ' `fun2`\n')
         monkeypatch.setattr(rhfn, 'standard_directives', {})
-        monkeypatch.setattr(rhfn, 'custom_directives', pathlib.Path('custom_directives_template.py'))
+        monkeypatch.setattr(rhfn, 'custom_directives',
+                            pathlib.Path('app/custom_directives_template.py'))
         rhfn.register_directives()
         assert capsys.readouterr().out == 'load_custom_directives got called\n'
 
@@ -223,7 +224,6 @@ class TestR2HRelated:
         monkeypatch.setattr(rhfn.subprocess, 'run', mock_run_not_all)
         assert sorted(rhfn.check_directive_selectors('testsite')) == ['class_2', 'id_2']
         capsys.readouterr()  # swallow stdout/err
-
 
     def test_preprocess_includes(self, monkeypatch, capsys):
         def mock_read_conf(*args):
@@ -373,7 +373,7 @@ class TestConfRelated:
         # alle files in BASIC_CSS die nog niet in conf['css'] zitten worden daarin opgevoerd
         # en ook aan conf['css'] toegevoegd dat daarna aangepast wordt
         sitename = 'testsite'
-        here = rhfn.HERE / 'static'
+        here = rhfn.HERE.parent / 'static'
         there = rhfn.WEBROOT / sitename / 'css'
         there_present = there.parent.exists()
         copy_lines = ['copying `{0}/{2}` to `{1}/{2}`\n'.format(here, there, x) for x in
@@ -1220,8 +1220,8 @@ class TestSearchRelated:
 
 class TestUpdateAll:
     """tests for regenerate all functionality"""
-    def test_check_for_includes(self, monkeypatch):
-        fake_webroot = pathlib.Path('/tmp/rhfntest')
+    def test_check_for_includes(self, monkeypatch, tmp_path):
+        fake_webroot = tmp_path / 'rhfntest'
         fake_sitename = 'testsite'
         monkeypatch.setattr(rhfn, 'WEBROOT', fake_webroot)
         fake_include = fake_webroot / fake_sitename / '.source' / 'include.rst'
@@ -1249,7 +1249,7 @@ class TestUpdateAll:
         assert testsubj.needed_only == True
         assert testsubj.show_only == True
 
-    def test_rebuild_mirror(self, monkeypatch, capsys):
+    def test_rebuild_mirror(self, monkeypatch, capsys, tmp_path):
         def mock_save_to_mirror(*args, **kwargs):
             run = '(dry run)' if kwargs.get('dry_run', False) else ''
             print('save_to_mirror {} was called'.format(run))
@@ -1257,7 +1257,7 @@ class TestUpdateAll:
 
         sitename, conf = 'testsite', {'seflinks': False}
         testsubj = rhfn.UpdateAll(sitename, conf)
-        testsubj.path = pathlib.Path('/tmp/rhfntest/testsite')
+        testsubj.path = tmp_path / 'rhfntest' / 'testsite'
         filename = 'testfile'
         dirname = ''
         monkeypatch.setattr(rhfn, 'save_to_mirror', mock_save_to_mirror)
@@ -2198,8 +2198,8 @@ class TestR2hState:
         testsubj.search('not found', '') == ('search phrase not found', {})
         testsubj.search('not found', 'replaced') == ('nothing found, no replacements', {})
 
-    def test_copysearch(self, monkeypatch):
-        path = pathlib.Path('/tmp/copysearch')
+    def test_copysearch(self, monkeypatch, tmp_path):
+        path = tmp_path / 'copysearch'
         def mock_get_copysearch_filepath(*args):
             return path
         def mock_get_progress_line_values(*args):
@@ -2209,7 +2209,7 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'get_copysearch_filepath', mock_get_copysearch_filepath)
         searchdata = ('search_for', 'replace_with',
                       [('text1', '1', 'result1'), ('text2', '2', 'result2')])
-        assert testsubj.copysearch(searchdata) == 'Search results copied to /tmp/copysearch'
+        assert testsubj.copysearch(searchdata) == f'Search results copied to {path}'
         assert path.read_text() == ('searched for `search_for`and replaced with `replace_with`\n\n'
                                     'text1 line 1: result1\ntext2 line 2: result2\n')
 
@@ -2236,8 +2236,8 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'build_progress_list', mock_build_progress_list)
         assert testsubj.overview() == 'called build_progress_list'
 
-    def test_copystand(self, monkeypatch):
-        path = pathlib.Path('/tmp/copystand')
+    def test_copystand(self, monkeypatch, tmp_path):
+        path = tmp_path / 'copystand'
         def mock_get_copystand_filepath(*args):
             return path
         def mock_get_progress_line_values(*args):
@@ -2246,5 +2246,5 @@ class TestR2hState:
         testsubj = rhfn.R2hState()
         monkeypatch.setattr(rhfn, 'get_copystand_filepath', mock_get_copystand_filepath)
         monkeypatch.setattr(rhfn, 'get_progress_line_values', mock_get_progress_line_values)
-        assert testsubj.copystand(['x']) == 'Overview exported to /tmp/copystand'
+        assert testsubj.copystand(['x']) == f'Overview exported to {path}'
         assert path.read_text() == 'x;y;z;q\n'

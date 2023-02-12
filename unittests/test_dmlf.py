@@ -122,29 +122,25 @@ class TestNonApiFunctions:
         assert dmlf._get_sitedoc_data('sitename') == {'/': 'hello, world!', 'x': 'hello, world!',
                                                       'y': 'hello, world!'}
 
-    def test_read_data(self, monkeypatch, capsys):
-        with open('/tmp/dmlftmpfile', 'w') as out:
-            out.write('regel 1\rregel 2\r\nregel 3\n')
-        with open('/tmp/dmlftmpfileiso', 'w', encoding='iso-8859-1') as out:
-            out.write('règle 1\rrègle 2\r\nrègle 3\n')
+    def test_read_data(self, monkeypatch, capsys, tmp_path):
+        tmpfile = tmp_path / 'dmlftmpfile'
+        tmpfile.write_text('regel 1\rregel 2\r\nregel 3\n')
+        tmpfileiso = tmp_path / 'dmlftmpfileiso'
+        tmpfile.write_text('règle 1\rrègle 2\r\nrègle 3\n', encoding='iso-8859-1')
         def mock_relative_to(self, *args):
             return self
         def mock_open_utf(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
-            return open('/tmp/dmlftmpfile')
+            return tmpfile.open()
         def mock_open_utf_err(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
             raise IOError('IO error on utf file')
         def mock_open_iso(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
-            # if kwargs['encoding'] != 'iso-8859-1':
-            #     raise UnicodeDecodeError
-            return open('/tmp/dmlftmpfileiso')
+            return tmpfileiso.open()
         def mock_open_iso_err(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
-            # if kwargs['encoding'] != 'iso-8859-1':
-            #     raise UnicodeDecodeError
-            open('/tmp/dmlftmpfileiso')
+            return tmpfileiso.open()
             raise IOError('IO error on iso file')
         def mock_readlines(*args):
             return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
@@ -170,8 +166,8 @@ class TestNonApiFunctions:
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('IO error on iso file', '')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname.rst`\n'
 
-    def test_save_to(self, monkeypatch, capsys):
-        tmpfilename = '/tmp/dmlfsaveto'
+    def test_save_to(self, monkeypatch, capsys, tmp_file):
+        tmpfilename = str(tmp_path / 'dmlfsaveto')
         def mock_open_err(self, *args, **kwargs):
             raise OSError
         def mock_open(self, *args, **kwargs):
@@ -343,12 +339,12 @@ class TestSiteLevel:
         with pytest.raises(NotImplementedError):
             dmlf.rename_site('sitename', 'newname')
 
-    def test_read_settings(self, monkeypatch, capsys):
-        with open('/tmp/dmlfreadsett', 'w') as out:
-            out.write('regel 1\rregel 2\r\nregel 3\n')
+    def test_read_settings(self, monkeypatch, capsys, tmp_path):
+        testsettings = tmp_path / 'dmlfreadsett'
+        testsettings.write_text ('regel 1\rregel 2\r\nregel 3\n')
         def mock_open(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
-            return open('/tmp/dmlfreadsett')
+            return testsettings.open()
         def mock_load_config_data(*args):
             return {'x': 'y'}
         def mock_load_config_data_2(*args):
@@ -364,10 +360,10 @@ class TestSiteLevel:
         settfile = dmlf.WEBROOT / sitename / dmlf.SETTFILE
         assert capsys.readouterr().out == 'called open() for file `{}`\n'.format(settfile)
 
-    def test_update_settings(self, monkeypatch, capsys):
+    def test_update_settings(self, monkeypatch, capsys, tmp_path):
         def mock_open(self, *args, **kwargs):
             print('called open() for file `{}`'.format(self))
-            return open('/tmp/dmlfupd_sett', 'w')
+            return (tmp_path / 'dmlfupd_sett').open('w')
         def mock_save_config_data(*args, **kwargs):
             print('called save_config_data')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
@@ -487,23 +483,22 @@ class TestDocLevel:
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         assert dmlf.list_templates(sitename) == ['a.tpl', 'z.tpl']
 
-    def test_read_template(self, monkeypatch, capsys):
-        tmpfile = '/tmp/dmlfread_tpl'
-        with open(tmpfile, 'w') as out:
-            out.write('hello\rhello\r\nhello\n')
+    def test_read_template(self, monkeypatch, capsys, tmp_path):
+        tmpfile = tmp_path / 'dmlfread_tpl'
+        tmpfile.write_text('hello\rhello\r\nhello\n')
         def mock_open(self, *args):
             print('called open() for `{}`'.format(self))
-            return open(tmpfile)
+            return tmpfile.open()
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         sitename, docname = 'testsite', 'template'
         assert dmlf.read_template(sitename, docname) == 'hello\nhello\nhello\n'
         tplname = dmlf.WEBROOT / sitename / '.templates' / docname
         assert capsys.readouterr().out == 'called open() for `{}`\n'.format(tplname)
 
-    def test_write_template(self, monkeypatch, capsys):
-        tmpfilename = '/tmp/dmlfwritetpl'
+    def test_write_template(self, monkeypatch, capsys, tmp_path):
+        tmpfile = tmp_path / 'dmlfwritetpl'
         def mock_open(self, *args, **kwargs):
-            return open(tmpfilename, 'w')
+            return tmpfile.open('w')
         def mock_open_err(self, *args, **kwargs):
             raise OSError('file open failed')
         def mock_mkdir(self, *args, **kwargs):
@@ -515,9 +510,7 @@ class TestDocLevel:
         assert dmlf.write_template('sitename', 'fnaam', 'data') == ''
         loc = dmlf.WEBROOT / 'sitename' / '.templates'
         assert capsys.readouterr().out == 'called mkdir() for `{}`\n'.format(loc)
-        with open(tmpfilename) as out:
-            testdata = out.read()
-        assert testdata == 'data'
+        assert tmpfile.read_text() == 'data'
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_err)
         assert dmlf.write_template('sitename', 'fnaam', 'data') == 'file open failed'
