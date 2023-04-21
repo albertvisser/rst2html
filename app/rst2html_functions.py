@@ -566,10 +566,9 @@ def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=
     except FileNotFoundError:
         items = []
         if current == '' and deleted is False:
-            return "Site not found"  #FIXME dit komt letterlijk zo in de html en is dus onzichtbaar
-
+            raise ValueError("Site not found")
     if items is None:
-        return 'Wrong type: `{}`'.format(ext)
+        raise ValueError(f"Wrong type: `{ext}`")
     elif deleted:
         # just return the names of the deleted files
         return items

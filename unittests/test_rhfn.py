@@ -389,7 +389,12 @@ class TestConfRelated:
             there.parent.rmdir()
         monkeypatch.setattr(rhfn.dml, 'read_settings', mock_read_settings_basic_plus)
         rhfn.init_css(sitename)
-        assert capsys.readouterr().out == ''
+        assert capsys.readouterr().out == (
+                "copying `/home/albert/projects/rst2html/static/960.cs` to"
+                " `/home/albert/projects/rst2html/rst2html-data/testsite/css/960.cs`\n"
+                "update_settings called with args `testsite` `{'css':"
+                " ['html4css1.css', 'reset.css', '960.css', 'myowncss.css',"
+                " 'http://www.example.com/static/css.css', 'url + css/960.cs']}`\n")
 
     def test_list_confs(self, monkeypatch):
         def mock_list_sites_none():
@@ -580,9 +585,13 @@ class TestSiteRelated:
             return []
         sitename = 'testsite'
         monkeypatch.setattr(rhfn.dml, 'list_docs', mock_list_docs_not_found)
-        assert rhfn.list_files(sitename) == 'Site not found'
+        with pytest.raises(ValueError) as exc:
+            rhfn.list_files(sitename)
+        assert str(exc.value) == 'Site not found'
         monkeypatch.setattr(rhfn.dml, 'list_docs', mock_list_docs_wrong_type)
-        assert rhfn.list_files(sitename, ext='xxx') == 'Wrong type: `xxx`'
+        with pytest.raises(ValueError) as exc:
+            rhfn.list_files(sitename, ext='xxx')
+        assert str(exc.value) == 'Wrong type: `xxx`'
         monkeypatch.setattr(rhfn.dml, 'list_docs', mock_list_docs)
         assert rhfn.list_files(sitename, deleted=True) == ['luxury-yacht', 'throatwobbler-mangrove']
         monkeypatch.setattr(rhfn.dml, 'list_templates', mock_list_templates_empty)
