@@ -1,5 +1,5 @@
 import pytest
-import rst2html_directives as rhdir
+import app.rst2html_directives as rhdir
 # docutils handel zelf ontbrekende verplichte argumenten af dus hoeven we hier niet te doen
 # with pytest.raises(KeyError):
 #     testsubj.run()

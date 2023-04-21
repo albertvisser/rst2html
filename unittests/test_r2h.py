@@ -3,7 +3,7 @@ import pathlib
 import datetime
 
 import pytest
-import rst2html as r2h
+import app.rst2html as r2h
 
 
 def test_load_template():

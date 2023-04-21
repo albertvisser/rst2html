@@ -2,7 +2,7 @@ import types
 import datetime
 import pathlib
 import pytest
-import docs2mongo as dmlm
+import app.docs2mongo as dmlm
 
 
 # for monkeypatching

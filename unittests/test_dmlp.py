@@ -1,6 +1,6 @@
 import datetime
 import pytest
-import docs2pg as dmlp
+import app.docs2pg as dmlp
 
 # class DbWrapper
 # r. 25:      def __init__(self, f):
