@@ -122,6 +122,7 @@ def translate_action(action):
 
 
 def format_message(mld, lang, msg_parameter):
+    "get message text translation and insert message parameter"
     try:
         mld = get_text(mld, lang)
     except KeyError:
@@ -166,6 +167,7 @@ def rst2html(data, css):
     #                       settings_overrides=overrides)
     newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
                                  writer_name='html5', settings_overrides=overrides),
+                                 # writer_name='html', settings_overrides=overrides),
                   encoding='utf-8')
     newdata = post_process_title(newdata)
     return newdata
@@ -1449,15 +1451,19 @@ class R2hState:
     def diffsrc(self, rstfile):
         """compare current source with previous version
         """
+        if rstfile.startswith('-- ') and rstfile.endswith(' --'):
+            rstfile = rstfile[3:-3]
         mld, rstdata = compare_source(self.sitename, self.current, rstfile)
         if not mld:
             self.loaded = DIFF
-            mld = get_text('diff_loaded', self.get_lang()).format(rstfile)
+            mld = get_text('diff_loaded' if rstdata else 'no_diff_data', self.get_lang())
         return mld, rstdata
 
     def revert(self, rstfile, rstdata):
         """revert `rstfile` to  backed up contents
         """
+        if rstfile.startswith('-- ') and rstfile.endswith(' --'):
+            rstfile = rstfile[3:-3]
         if rstfile.endswith('/') or rstfile.endswith('.tpl'):
             mld = 'incorrect_name'
         else:
@@ -1477,6 +1483,8 @@ class R2hState:
     def delete(self, rstfile, rstdata):
         """(re)save rest source
         """
+        if rstfile.startswith('-- ') and rstfile.endswith(' --'):
+            rstfile = rstfile[3:-3]
         if rstfile.endswith('/') or rstfile.endswith('.tpl'):
             mld = 'incorrect_name'
         else:
