@@ -27,12 +27,15 @@
  */
 
 #header,
+header
 #content,
 #navigation,
 .region.document,
 .region-sidebar-first,
 .region-sidebar-second,
-#footer {
+div.footer,
+#footer,
+footer {
   padding-left: 10px;
   padding-right: 10px;
   -moz-box-sizing: border-box;
@@ -50,20 +53,26 @@
  */
 
 #header,
+header
 #main,
-#footer {
+#footer,
+footer {
   *position: relative;
   *zoom: 1;
 }
 #header:before, #header:after,
+header:before, header:after,
 #main:before, #main:after,
-#footer:before, #footer:after {
+#footer:before, #footer:after,
+footer:before, footer:after {
   content: "";
   display: table;
 }
 #header:after,
+header:after,
 #main:after,
-#footer:after {
+#footer:after,
+footer:after {
   clear: both;
 }
 
@@ -161,6 +170,69 @@
     margin-left: 66.667%;
     margin-right: -100%;
   }
+  /* now for html5 */
+  #content { /* Span 2 columns, starting in 2nd column from left. */
+    float: left;
+    width: 66.667%;
+    margin-left: 33.333%;
+    margin-right: -100%;
+  }
+  .region-sidebar-first { /* Span 1 column, starting in 1st column from left. */
+    float: left;
+    width: 33.333%;
+    margin-left: 0%;
+    margin-right: -33.333%;
+  }
+  .region-sidebar-second { /* Start a new row and span all 3 columns. */
+    float: left;
+    width: 100%;
+    margin-left: 0%;
+    margin-right: -100%;
+    *position: relative;
+    *zoom: 1;
+    padding-left: 0;
+    padding-right: 0;
+    clear: left;
+  }
+  .region-sidebar-second:before,
+  .document .region-sidebar-second:after {
+    content: "";
+    display: table;
+  }
+  .region-sidebar-second:after {
+    clear: both;
+  }
+  .region-sidebar-second .block {
+    padding-left: 10px;
+    padding-right: 10px;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    _display: inline;
+    _overflow: hidden;
+    _overflow-y: visible;
+  }
+  .region-sidebar-second .block:nth-child(3n+1) { /* Span 1 column, starting in the 1st column from left. */
+    float: left;
+    width: 33.333%;
+    margin-left: 0%;
+    margin-right: -33.333%;
+    clear: left;
+  }
+  .region-sidebar-second .block:nth-child(3n+2) { /* Span 1 column, starting in the 2nd column from left. */
+    float: left;
+    width: 33.333%;
+    margin-left: 33.333%;
+    margin-right: -66.667%;
+  }
+  .region-sidebar-second .block:nth-child(3n) { /* Span 1 column, starting in the 3rd column from left. */
+    float: left;
+    width: 33.333%;
+    margin-left: 66.667%;
+    margin-right: -100%;
+  }
 }
 
 /*
@@ -186,6 +258,25 @@
     margin-right: -20%;
   }
   .document .region-sidebar-second { /* Span 1 column, starting in 5th column from left. */
+    float: left;
+    width: 20%;
+    margin-left: 80%;
+    margin-right: -100%;
+  }
+/* the same, but with html5 elements */
+  #content { /* Span 3 columns, starting in 2nd column from left. */
+    float: left;
+    width: 60%;
+    margin-left: 20%;
+    margin-right: -80%;
+  }
+  .region-sidebar-first { /* Span 1 column, starting in 1st column from left. */
+    float: left;
+    width: 20%;
+    margin-left: 0%;
+    margin-right: -20%;
+  }
+  .region-sidebar-second { /* Span 1 column, starting in 5th column from left. */
     float: left;
     width: 20%;
     margin-left: 80%;
