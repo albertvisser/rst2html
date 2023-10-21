@@ -106,7 +106,8 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
     """fix the urls in image links so that preview html points to the right place
     """
     # TODO: dit houdt er nog geen rekening mee dat hrefs die met / beginnen bedoeld zijn om
-    # absoluut vanaf de siteroot geladen te worden? dat zit juist in
+    # absoluut vanaf de siteroot geladen te worden?
+    # gaat bv mis bij het magiokis plaatje in de site banner bij pagina's in een subdirectory
     data = []
     pos = rstdata.find('<img')
     if pos == -1:
