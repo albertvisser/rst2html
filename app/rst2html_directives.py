@@ -577,7 +577,7 @@ class EndSideBar(Directive):
     def run(self):
         "genereer de html"
         text_node = nodes.raw('', '</div></section>'
-                              '<section class="region-sidebar-second column sidebar">'
+                              '<section class="region-sidebar-second column">'
                               '<div class="block"><p>&nbsp;</p></div></section>'
                               '</aside>', format='html')
         return [text_node]
