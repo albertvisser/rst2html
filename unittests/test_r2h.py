@@ -73,13 +73,21 @@ def test_format_progress_list(capsys):
 def test_resolve_images():
     assert r2h.resolve_images('', '', '') == ''
     assert r2h.resolve_images('x', 'y', 'z') == 'x'
-    assert r2h.resolve_images(' <img', 'url', 'loc') == ' <imurl/loc/g'
+    assert r2h.resolve_images(' <img', 'url', 'loc') == ' <img'  # ' <imurl/loc/g'
     assert r2h.resolve_images(' <img src="x">', 'url/', 'loc') == ' <img src="url/loc/x">'
     assert r2h.resolve_images(' <img src="x">', 'url', 'loc/') == ' <img src="url/loc/x">'
     assert r2h.resolve_images(' <img src="httpx">', '', '') == ' <img src="httpx">'
-    # import pdb; pdb.set_trace()
-    # assert r2h.resolve_images(' <img src="/xyz"> <img src="/abc"> ',
-    #                           '', '') == ' <img src="/xyz"> <img src="/abc"> '
+    assert r2h.resolve_images(' <img src="httpx">', 'url', 'loc') == ' <img src="httpx">'
+    assert r2h.resolve_images(' <img src="x"> <img src="y">', 'url/', 'loc') == (
+            ' <img src="url/loc/x"> <img src="url/loc/y">')
+    assert r2h.resolve_images(' <img src="x"> <img src="y">', 'url', 'loc/') == (
+            ' <img src="url/loc/x"> <img src="url/loc/y">')
+    assert r2h.resolve_images(' <img src="httpx"> <img src="httpx">', '', '') == (
+        ' <img src="httpx"> <img src="httpx">')
+    assert r2h.resolve_images(' <img src="httpx"> <img src="httpx">', 'url', 'loc') == (
+        ' <img src="httpx"> <img src="httpx">')
+    assert r2h.resolve_images(' <img src="/xyz"> <img src="/abc"> ',
+                              '', '') == ' <img src="/xyz"> <img src="/abc"> '
     assert r2h.resolve_images(' <img src="/xyz"> <img src="/abc"> ',
                               'url', '') == ' <img src="url/xyz"> <img src="url/abc"> '
     assert r2h.resolve_images(' <img src="x"> ', '', '',

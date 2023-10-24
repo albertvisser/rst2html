@@ -105,15 +105,15 @@ def format_progress_list(timelist):
 def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
     """fix the urls in image links so that preview html points to the right place
     """
-    # TODO: dit houdt er nog geen rekening mee dat hrefs die met / beginnen bedoeld zijn om
-    # absoluut vanaf de siteroot geladen te worden?
-    # gaat bv mis bij het magiokis plaatje in de site banner bij pagina's in een subdirectory
     data = []
     pos = rstdata.find('<img')
     if pos == -1:
         return rstdata
     while pos >= 0:
-        pos2 = rstdata.find('src="', pos) + 5
+        pos2 = rstdata.find('src="', pos)
+        if pos2 == -1:
+            return rstdata
+        pos2 += 5
         if rstdata[pos2:].startswith('http'):
             pos = pos2
         else:
@@ -124,18 +124,20 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
             rstdata = rstdata[pos2:]
             from_root = False
             if rstdata.startswith('/'):
-                rstdata = rstdata[1:]
-                from_root = True
+                rstdata = url.rstrip('/') + rstdata
+            else:
+                urlloc = ''
+                if url:
+                    urlloc = url.rstrip('/') + '/'  # make sure url ends with one and only one /
+                if loc:
+                    urlloc += loc.strip('/') + '/'  # if present add loc with no double //'s
+                if use_sef and fname and fname != 'index':
+                    urlloc += f'{fname}/'
+                rstdata = urlloc + rstdata
             pos = 0
         pos = rstdata.find('<img', pos)
     data.append(rstdata)
-    if url:
-        url = url.rstrip('/') + '/'  # make sure url ends with one and only one /
-    if loc:
-        url += loc.strip('/') + '/'  # if present add loc with no double //'s
-    if use_sef and fname and fname != 'index' and not from_root:
-        url += fname + '/'
-    return url.join(data)
+    return ''.join(data)
 
 
 def format_previewdata(state, previewdata, fname, ftype, settings):
