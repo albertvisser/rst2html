@@ -366,7 +366,7 @@ def test_endsidebar(monkeypatch):
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
-    assert str(data) == ('</div></section><section class="region-sidebar-second column sidebar">'
+    assert str(data) == ('</div></section><section class="region-sidebar-second column">'
                          '<div class="block"><p>&nbsp;</p></div></section></aside>')
 
 
