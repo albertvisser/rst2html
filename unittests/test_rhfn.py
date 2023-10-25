@@ -360,8 +360,8 @@ class TestConfRelated:
         def mock_read_settings_empty(*args):
             return {'css': [] }
         def mock_read_settings_basic_plus(*args):
-            return {'css': ['html4css1.css', 'reset.css', '960.css', 'myowncss.css',
-                            'http://www.example.com/static/css.css'] }
+            return {'css': rhfn.BASIC_CSS[:2] + ['960.css', 'myowncss.css',
+                                             'http://www.example.com/static/css.css'] }
         def mock_copyfile(*args):
             print('copying `{}` to `{}`'.format(*args))
         def mock_update_settings(*args):
@@ -387,6 +387,7 @@ class TestConfRelated:
                                            "\n".format(*update_lines))
         if not there_present: # teardown if necessary
             there.parent.rmdir()
+        monkeypatch.setattr(rhfn, 'BASIC_CSS', ['html4css1.css', 'reset.css', '960.cs'])
         monkeypatch.setattr(rhfn.dml, 'read_settings', mock_read_settings_basic_plus)
         rhfn.init_css(sitename)
         assert capsys.readouterr().out == (
