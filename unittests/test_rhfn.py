@@ -721,8 +721,8 @@ class TestSourceRelated:
             return 'call context_diff with args {} {}'.format(args, kwargs)
         monkeypatch.setattr(rhfn.difflib, 'context_diff', mock_context_diff)
         assert rhfn.compare_source('sitename', 'new source', 'old source') == (
-                "call context_diff with args"
-                " ('new source', 'old source') {'fromfile': 'current text', 'tofile': 'previous text'}")
+                "call context_diff with args ('new source', 'old source')"
+                " {'fromfile': 'current text', 'tofile': 'previous text'}")
 
     def test_revert_src(self, monkeypatch, capsys):
         def mock_revert_rst(*args, **kwargs):
@@ -1720,8 +1720,11 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         monkeypatch.setattr(testsubj, 'sitename', 'site')
         assert testsubj.diffsrc('test') == ('diff_loaded', 'newdata')
-        assert capsys.readouterr().out == "called compare_source() with args = ('site', '', 'test')\n"
         assert testsubj.loaded == rhfn.DIFF
+        assert capsys.readouterr().out == "called compare_source() with args = ('site', '', 'test')\n"
+        assert testsubj.diffsrc('-- test --') == ('diff_loaded', 'newdata')
+        assert testsubj.loaded == rhfn.DIFF
+        assert capsys.readouterr().out == "called compare_source() with args = ('site', '', 'test')\n"
         monkeypatch.setattr(rhfn, 'compare_source', mock_compare_source_mld)
         testsubj.loaded = ''
         assert testsubj.diffsrc('test') == ('other_msg', 'rstdata')
@@ -1734,6 +1737,7 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert testsubj.revert('dirname/', '')[0] == 'incorrect_name'
         assert testsubj.revert('text.tpl', '')[0] == 'incorrect_name'
+        assert testsubj.revert('-- text.tpl --', '')[0] == 'incorrect_name'
         monkeypatch.setattr(rhfn, 'revert_src', lambda x, y, z: '')
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
         assert testsubj.revert('', '')[0] == 'mld'
@@ -1753,6 +1757,7 @@ class TestR2hState:
         monkeypatch.setattr(rhfn, 'get_text', mock_get_text)
         assert testsubj.delete('dirname/', '')[0] == 'incorrect_name'
         assert testsubj.delete('text.tpl', '')[0] == 'incorrect_name'
+        assert testsubj.delete('-- text.tpl --', '')[0] == 'incorrect_name'
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('mld', ''))
         assert testsubj.delete('', '')[0] == 'mld'
         monkeypatch.setattr(rhfn, 'read_src_data', lambda x, y, z: ('', 'some_text'))
