@@ -53,14 +53,14 @@
               {0}
             </select>
             <input type="submit" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
-              formaction="/loadrst/" />
+              formaction="/loadrst/" />:
 	    <select name="l_action" title="_(t_loadaction) [J]" accesskey="j">
 	      <option value="">_(c_load)</option>
 	      <option>_(c_status)</option>
 	      <option>_(c_changes)</option>
             </select>&nbsp;
             <input type="submit" value="_(c_savesrc)" title="_(t_savesrc) [S]" accesskey="s"
-              formaction="/saverst/" />
+              formaction="/saverst/" />:
             <select name="s_action" title="_(t_saveaction) [A]" accesskey="a">
               <option value="">_(c_save)</option>
               <option>_(c_rename)</option>
@@ -94,7 +94,7 @@
             <input type="submit" value="_(c_copytoroot)" title="_(t_copytoroot) [M]" accesskey="m"
               formaction="/copytoroot/" />&nbsp;
             <input type="submit" value="_(c_migdel)" title="_(t_migdel)"
-              formaction="/migdel/" />
+              formaction="/migdel/" />:
             <select name="m_action" title="_(t_delaction)">
               <option value="0">_(c_listdel_s)</option>
               <option value="1">_(c_movedel_s)</option>
@@ -133,24 +133,29 @@
 
           <div class="row-full" style="float: left">
             <span title="
+X   _(t_activate) _(c_settings) selector
+Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
+I   _(c_index)
+G   _(c_regen) (_(c_exec))
+Q   _(t_activate) _(c_regen) selector
+F   _(c_find)/_(c_replace)
+K   _(c_check)
+V   _(c_overview)
+
 O   _(t_activate) _(c_rstfile) selector
-L/S _(c_loadsrc)/_(c_savesrc)
+L/S _(c_loadsrc)/_(c_savesrc) (_(c_exec))
+J   _(t_activate) _(c_lactions) selector
 A   _(t_activate) _(c_sactions) selector
 R   _(c_convert)
 C   _(c_saveall)
+N   _(t_activate) _(c_newfile) _(t_fld)
+
 T   _(t_activate) _(c_htmlfile) selector
 H/U _(c_loadhtml)/_(c_savehtml)
 B   _(c_showhtml)
 M   _(c_copytoroot)
-J   _(c_status)
-N   _(t_activate) _(c_newfile) _(t_fld)
-X   _(t_activate) _(c_settings) selector
-Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
-I   _(c_index)
-G   _(c_regen)
-Q   _(t_activate) _(c_regen) selector
-F   _(c_find)/_(c_replace)
-V   _(c_overview)
+P   _(c_pending) (_(c_exec))
+D   _(t_activate) _(c_dactions) selector
 ">
             _(t_access)</span>
           </div>
