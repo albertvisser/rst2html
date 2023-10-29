@@ -569,7 +569,10 @@ def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=Fal
     column = 'previous' if previous else 'currtext'
     cur.execute('select {} from {} where id = %s;'.format(column, TABLES[4]), (docid,))
     row = cur.fetchone()
-    result = row[column]
+    if row:
+        result = row[column]
+    else:
+        result = f'{directory}/{doc_name} has id {docid}, but no {column} contents'
     conn.commit()
     cur.close()
     return result
