@@ -54,7 +54,7 @@ def apply_lang(lines, state):
 def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     """build page html out of various parameters and a template file
     """
-    if state.newfile:
+    if state.newfile or state.newconf:
         all_source, all_html = [], []
     else:
         all_source = rhfn.list_files(state.sitename, state.current, rstfile, 'src')

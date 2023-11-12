@@ -42,7 +42,7 @@ def test_format_output(monkeypatch):
     state.conf = {'wid': 20, 'hig': 10}
     r2h.codemirror_stuff = ['cc' 'cc']
     r2h.scriptspec = '{}'
-    r2h.scriptdict = {'rst': ('REsT',)}
+    r2h.scriptdict = {'rst': ('REsT',), 'conf': ('conf',)}
     assert r2h.format_output('rst', 'html', 'new', 'mld',
                              'data', {1: 2}, state) == ('template text: [] [] new mld data 20 10'
                                                         ' confs  ')
@@ -53,6 +53,14 @@ def test_format_output(monkeypatch):
     assert r2h.format_output('rst', 'html', 'new', 'mld',
                              'data', {1: 2}, state) == ('template text: src html new mld data'
                                                         ' 20 10 confs rst ccccREsT')
+
+    state.newconf = True
+    state.loaded = 'conf'
+    state.conf['highlight'] = True
+    assert r2h.format_output('rst', 'html', 'new', 'mld',
+                             'data', {1: 2}, state) == ('template text: [] [] new mld data'
+                                                        ' 20 10 confs conf ccccconf')
+
 
 
 def test_format_progress_list(capsys):
