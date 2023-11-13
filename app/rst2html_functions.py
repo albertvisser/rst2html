@@ -18,6 +18,9 @@ import subprocess
 import collections
 
 from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
+# tijdelijk; als dit werkt dan naar app_settings verplaatsen
+BASIC_CSS = {'html4': ['reset.css', 'html4css1.css'], 'html5': ['minimal.css', 'plain.css']}
+writers = BASIC_CSS.keys()
 if DML == 'fs':
     import app.docs2fs as dml
 elif DML == 'mongo':
@@ -72,8 +75,8 @@ custom_directives = HERE.parent / 'custom_directives.py'
 custom_directives_template = HERE.parent / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
-DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': []}
-FULL_CONF = {'lang': 'en', 'starthead': [], 'endhead': [], 'seflinks': 0, 'highlight': 0}
+DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': [], 'writer': 'html5'}
+FULL_CONF = {'lang': 'en', 'starthead': '', 'endhead': '', 'seflinks': 0, 'highlight': 0}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
@@ -411,17 +414,20 @@ def add_to_server(url, location):
 
 def init_css(sitename):
     """copy css files to site root and update config
+
+    make sure that all necessary files are included
     """
     conf = dml.read_settings(sitename)
     updated = False
+    if 'writer' not in conf:
+        conf['writer'] = 'html5'
+        updated = True
     cssdir = WEBROOT / sitename / 'css'
-    for cssfile in BASIC_CSS:
-        got_css = False
+    for cssfile in BASIC_CSS[conf['writer']]:
         for entry in conf['css']:
             if entry.endswith(cssfile):
-                got_css = True
                 break
-        if not got_css:
+        else:
             cssdir.mkdir(exist_ok=True)
             src = str(HERE.parent / 'static' / cssfile)
             dest = str(cssdir / cssfile)
@@ -470,7 +476,107 @@ def conf2text(conf):
     return save_config_data(confdict, default_flow_style=False)
 
 
-def text2conf(text, lang=LANG, urlcheck=True):
+def text2conf(text, lang=LANG):
+    """convert text (from input area) to settings dict and return the result
+    also check settings for technical correctness
+    """
+    invalid = 'sett_invalid'
+    try:
+        conf = load_config_data(text)   # pass data through yaml to parse into a dict
+    except ParserError:
+        return ('sett_no_good',), {}
+    for key in DFLT_CONF:  # check if obligatory keys are present
+        if key not in conf:
+            return (invalid, key), {}
+    for key in conf:
+        if key not in FULL_CONF:
+            return ('sett_noexist', key), {}
+    return (), conf
+
+
+def check_changed_settings(conf, oldconf):
+    """for all keys that were changed, check if they have correct values
+
+    for css setting, also check relation with url setting
+    """
+    # print(conf, oldconf)
+    # raise ValueError
+    invalid = 'sett_invalid'
+    changes = False
+    for key in conf:
+        if key in oldconf and oldconf[key] == conf[key]:
+            continue
+        changes = True
+        value = conf[key]
+        if key in ('wid', 'hig'):  # must be convertable to integer
+            try:
+                test = int(value)
+            except (TypeError, ValueError):
+                return {}, (invalid, key)
+            if test <= 0:
+                return {}, (invalid, key)
+        elif key == 'lang' and value not in languages:
+            return {}, (invalid, 'lang')
+        elif key == 'writer' and value not in writers:
+            return {}, (invalid, 'writer')
+        elif key == 'url' and value:  # must start with protocol
+            for test in ('http://', 'https://'):
+                if value.startswith(test):
+                    break
+            else:
+                return {}, (invalid, 'url')
+            try:
+                check_url(conf['url'])
+            except (urllib.error.HTTPError, urllib.error.URLError):
+                return {}, (invalid, 'url')
+        elif key in ('seflinks', 'highlight'):
+            if value not in (0, 1, '0', '1', 'true', 'false', 'True', 'False'):
+                return {}, (invalid, key)
+        elif key == 'css':
+            conf[key], mld = convert_css(conf)
+            if mld:
+                return {}, mld
+    msg = () if changes else ('conf_no_changes',)
+    return conf, msg
+
+
+def convert_css(conf):
+    "format entries in css setting"
+    if isinstance(conf['css'], str):  # als string, dan list van maken met dit als enige element
+        conf['css'] = [conf['css']]
+    for ix, item in enumerate(conf['css']):
+        if item.startswith('url + '):
+            if 'url' in conf and conf['url']:
+                conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
+            else:
+                return [], ('conf_no_url',)
+        elif not item.startswith('http'):
+            conf['css'][ix] = 'https://' + item
+    return conf['css'], ()
+
+
+def ensure_basic_css(sitename, conf):
+    """
+    make sure that all necessary files are included in the config
+    also check if they are physically present on the site
+
+    """
+    cssdir = WEBROOT / sitename / 'css'
+    for cssfile in BASIC_CSS[conf['writer']]:
+        for ix, entry in enumerate(conf['css']):
+            if entry.endswith(cssfile):
+                conf['css'].pop(ix)
+    conf['css'] = [f'url + css/{x}' for x in BASIC_CSS[conf['writer']]] + conf['css']
+    cssdir.mkdir(exist_ok=True)
+    for cssfile in BASIC_CSS[conf['writer']]:
+        src = str(HERE.parent / 'static' / cssfile)
+        dest = str(cssdir / cssfile)
+        if not os.path.exists(dest):
+            shutil.copyfile(src, dest)
+    return conf
+
+
+def text2conf_old(text, lang=LANG, urlcheck=True):
     """convert text (from input area) to settings dict and return it
 
     also check settings for correctness (valid locations)
@@ -522,17 +628,26 @@ def text2conf(text, lang=LANG, urlcheck=True):
 
 def check_url(value):
     "recursively try to find the url (we could be in a sub-site"
+    value = value.rsplit('/', 1)[0]
+    if value != 'http:/':
+        urllib.request.urlopen(value)
+    else:
+        mld = 'http link en/of lokaal domein, controle overgeslagen (check lokale server settings'
+
+
+def check_url_old(value):
+    "recursively try to find the url (we could be in a sub-site"
     try:
         urllib.request.urlopen(value)
     except (urllib.error.HTTPError, urllib.error.URLError):
         value = value.rsplit('/', 1)[0]
         if value != 'http:/':
-            check_url(value)
+            check_url_old(value)
         else:
             raise
 
 
-def save_conf(sitename, text, lang=LANG, urlcheck=True):
+def save_conf_old(sitename, text, lang=LANG, urlcheck=True):
     """save the given settings into the site
     """
     conf = {}
@@ -540,10 +655,33 @@ def save_conf(sitename, text, lang=LANG, urlcheck=True):
         dml.read_settings(sitename)
     except FileNotFoundError:
         return get_text('no_such_sett', lang).format(sitename)
-    not_ok, conf = text2conf(text, lang, urlcheck)
+    not_ok, conf = text2conf_old(text, lang, urlcheck)
     if conf:
         dml.update_settings(sitename, conf)
     return not_ok
+
+
+def save_conf(sitename, text, lang=LANG):
+    """save the given settings into the site
+    """
+    conf = {}
+    try:
+        oldconf = dml.read_settings(sitename)
+    except FileNotFoundError:
+        return get_text('no_such_sett', lang).format(sitename)
+    msg, conf = text2conf(text, lang)  # , urlcheck)
+    if not msg:   # if conf:
+        conf, msg = check_changed_settings(conf, oldconf)
+        if not msg and conf['css'] != oldconf['css']:
+            conf = ensure_basic_css(sitename, conf)
+    if msg:
+        try:
+            msg = get_text(msg[0], lang).format(msg[1])
+        except IndexError:
+            msg = get_text(msg[0], lang)
+    else:
+        msg = dml.update_settings(sitename, conf)
+    return msg
 
 
 # -- content related --
@@ -1329,10 +1467,11 @@ class R2hState:
                     rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if mld == "":
-            do_urlcheck = not self.newconf
-            mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
-            if mld == '' and self.newconf:
-                init_css(newsett)
+            # do_urlcheck = not self.newconf
+            # mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
+            mld = save_conf(newsett, rstdata, self.get_lang())
+            # if mld == '' and self.newconf:
+            #     init_css(newsett)
         if mld == "":
             self.newfile = ''
             self.newconf = False
@@ -1770,9 +1909,9 @@ class R2hState:
         results = UpdateAll(self.sitename, self.conf, needed_only=needed_only,
                             missing_only=missing_only, show_only=show_only).go()
         data = []
-        with open('/tmp/rhfn_convert_all', 'w') as f:
-            for item in results:
-                print(item, file=f)
+        # with open('/tmp/rhfn_convert_all', 'w') as f:
+        #     for item in results:
+        #         print(item, file=f)
         for fname, msgtype in results:
             msg = get_text(msgtype, self.get_lang())
             if '{}' in msg:
