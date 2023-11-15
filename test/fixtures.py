@@ -20,10 +20,10 @@ def htmldata_1():
             '<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n'
             '<meta name="generator" content="Docutils 0.14: http://docutils.sourceforge.net/" />\n'
             '<title>test document</title>\n\n</head>\n'
-            '<body>\n<div class="document" id="test-document">\n'
+            '<body>\n<main id="test-document">\n'
             '<h1 class="title">test document</h1>\n\n'
             '<p>This is the (slightly changed) first document</p>\n'
-            "<p>It's been changed even more</p>\n</div>\n</body>\n</html>")
+            "<p>It's been changed even more</p>\n</main>\n</body>\n</html>")
 
 def htmldata_2():
     return ('<?xml version="1.0" encoding="utf-8" ?>\n'
@@ -33,10 +33,10 @@ def htmldata_2():
             '<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n'
             '<meta name="generator" content="Docutils 0.14: http://docutils.sourceforge.net/" />\n'
             '<title>test document</title>\n\n</head>\n'
-            '<body>\n<div class="document" id="test-document">\n'
+            '<body>\n<main id="test-document">\n'
             '<h1 class="title">test document</h1>\n\n'
             '<p>This is the (slightly changed) first document</p>\n'
-            "<p>It's been changed even more</p>\n</div>\n"
+            "<p>It's been changed even more</p>\n</main>\n"
             '<p>This footer was created by editing the HTML and should disappear'
             ' when the document is regenerated</p>i\n'
             "</body>\n</html>")

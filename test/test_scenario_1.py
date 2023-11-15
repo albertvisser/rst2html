@@ -9,39 +9,50 @@ import os
 import shutil
 import pytest  # kijken of ik rhfn.check_url kan monkeypatchen
 ## import pprint
-ME = os.path.abspath(__file__)
-sys.path.insert(0, os.path.dirname(ME))
-sys.path.insert(0, os.path.dirname(os.path.dirname(ME)))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(ME))))
-import rst2html as r2h   # from rst2html import Rst2Html
-import analyze_testdata
+print(sys.path)
+import app.rst2html as r2h   # from rst2html import Rst2Html
+# import test.analyze_testdata
+from test import analyze_testdata
+from test.test_dml import DML, clear_site_contents  # , list_site_contents
 
-from test_dml import DML, clear_site_contents  # , list_site_contents
-
-from fixtures import rstdata_1, rstdata_2, rstdata_3, rstdata_4, htmldata_1, htmldata_2
+from test.fixtures import rstdata_1, rstdata_2, rstdata_3, rstdata_4, htmldata_1, htmldata_2
 
 
-def sorted_items(input_dict):
-    """sort data for easier comparison"""
-    return [(x, y) for x, y in sorted(input_dict.items())]
+
+def test_main(monkeypatch, capsys, tmp_path):
+    "call main() using pytest, to make monkeypatching possible"
+    destdir = tmp_path /  DML
+    # if .exists(destdir):
+    #     shutil.rmtree(destdir)
+    destdir.mkdir()
+    sitename = analyze_testdata.sitename    # start from scratch
+    clear_site_contents(sitename)           # clear_database_contents()
+    main(monkeypatch, capsys, destdir)      # run the tests
+    # niet nodig
+    # sitedoc, data = list_site_contents(sitename, filename=os.path.join(destdir,
+    #                                                                    'test_scenario_1.out'))
+    # clear_site_contents(sitename)           # remove our traces
 
 
-def main(monkeypatch, capsys):
+def main(monkeypatch, capsys, path):
     """main processing"""
     # simulate starting up the application
     app = r2h.Rst2Html()
     sitename = analyze_testdata.sitename
-    comp = analyze_testdata.Comparer(DML)
+    comp = analyze_testdata.Comparer(DML, path)
     dbdata, htmldata = comp.dump_data_and_compare('01_index', app.index())
     assert dbdata == ({}, [])  # sitedocs index followed by list of site docs
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'].startswith('Settings file is')
+    old_textdata = htmldata['textdata']
 
     # simulate loading new conf
     dbdata, htmldata = comp.dump_data_and_compare('02_loadconf_new',
           app.loadconf('-- new --', '', '', '', ''))
     assert dbdata == ['site data has not changed']
-    assert htmldata['textdata'] == "css: []\nhig: 32\nurl: ''\nwid: 100\n"
+    # standard settings
+    assert htmldata['textdata'] == "css: []\nhig: 32\nurl: ''\nwid: 100\nwriter: html5\n"
+    old_textdata = htmldata['textdata']
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == (
             "New site will be created on save - don\'t forget to provide a name for it")
@@ -51,7 +62,9 @@ def main(monkeypatch, capsys):
         app.saveconf(app.state.settings, app.state.rstfile, app.state.htmlfile,
                      app.state.newfile, app.state.rstdata))
     assert dbdata == ['site data has not changed']
-    assert htmldata['textdata'] == "css: []\nhig: 32\nurl: ''\nwid: 100\n"
+    # settings ongewijzigd
+    # assert htmldata['textdata'] == "css: []\nhig: 32\nurl: ''\nwid: 100\nwriter: html5\n"
+    assert htmldata['textdata'] == old_textdata
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "Not a valid filename"
 
@@ -66,9 +79,10 @@ def main(monkeypatch, capsys):
     assert 'testsite' in htmldata['settings']['values']
     assert htmldata['settings']['selected'] == 'testsite'
     assert htmldata['title'] == 'ReStructured Text translator'
+    # standaard settings + ingevulde url + ingevulde css
     assert htmldata['textdata'] == (
-            "css:\n- url + css/reset.css\n- url + css/html4css1.css\n- url + css/960.css\n"
-            "hig: 32\nurl: http://testsite.lemoncurry.nl\nwid: 100\n")
+            "css:\n- url + css/minimal.css\n- url + css/plain.css\n"
+            "hig: 32\nurl: http://testsite.lemoncurry.nl\nwid: 100\nwriter: html5\n")
     assert htmldata['mld_text'] == ("Settings saved as testsite ; activate the new site using `fabsrv"
                                     " modconfb -n hosts nginx.modconfb -n flatpages nginx.restart`")
 
@@ -556,16 +570,6 @@ def main(monkeypatch, capsys):
     # assert htmldata['title'] == 'Rst2Html Search in source documenten'
 
 
-def test_main(monkeypatch, capsys):
-    "call main() using pytest, to make monkeypatching possible"
-    destdir = '/tmp/' + DML
-    if os.path.exists(destdir):
-        shutil.rmtree(destdir)
-    os.mkdir(destdir)
-    sitename = analyze_testdata.sitename    # start from scratch
-    clear_site_contents(sitename)           # clear_database_contents()
-    main(monkeypatch, capsys)                       # run the tests
-    # niet nodig
-    # sitedoc, data = list_site_contents(sitename, filename=os.path.join(destdir,
-    #                                                                    'test_scenario_1.out'))
-    # clear_site_contents(sitename)           # remove our traces
+def sorted_items(input_dict):
+    """sort data for easier comparison"""
+    return [(x, y) for x, y in sorted(input_dict.items())]

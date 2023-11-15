@@ -1,13 +1,23 @@
 # execute test_scenario_1 for dml system(s) of choice
-if [ -z $1 ] || [ '$1' == 'fs']; then
+echo $1
+if [ -z $1 ] || [ "$1" == "fs" ]; then
+  echo 'using filesystem version'
   ./use_fs
-  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_fs.out
+  python -m pytest test/test_scenario_1.py -Wi -vv
+  # > /tmp/test_scenario_1_fs.out
+  # python -m pytest unittests/test_scenario_1.py -Wi -vv 
 fi
-if [ -z $1 ] || [ '$1' == 'mongo']; then
+if [ -z $1 ] || [ "$1" == "mongo" ]; then
+  echo 'using mongodb version'
   ./use_mongo
-  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_mongo.out
+  python -m pytest test/test_scenario_1.py -Wi -vv
+  # > /tmp/test_scenario_1_mongo.out
+  # python -m pytest unittests/test_scenario_1.py -Wi -vv
 fi
-if [ -z $1 ] || [ '$1' == 'pg']; then
+if [ -z $1 ] || [ "$1" == "pg" ]; then
+  echo 'using postgresql version'
   ./use_pg
-  pytest test/test_scenario_1.py -vv > /tmp/test_scenario_1_pg.out
+  python -m pytest test/test_scenario_1.py -Wi -vv
+  #  > /tmp/test_scenario_1_pg.out
+  # python -m pytest unittests/test_scenario_1.py -Wi -vv
 fi

@@ -91,7 +91,7 @@ language_map = (('english', 'en'),
 # create dictionaries
 languages = {}
 for _name, _code in language_map:
-    _path = HERE / '{}.lng'.format(_name)
+    _path = HERE / f'{_name}.lng'
     with _path.open(encoding='utf-8') as _in:
         _dict = {}
         for _line in _in:
@@ -314,7 +314,7 @@ def preprocess_includes(sitename, current, data):
         else:
             msg, text = read_src_data(sitename, include_location, parts[-1])
         if msg:
-            text = '.. error:: {}: {}\n'.format(get_text(msg, lang), name)
+            text = f'.. error:: {get_text(msg, lang)}: {name}\n'
         data = text.join((start, end))
     return data
 
@@ -388,7 +388,7 @@ def add_to_hostsfile(url):
     update a local version and upload via a script
     """
     with (SRV_CONFIG / 'misc/hosts').open('a') as hostsfile:
-        print('127.0.0.1     {}'.format(url), file=hostsfile)
+        print(f'127.0.0.1     {url}', file=hostsfile)
     # hierna `fabsrv modconf -n hosts` uitvoeren, NB heeft sudo nodig
     # als dat niet kan sudo cp ~/nginx-config/misc/hosts /etc/hosts
 
@@ -401,10 +401,10 @@ def add_to_server(url, location):
     logloc = url.rsplit('.', 1)[0]
     with (SRV_CONFIG / 'nginx/flatpages').open('a') as config:
         for line in ('server {',
-                     '    server_name {};'.format(url),
-                     '    root {};'.format(location),
-                     '    error_log /var/log/nginx/{}-error.log error;'.format(logloc),
-                     '    access_log /var/log/nginx/{}-access.log ;'.format(logloc),
+                     f'    server_name {url};',
+                     f'    root {location};',
+                     f'    error_log /var/log/nginx/{logloc}-error.log error;',
+                     f'    access_log /var/log/nginx/{logloc}-access.log ;',
                      '    }'):
             print(line, file=config)
     # hierna `fabsrv nginx.modconf -n flatpages nginx.restart` uitvoeren, NB heeft sudo nodig
@@ -445,7 +445,7 @@ def list_confs(sitename=''):
     out = []
     for name in dml.list_sites():
         s = ' selected="selected"' if name == sitename else ''
-        out.append("<option{}>{}</option>".format(s, name))
+        out.append(f"<option{s}>{name}</option>")
     return "".join(out)
 
 
@@ -456,8 +456,7 @@ def read_conf(sitename):
         sett = dml.read_settings(sitename)
     except FileNotFoundError:
         return 'no_such_sett', None
-    else:
-        return '', sett
+    return '', sett
 
 
 def conf2text(conf):
@@ -608,13 +607,12 @@ def text2conf_old(text, lang=LANG, urlcheck=True):
         elif key == 'url' and value != '' and urlcheck:
             if not value.startswith('http'):
                 return invalid.format('url'), {}
-            else:  # simple check for valid url setting
-                if value.endswith('/'):
-                    value = value[:-1]
-                try:
-                    check_url(value)
-                except (urllib.error.HTTPError, urllib.error.URLError):
-                    return invalid.format('url'), {}
+            if value.endswith('/'):
+                value = value[:-1]
+            try:
+                check_url(value)
+            except (urllib.error.HTTPError, urllib.error.URLError):
+                return invalid.format('url'), {}
     if isinstance(conf['css'], str):  # als string, dan list van maken met dit als enige element
         conf['css'] = [conf['css']]
     for ix, item in enumerate(conf['css']):
@@ -672,7 +670,7 @@ def save_conf(sitename, text, lang=LANG):
     msg, conf = text2conf(text, lang)  # , urlcheck)
     if not msg:   # if conf:
         conf, msg = check_changed_settings(conf, oldconf)
-        if not msg and conf['css'] != oldconf['css']:
+        if not msg and conf.get('css', '') != oldconf.get('css'):
             conf = ensure_basic_css(sitename, conf)
     if msg:
         try:
@@ -680,7 +678,7 @@ def save_conf(sitename, text, lang=LANG):
         except IndexError:
             msg = get_text(msg[0], lang)
     else:
-        msg = dml.update_settings(sitename, conf)
+        dml.update_settings(sitename, conf)
     return msg
 
 
@@ -709,12 +707,11 @@ def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=
             raise ValueError("Site not found")
     if items is None:
         raise ValueError(f"Wrong type: `{ext}`")
-    elif deleted:
+    if deleted:
         # just return the names of the deleted files
         return items
-    else:
-        # make sure files have the correct extension
-        items = [x + LOC2EXT[ext] for x in items]
+    # make sure files have the correct extension
+    items = [x + LOC2EXT[ext] for x in items]
     items.sort()
     if current:
         items.insert(0, "..")
@@ -724,10 +721,10 @@ def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=
     out = []
     if ext == 'src':
         for f in dml.list_templates(sitename):
-            out.append("<option>-- {} --</option>".format(f))
+            out.append(f"<option>-- {f} --</option>")
     for f in items:
         s = ' selected="selected"' if naam == f else ''
-        out.append("<option{}>{}</option>".format(s, f))
+        out.append(f"<option{s}>{f}</option>")
     return "".join(out)
 
 
@@ -777,7 +774,7 @@ def compare_source(sitename, current, rstfile):
                                     [x + '\n' for x in newsource.split('\n')],
                                     fromfile='current text', tofile='previous text')
         # diff = difflib.HtmlDiff().make_file(oldsource, newsource)
-        mld, rstdata = '', ''.join([x for x in diff])
+        mld, rstdata = '', ''.join(list(diff))
     return mld, rstdata
 
 
@@ -1001,13 +998,13 @@ def build_progress_list(sitename):
 def get_copystand_filepath(sitename):
     "determine filename to use for saving the progress overview data"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-    return  WEBROOT / sitename / 'overview-{}'.format(dts)
+    return WEBROOT / sitename / f'overview-{dts}'
 
 
 def get_copysearch_filepath(sitename):
     "determine filename to use for saving the search results"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-    return  WEBROOT / sitename / 'search-results-{}'.format(dts)
+    return  WEBROOT / sitename / f'search-results-{dts}'
 
 
 def get_progress_line_values(docinfo):
@@ -1176,7 +1173,7 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
                 refs = line.split("refkey::", 1)[1]
                 for ref in (x.split(":") for x in refs.split(";")):
                     word = ref[0].strip().capitalize()
-                    prefix = '/{}/'.format(dirname).replace('//', '/')
+                    prefix = '/{dirname}/'.replace('//', '/')
                     suffix = '/' if sef else '.html'
                     link = prefix + filename + suffix
                     if len(ref) > 1:
@@ -1254,23 +1251,23 @@ class TrefwoordenLijst:
     def start_new_letter(self):
         """produceer het begin voor een letter"""
         loc = 3 if self.sitename == 'magiokis' else 4
-        self.data[loc] += "{}_ ".format(self.current_letter)
+        self.data[loc] += "{self.current_letter}_ "
         self.data.append("")
         if self.sitename == 'magiokis':
-            self.titel = [".. _{0}:\n\n**{0}**".format(self.current_letter), ""]
+            self.titel = [".. _{self.current_letter}:\n\n**{self.current_letter}**", ""]
         else:
-            self.titel = ["{}".format(self.current_letter), "-"]
+            self.titel = ["{self.current_letter}", "-"]
         self.linkno = 0
 
     def start_new_keyword(self, reflinks, key):
         """produceer het begin en de links voor een nieuw trefwoord"""
-        current_trefw = "+   {}".format(key)
+        current_trefw = "+   {key}"
         for link in reflinks[key]:
             current_trefw += " `#`__ "
             self.linkno += 1
             linknm = self.current_letter + str(self.linkno)
-            self.links.append("..  _{}: {}".format(linknm, link))
-            self.anchors.append("__ {}_".format(linknm))
+            self.links.append("..  _{linknm}: {link}")
+            self.anchors.append("__ {linknm}_")
         self.teksten.append(current_trefw)
 
     def finish_letter(self, to_top):
@@ -1335,7 +1332,7 @@ def searchdict2list(inputdict, search):
     """transfrom the search output to a list displayable on the site
     """
     outputlist = []
-    for filespec, lines in sorted([x for x in inputdict.items()]):
+    for filespec, lines in sorted(list(inputdict.items())):
         if not lines:
             continue
         dirname, filename = filespec
@@ -1464,21 +1461,21 @@ class R2hState:
             elif self.newconf:
                 mld, newurl = new_conf(newsett, rstdata, self.get_lang())
                 if newurl:
-                    rstdata = rstdata.replace("url: ''", "url: {}".format(newurl))
+                    rstdata = rstdata.replace("url: ''", "url: {newurl}")
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
-        if mld == "":
+        if not mld:
             # do_urlcheck = not self.newconf
             # mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
             mld = save_conf(newsett, rstdata, self.get_lang())
             # if mld == '' and self.newconf:
             #     init_css(newsett)
-        if mld == "":
+        if not mld:
             self.newfile = ''
             self.newconf = False
             self.settings = self.sitename = newsett
             mld = self.get_conf(self.settings)
             self.rstdata = rstdata = conf2text(self.conf)
-        if mld == '':
+        if not mld:
             mld = get_text('conf_saved', self.get_lang()).format(self.settings)
             if command:
                 mld += ' ' + get_text('activate_url', self.get_lang()).format(command)
@@ -1595,7 +1592,8 @@ class R2hState:
         mld, rstdata = compare_source(self.sitename, self.current, rstfile)
         if not mld:
             self.loaded = DIFF
-            mld = get_text('diff_loaded' if rstdata else 'no_diff_data', self.get_lang())
+            mld = get_text('diff_loaded' if rstdata else 'no_diff_data', self.get_lang()).format(
+                    rstfile)
         return mld, rstdata
 
     def revert(self, rstfile, rstdata):
@@ -1746,6 +1744,7 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def status(self, rstfile):
+        "build message with progress info for single document"
         result = dml.get_doc_stats(self.sitename, rstfile, self.current)
         if result.src == datetime.datetime.min:
             message = get_text('no_stats', self.get_lang())   # 'not possible to get stats'
@@ -1762,7 +1761,7 @@ class R2hState:
             # message = '{}/{}: last modified: {} - last converted: {} - last migrated {}'.format(
             #         self.current, rstfile, src, dest, mirror)
             message = get_text('status_msg', self.get_lang()).format(self.current, rstfile,
-                                                                      src, dest, mirror)
+                                                                     src, dest, mirror)
         return message
 
     def loadhtml(self, htmlfile):
@@ -1847,22 +1846,34 @@ class R2hState:
 
     def propagate_deletions(self, mode):
         """migrate outstanding deletions to the next stage"""
-        if mode == '0':
-            result = dml.list_deletions_target(self.sitename, '*')
-            if result:
-                return "pending deletions for target: " + ', '.join([x for x in result])
-        elif mode == '1':
-            result = dml.apply_deletions_target(self.sitename, '*')
-            if result:
-                return "deleted from target: " + ', '.join([x for x in result])
-        elif mode == '2':
-            result = dml.list_deletions_mirror(self.sitename, '*')
-            if result:
-                return "pending deletions for mirror: " + ', '.join([x for x in result])
-        elif mode == '3':
-            result = dml.apply_deletions_mirror(self.sitename, '*')
-            if result:
-                return "deleted from mirror: " + ', '.join([x for x in result])
+        functions = (dml.list_deletions_target,
+                     dml.apply_deletions_target,
+                     dml.list_deletions_mirror,
+                     dml.apply_deletions_mirror)
+        messages = ("pending deletions for target: ",
+                    "deleted from target: ",
+                    "pending deletions for mirror: ",
+                    "deleted from mirror: ")
+        # if mode == '0':
+        #     results = dml.list_deletions_target(self.sitename, '*')
+        #     if results:
+        #         return "pending deletions for target: " + ', '.join(list(results))
+        # elif mode == '1':
+        #     results = dml.apply_deletions_target(self.sitename, '*')
+        #     if results:
+        #         return "deleted from target: " + ', '.join(list(results))
+        # elif mode == '2':
+        #     results = dml.list_deletions_mirror(self.sitename, '*')
+        #     if results:
+        #         return "pending deletions for mirror: " + ', '.join(list(results))
+        # elif mode == '3':
+        #     results = dml.apply_deletions_mirror(self.sitename, '*')
+        #     if results:
+        #         return "deleted from mirror: " + ', '.join(list(results))
+        if mode in ('0', '1', '2', '3'):
+            results = functions [mode](self.sitename, '*')
+            if results:
+                return messages[mode] + ', '.join(list(results))
         else:
             return f'{mode = }'
         return "no deletions pending"
@@ -1981,4 +1992,5 @@ class R2hState:
         return get_text('overview_copy_msg', self.get_lang()).format(outfile)
 
     def is_css_defined(self):
+        "return value for css setting, result is falsey when not present or empty"
         return self.conf.get('css', [])

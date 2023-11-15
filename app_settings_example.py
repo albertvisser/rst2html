@@ -17,7 +17,7 @@ WEBROOT = pathlib.Path(__file__).parent / 'rst2html-data'
 # (leave empty or invalid if you don't use this)
 LOCAL_SERVER_CONFIG = '<server-config>'
 # css files that are always needed, will be copied to every new site
-BASIC_CSS = ['reset.css', 'html4css1.css', '960.css']
+BASIC_CSS = {'html4': ['reset.css', 'html4css1.css'], 'html5': ['minimal.css', 'plain.css']}
 LANG = 'en'
 
 #

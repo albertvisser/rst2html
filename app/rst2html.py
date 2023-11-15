@@ -71,7 +71,7 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
                          state.conf['hig'], conflist, state.loaded, format_stuff)
 
 
-def format_progress_list(timelist):
+def format_progress_list(timelist, writer):
     """output the site inventory to html, accentuating the most recently updated
     items
 
@@ -79,6 +79,8 @@ def format_progress_list(timelist):
     template engine I'm implementing it here
     """
     output = load_template('stand.html')
+    if writer == 'html4':
+        output = output.replace('<main', '<div class="document"').replace('</main', '</div')
     first_part, rest = output.split('{% if data %}')
     data_part, last_part = rest.split('{% endif %}')
     repeat_part, no_data = data_part.split('{% else %}')
@@ -158,14 +160,16 @@ def format_previewdata(state, previewdata, fname, ftype, settings):
         start, end = '', previewdata
     else:
         start, end = previewdata[:pos], previewdata[pos:]
-    loadrst = '/load{0}/?{0}file={1}&settings={2}'.format(ftype, fname, settings)
+    loadrst = f'/load{ftype}/?{ftype}file={fname}&settings={settings}'
     previewdata = previewbutton.format(loadrst).join((start, end))
     return previewdata
 
 
-def format_search(results=None):
+def format_search(results, writer):
     "build search screen data"
     output = load_template('search.html')
+    if writer == 'html4':
+        output = output.replace('<main', '<div class="document"').replace('</main', '</div')
     first_part, rest = output.split('{% if results %}')
     start, rest = rest.split('{% for row in data %}')
     line, rest = rest.split('{% endfor %}')
@@ -310,6 +314,8 @@ class Rst2Html:
     @cherrypy.expose
     def migdel(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", m_action='',
                **kwargs):
+        """pending deletions: show or migrate
+        """
         mld = self.state.propagate_deletions(m_action)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
@@ -332,7 +338,7 @@ class Rst2Html:
         outdata = format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
         selector_text = 'select name="regsubj"'
         begin, end = outdata.split(selector_text)
-        option_text = 'value="{}"'.format(regsubj)
+        option_text = f'value="{regsubj}"'
         new_end = end.replace(option_text, 'selected="selected" ' + option_text, 1)
         outdata = selector_text.join((begin, new_end))
         return outdata
@@ -341,7 +347,7 @@ class Rst2Html:
     def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """start find/replace action: enter arguments
         """
-        return format_search().format(settings, '', '', '', '')
+        return format_search(None, self.state.conf['writer']).format(settings, '', '', '', '')
 
     @cherrypy.expose
     def find_results(self, search="", replace=""):
@@ -359,7 +365,8 @@ class Rst2Html:
         else:
             mld, results = rhfn.get_text('no_search_args', self.state.get_lang()), []
             btntxt = ''
-        return format_search(results).format(self.state.settings, btntxt, search, replace, mld)
+        return format_search(results, self.state.conf['writer']).format(
+                self.state.settings, btntxt, search, replace, mld)
 
     @cherrypy.expose
     def copysearch(self):
@@ -368,7 +375,8 @@ class Rst2Html:
         msg = self.state.copysearch(self.search_stuff)
         btntxt = copybuttontext
         search, replace, results = self.search_stuff
-        return format_search(results).format(self.state.settings, btntxt, search, replace, msg)
+        return format_search(results, self.state.conf['writer']).format(
+                self.state.settings, btntxt, search, replace, msg)
 
     @cherrypy.expose
     def check(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
@@ -382,11 +390,12 @@ class Rst2Html:
         """output the site inventory to html, accentuating the most recently updated items
         """
         self.overviewdata = self.state.overview()
-        return format_progress_list(self.overviewdata).format(settings, '')
+        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(settings, '')
 
     @cherrypy.expose
     def copystand(self):
         """copy the overview to a file
         """
         msg = self.state.copystand(self.overviewdata)
-        return format_progress_list(self.overviewdata).format(self.state.sitename, msg)
+        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
+                self.state.sitename, msg)

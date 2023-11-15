@@ -9,13 +9,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app_settings import DML, WEBROOT
 if DML == 'fs':
     print('using file system dml')
-    import docs2fs as dml
+    import app.docs2fs as dml
 elif DML == 'mongo':
     print('using mongodb dml')
-    import docs2mongo as dml
+    import app.docs2mongo as dml
 elif DML == 'postgres':
     print('using postgresql dml')
-    import docs2pg as dml
+    import app.docs2pg as dml
 
 
 def list_site_contents(sitename, filename=''):

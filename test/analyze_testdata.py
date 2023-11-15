@@ -2,14 +2,14 @@
 """
 import datetime
 from bs4 import BeautifulSoup
-from test_dml import list_site_contents, WEBROOT
+from test.test_dml import list_site_contents, WEBROOT
 sitename = 'testsite'
 
 
 class Comparer:
     """Methods and state for comparing data between subsequent tests
     """
-    def __init__(self, backend):
+    def __init__(self, backend, path):
         """
         namelist:   verzameling namen van eerder uitgevoerde tests
                     deze is alleen initieel bij de eerste aanroep van dump_data_and_compare
@@ -19,30 +19,32 @@ class Comparer:
         self.namelist = []
         self.dbdatalist = []
         self.htmldatalist = []
+        self.writer_used = ''
+        self.outfileroot = path
 
 
     def dump_data_and_compare(self, name, data):
         """main processing"""
         self.name = name
-        print("---- {} ----".format(name))
+        print(f"---- {name} ----")
         # if name.startswith('23b'):  # migdel varianten ,staan nu nog gedeactiveerd
         #     breakpoint()
-        fname = '/tmp/{}/{}.html'.format(self.loc, name)
-        with open(fname, 'w') as _out:
+        fname = self.outfileroot / f'{name}.html'
+        with fname.open('w') as _out:
             _out.write(data)
         htmldata = self.analyze_html_data(fname)
 
         if self.loc == 'fs' and name.startswith('23'):
-            fname = '/tmp/{}/{}_filelist'.format(self.loc, name)
-            with open(fname, 'w') as _out:
+            with (self.outfileroot / f'{name}_filelist.html').open('w') as _out:
                 print('files in source:', [x for x in (WEBROOT / sitename / '.source').iterdir()],
                         file=_out)
                 print('files in target:', [x for x in (WEBROOT / sitename / '.target').iterdir()],
                         file=_out)
                 print('files in mirror:', [x for x in (WEBROOT / sitename).iterdir()], file=_out)
 
-        fname = '/tmp/{}/db_{}'.format(self.loc, name)
-        db_data = list_site_contents(sitename, fname)
+        db_data = list_site_contents(sitename, self.outfileroot / f'db_{name}')
+        if not self.writer_used and db_data[0]:
+            self.writer_used = db_data[0]['settings']['writer']
 
         if self.namelist:
             old, new = self.namelist[-1], name
@@ -183,7 +185,11 @@ class Comparer:
                      test['href'].startswith('/loadhtml/?htmlfile=') or
                      test['href'].startswith('/loadconf/?settings='))):
                         result['backlink'] = test['href']
-                        result['pagetext'] = soup.find('div', 'document').get_text()
+                        # `div class="document"` is vervangen door `main`
+                        if self.writer_used == 'html4':
+                            result['pagetext'] = soup.find('div', 'document').get_text()
+                        else:  # self.writer_used == 'html5'
+                            result['pagetext'] = soup.find('main').get_text()
                         return result
         # select elementen inspecteren
         for selector in soup.find_all('select'):
