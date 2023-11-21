@@ -71,8 +71,6 @@ standard_directives = {"startc": rhdir.StartCols,
 # internals
 #
 HERE = pathlib.Path(__file__).parent
-custom_directives = HERE.parent / 'custom_directives.py'
-custom_directives_template = HERE.parent / 'custom_directives_template.py'
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': [], 'writer': 'html5'}
@@ -81,7 +79,7 @@ FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
 # constants for loaded data
-RST, HTML, CONF, XTRA, DIFF = 'rst', 'html', 'yaml', 'py', 'diff'
+RST, HTML, CONF, DIFF = 'rst', 'html', 'yaml', 'diff'
 #
 # Language support : eigengebakken spul, tzt te vervangen door gnu_gettext zaken (of niet)
 #
@@ -180,43 +178,6 @@ def register_directives():
     """make directives known to docutils"""
     for name, func in standard_directives.items():
         rd.directives.register_directive(name, func)
-    if custom_directives.exists():
-        load_custom_directives()
-
-
-def load_custom_directives():
-    """
-    importeer de directives uit het genoemde directives file
-    dat zijn alle Directive subclasses die daarin gedefinieerd zijn
-
-    voor elk directive moet in de docstring op aparte regels het volgende staan:
-        usage: .. directive_name:: <arguments>
-        description: directive_name is for doing stuff
-    """
-    modname = inspect.getmodulename(str(custom_directives))
-    data = importlib.import_module(modname)
-    for name, value in inspect.getmembers(data, inspect.isclass):
-        if rd.Directive in inspect.getmro(value) and value is not rd.Directive:
-            directive_name, oms = name, ''
-            docs = value.__doc__.split(os.linesep)
-            usage = [x for x in docs if 'usage' in x]
-            if usage:
-                directive_name = usage[0].split('..', 1)[1].split('::', 1)[0].strip()
-            desc = [x for x in docs if 'description' in x]
-            if desc:
-                oms = desc[0].split(':', 1)[1].strip()
-            rd.directives.register_directive(directive_name, oms)  # lijkt me beter dan value)
-
-
-def get_custom_directives_filename():
-    """determine filename to load and action to take"""
-    if custom_directives.exists():
-        fname = custom_directives
-        verb = 'loaded'
-    else:
-        fname = custom_directives_template
-        verb = 'init'
-    return fname, verb
 
 
 def get_directives_used(results):
@@ -1482,37 +1443,6 @@ class R2hState:
             elif self.conf['url'] == '':
                 mld += ' ' + get_text('note_no_url', self.get_lang())
         return mld, rstdata, self.settings, self.newfile
-
-    def loadxtra(self):
-        """load site directives file and show on page
-        """
-        # this data actually *does* come from the file system as itś code stored on the server
-        # but itś effectively deactivated for now
-        mld = ''
-        fname, verb = get_custom_directives_filename()
-        verb = get_text(verb, self.get_lang())
-        mld, data = read_data(fname)
-        if not mld:
-            self.rstdata = data
-            self.loaded = XTRA
-            mld = get_text('dirs_loaded', self.get_lang()).format(verb, fname)
-        return mld, self.rstdata
-
-    def savextra(self, rstdata):
-        """(re)save site directives file
-        """
-        # this data actually *does* come from the file system as itś code stored on the server
-        # but itś effectively deactivated for now
-        mld = ''
-        if rstdata == "":
-            mld = get_text('supply_text', self.get_lang())
-        elif self.loaded != XTRA:
-            mld = get_text('dirs_invalid', self.get_lang())
-        if mld == "":
-            mld = save_to(custom_directives, rstdata)  # standard file name
-        if mld == "":
-            mld = get_text('dirs_saved', self.get_lang())
-        return mld
 
     def loadrst(self, rstfile):
         """load rest source into page

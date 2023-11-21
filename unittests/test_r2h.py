@@ -189,32 +189,6 @@ class TestRst2Html:
                                                                 ' {}'.format(testsubj.state))
         assert capsys.readouterr().out == 'called R2hState.saveconf\n'
 
-    def test_loadxtra(self, monkeypatch, capsys):
-        def mock_loadxtra(*args):
-            print('called R2hState.loadxtra')
-            return 'mld', 'data'
-        testsubj = r2h.Rst2Html()
-        monkeypatch.setattr(testsubj.state, 'loadxtra', mock_loadxtra)
-        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.loadxtra(settings='s', rstfile='r',
-                                 htmlfile='h', newfile='n') == ('format_output for r, h, n, mld,'
-                                                                ' data, s,'
-                                                                ' {}'.format(testsubj.state))
-        assert capsys.readouterr().out == 'called R2hState.loadxtra\n'
-
-    def test_savextra(self, monkeypatch, capsys):
-        def mock_savextra(*args):
-            print('called R2hState.savextra')
-            return 'mld', 'data'
-        testsubj = r2h.Rst2Html()
-        monkeypatch.setattr(testsubj.state, 'savextra', mock_savextra)
-        monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.savextra(settings='s', rstfile='r',
-                                 htmlfile='h', newfile='n') == ('format_output for r, h, n, mld,'
-                                                                ' data, s,'
-                                                                ' {}'.format(testsubj.state))
-        assert capsys.readouterr().out == 'called R2hState.savextra\n'
-
     def test_loadrst(self, monkeypatch, capsys):
         def mock_loadrst(*args):
             print('called R2hState.loadrst')

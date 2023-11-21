@@ -216,22 +216,6 @@ class Rst2Html:
         mld, rstdata, settings, newfile = self.state.saveconf(settings, newfile, rstdata)
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
-    # @cherrypy.expose    # nog testen
-    def loadxtra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
-        """load directives file for editing
-
-        if non-existent, create from template
-        """
-        mld, rstdata = self.state.loadxtra()
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
-
-    # @cherrypy.expose    # nog testen
-    def savextra(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
-        """(re)save directives file
-        """
-        mld, rstdata = self.state.savextra(rstdata)
-        return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
-
     @cherrypy.expose
     def loadrst(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", l_action='',
                 **kwargs):

@@ -106,65 +106,16 @@ class TestR2HRelated:
     def test_register_directives(self, monkeypatch, capsys):
         def mock_register_directive(*args):
             print('args for directives.register_directive: `{}` `{}`'.format(*args))
-        def mock_load_custom_directives():
-            print('load_custom_directives got called')
         monkeypatch.setattr(testee, 'standard_directives', {'name1': 'fun1', 'name2': 'fun2'})
         monkeypatch.setattr(testee.rd.directives, 'register_directive', mock_register_directive)
-        monkeypatch.setattr(testee, 'load_custom_directives', mock_load_custom_directives)
-        monkeypatch.setattr(testee, 'custom_directives', pathlib.Path('nonexistant.py'))
         testee.register_directives()
         assert capsys.readouterr().out == ('args for directives.register_directive: `name1`'
                                            ' `fun1`\n'
                                            'args for directives.register_directive: `name2`'
                                            ' `fun2`\n')
         monkeypatch.setattr(testee, 'standard_directives', {})
-        monkeypatch.setattr(testee, 'custom_directives',
-                            pathlib.Path('app/custom_directives_template.py'))
         testee.register_directives()
-        assert capsys.readouterr().out == 'load_custom_directives got called\n'
-
-    def test_load_custom_directives(self, monkeypatch, capsys):
-        def mock_get_modulename(*args):
-            return 'mymodule'
-        def mock_import_module(*args):
-            print('import_module got called for `{}`'.format(args[0]))
-        def mock_getmembers(*args):
-            class Dummy:
-                ''
-                pass
-            class MockDir:
-                """Mockup of a directive
-
-                usage: ..this::
-                description: some text
-                """
-            return (('name1', Dummy), ('name2', testee.rd.Directive), ('w_docs', MockDir()))
-        def mock_register_directive(*args):
-            print('args for directives.register_directive: `{}` `{}`'.format(*args))
-        def mock_getmro_ok(*args):
-            return (testee.rd.Directive, '')
-        def mock_getmro_nok(*args):
-            return ()
-        monkeypatch.setattr(testee.inspect, 'getmodulename', mock_get_modulename)
-        monkeypatch.setattr(testee.importlib, 'import_module', mock_import_module)
-        monkeypatch.setattr(testee.inspect, 'getmembers', mock_getmembers)
-        monkeypatch.setattr(testee.inspect, 'getmro', mock_getmro_ok)
-        monkeypatch.setattr(testee.rd.directives, 'register_directive', mock_register_directive)
-        testee.load_custom_directives()
-        assert capsys.readouterr().out == ('import_module got called for `mymodule`\n'
-                                           'args for directives.register_directive: `name1` ``\n'
-                                           'args for directives.register_directive: `this`'
-                                           ' `some text`\n')
-        monkeypatch.setattr(testee.inspect, 'getmro', mock_getmro_nok)
-        testee.load_custom_directives()
-        assert capsys.readouterr().out == 'import_module got called for `mymodule`\n'
-
-    def test_get_custom_directives_filename(self):
-        ""
-        assert testee.get_custom_directives_filename() == (testee.custom_directives_template, 'init')
-        testee.custom_directives.touch()
-        assert testee.get_custom_directives_filename() == (testee.custom_directives, 'loaded')
-        testee.custom_directives.unlink()
+        assert capsys.readouterr().out == ''
 
     def test_get_directives_used(self):
         assert testee.get_directives_used({}) == set()
@@ -1810,43 +1761,6 @@ class TestR2hState:
         monkeypatch.setattr(testee, 'new_conf', mock_new_conf_nourl)
         assert testsubj.saveconf('oldsett', 'newsett', "url: ''") == ('conf_saved note_no_url',
                                                                       'conf2text', 'newsett', '')
-
-    def test_loadxtra(self, monkeypatch):
-        def mock_get_custom_directives_filename(*args):
-            return 'directives.py', 'a_word'
-        def mock_read_data(filename):
-            return '', 'read data from `{}`'.format(filename)
-        def mock_read_data_err(*args):
-            return 'mld from read_data', ''
-        monkeypatch.setattr(testee, 'default_site', mock_default_site)
-        testsubj = testee.R2hState()
-        monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
-        monkeypatch.setattr(testee, 'get_text', mock_get_text)
-        monkeypatch.setattr(testee, 'get_custom_directives_filename',
-                            mock_get_custom_directives_filename)
-        monkeypatch.setattr(testee, 'read_data', mock_read_data_err)
-        assert testsubj.loadxtra() == ('mld from read_data', '')
-        monkeypatch.setattr(testee, 'read_data', mock_read_data)
-        assert testsubj.loadxtra() ==('dirs_loaded', 'read data from `directives.py`')
-        assert testsubj.loaded == testee.XTRA
-
-    def test_savextra(self, monkeypatch):
-        def mock_save_to(*args):
-            return ''
-        def mock_save_to_mld(*args):
-            return 'mld from save_to'
-        monkeypatch.setattr(testee, 'default_site', mock_default_site)
-        testsubj = testee.R2hState()
-        monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
-        monkeypatch.setattr(testee, 'get_text', mock_get_text)
-        assert testsubj.savextra('') == 'supply_text'
-        testsubj.loaded = testee.RST
-        assert testsubj.savextra('some_content') == 'dirs_invalid'
-        testsubj.loaded = testee.XTRA
-        monkeypatch.setattr(testee, 'save_to', mock_save_to_mld)
-        assert testsubj.savextra('some_content') == 'mld from save_to'
-        monkeypatch.setattr(testee, 'save_to', mock_save_to)
-        assert testsubj.savextra('some_content') == 'dirs_saved'
 
     def test_loadrst(self, monkeypatch):
         def mock_get_text(*args):
