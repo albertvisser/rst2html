@@ -27,7 +27,8 @@ def test_format_output(monkeypatch):
         elif args[3] == 'dest':
             return 'html'
     def mock_load_template(*args):
-        return 'template text:\n {} {} {} {} {} {} {} {} {} {}'
+        return ('template text:\n {rstnames} {htmlnames} {newname} {message} {content} {cols} {rows}'
+                ' {settnames} {content_type} {editor_addon}')
     def mock_apply_lang(*args):
         return ''.join(args[0])
     def mock_list_confs(*args):
@@ -398,11 +399,11 @@ class TestRst2Html:
 
     def test_find_results(self, monkeypatch, capsys):
         def mock_search(*args):
-            return 'mld', 'results for {} {} {} {} {}'
+            return 'mld', 'results for {sitename} {extrabutton} {search} {replace} {message}'
         def mock_search_not_found(*args):
             return 'search phrase not found', ''
         def mock_format_search(*args):
-            return args[0] or '{4}'
+            return args[0] or '{message}'
         testsubj = r2h.Rst2Html()
         testsubj.state.settings = 's'
         monkeypatch.setattr(r2h, 'format_search', mock_format_search)
@@ -417,7 +418,7 @@ class TestRst2Html:
         def mock_copys(*args):
             return 'copied'
         def mock_format_search(*args):
-            return 'results for {} {} {} {} {}'
+            return 'results for {sitename} {extrabutton} {search} {replace} {message}'
         testsubj = r2h.Rst2Html()
         testsubj.state.settings = 's'
         testsubj.search_stuff = ('f', 'r', [('page1', '1', 'first s'), ('page2', '11', 'second s')])
@@ -439,14 +440,14 @@ class TestRst2Html:
 
     def test_overview(self, monkeypatch, capsys):
         def mock_overview(*args):
-            return 'overview data {} {}'
+            return 'overview data {sitename} {message}'
         def mock_format_progress_list(*args):
             return args[0]
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'overview', mock_overview)
         monkeypatch.setattr(r2h, 'format_progress_list', mock_format_progress_list)
         assert testsubj.overview(settings='s') == 'overview data s '
-        assert testsubj.overviewdata == 'overview data {} {}'
+        assert testsubj.overviewdata == 'overview data {sitename} {message}'
 
     def test_copystand(self, monkeypatch, capsys):
         def mock_copystand(*args):
@@ -455,7 +456,7 @@ class TestRst2Html:
             return args[0]
         testsubj = r2h.Rst2Html()
         testsubj.state.sitename = 'testsite'
-        testsubj.overviewdata = 'copystand data {} {}'
+        testsubj.overviewdata = 'copystand data {sitename} {message}'
         monkeypatch.setattr(testsubj.state, 'copystand', mock_copystand)
         monkeypatch.setattr(r2h, 'format_progress_list', mock_format_progress_list)
         assert testsubj.copystand() == 'copystand data testsite msg'

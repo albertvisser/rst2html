@@ -67,8 +67,9 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
         format_stuff = ''.join(codemirror_stuff)
         if state.loaded:
             format_stuff += ''.join(scriptspec.format(x) for x in scriptdict[state.loaded])
-    return output.format(all_source, all_html, newfile, mld, rstdata, state.conf['wid'],
-                         state.conf['hig'], conflist, state.loaded, format_stuff)
+    return output.format(rstnames=all_source, htmlnames=all_html, newname=newfile, message=mld,
+                         content=rstdata, cols=state.conf['wid'], rows=state.conf['hig'],
+                         settnames=conflist, content_type=state.loaded, editor_addon=format_stuff)
 
 
 def format_progress_list(timelist, writer):
@@ -331,7 +332,8 @@ class Rst2Html:
     def find_screen(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """start find/replace action: enter arguments
         """
-        return format_search(None, self.state.conf['writer']).format(settings, '', '', '', '')
+        return format_search([], self.state.conf['writer']).format(sitename=settings, extrabutton='',
+                                                                   search='', replace='', message='')
 
     @cherrypy.expose
     def find_results(self, search="", replace=""):
@@ -350,7 +352,8 @@ class Rst2Html:
             mld, results = rhfn.get_text('no_search_args', self.state.get_lang()), []
             btntxt = ''
         return format_search(results, self.state.conf['writer']).format(
-                self.state.settings, btntxt, search, replace, mld)
+                sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
+                message=mld)
 
     @cherrypy.expose
     def copysearch(self):
@@ -360,7 +363,8 @@ class Rst2Html:
         btntxt = copybuttontext
         search, replace, results = self.search_stuff
         return format_search(results, self.state.conf['writer']).format(
-                self.state.settings, btntxt, search, replace, msg)
+                sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
+                message=msg)
 
     @cherrypy.expose
     def check(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
@@ -374,7 +378,8 @@ class Rst2Html:
         """output the site inventory to html, accentuating the most recently updated items
         """
         self.overviewdata = self.state.overview()
-        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(settings, '')
+        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
+                sitename=settings, message='')
 
     @cherrypy.expose
     def copystand(self):
@@ -382,4 +387,4 @@ class Rst2Html:
         """
         msg = self.state.copystand(self.overviewdata)
         return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
-                self.state.sitename, msg)
+                sitename=self.state.sitename, message=msg)

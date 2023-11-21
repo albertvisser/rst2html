@@ -3,7 +3,7 @@
 <head>
   <title>ReStructured Text translator</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-  {9}
+  {editor_addon}
 </head>
 <body style="background-color: #C6E2FF; color: #3a5fcd">
   <form method="post">
@@ -15,7 +15,7 @@
             <span style="padding-left: 10px"> _(c_settings): </span>
             <select name="settings" title="_(t_settings) [X]" accesskey="x">
               <option>_(c_newitem)</option>
-              {7}
+              {settnames}
             </select>
             <input type="submit" value="_(c_loadconf)" title="_(t_loadconf) [Y]" accesskey="y"
               formaction="/loadconf/" />
@@ -50,7 +50,7 @@
             _(c_rstfile):
             <select name="rstfile" title="_(t_rstfile) [O]" accesskey="o">
               <option>_(c_newitem)</option>
-              {0}
+              {rstnames}
             </select>
             <input type="submit" value="_(c_loadsrc)" title="_(t_loadsrc) [L]" accesskey="l"
               formaction="/loadrst/" />:
@@ -74,7 +74,7 @@
           </div>
           <div class="table-column" style="float:left">
             <span style="padding-left: 10px">_(c_newfile):</span>
-            <input type="text" name="newfile" value="{2}" title="_(t_newfile) [N]" accesskey="n"/>
+            <input type="text" name="newfile" value="{newname}" title="_(t_newfile) [N]" accesskey="n"/>
           </div>
 
           <div class="clear" style="clear: both"></div>
@@ -83,7 +83,7 @@
             _(c_htmlfile):
             <select name="htmlfile" title="_(t_htmlfile) [T]" accesskey="t">
               <option>_(c_newitem)</option>
-              {1}
+              {htmlnames}
             </select>
             <input type="submit" value="_(c_loadhtml)" title="_(t_loadhtml) [H]" accesskey="h"
               formaction="/loadhtml/" />
@@ -107,7 +107,7 @@
           <div class="clear" style="clear: both"></div>
 
           <div class="row-full" style="float:left">
-            <strong>{3}</strong>
+            <strong>{message}</strong>
           </div>
           <div class="clear" style="clear: both"></div>
 
@@ -117,8 +117,8 @@
 
       <div class="table-column" style="display: inline; float:left">
         <label for="rstdata" accesskey="e" value=" " />
-        <textarea name="rstdata" id="rstdata" cols="{5}" rows="{6}" accesskey="w"
-          style="display: inline">{4}</textarea>
+        <textarea name="rstdata" id="rstdata" cols="{cols}" rows="{rows}" accesskey="w"
+          style="display: inline">{content}</textarea>
       </div>
 
       <div class="table-column" style="display: inline; float:left; padding: 5px; ">
@@ -212,6 +212,6 @@ D   _(t_activate) _(c_dactions) selector
 
     </div>
   </form>
-  <script src="/static/{8}editor.js"></script>
+  <script src="/static/{content_type}editor.js"></script>
 </body>
 </html>

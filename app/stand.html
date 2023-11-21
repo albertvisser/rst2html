@@ -5,13 +5,15 @@
     </head>
     <body style="background-color: #C6E2FF; color: #3a5fcd">
       <main>
-        <a href="/loadconf/?settings={}">
+        <a href="/loadconf/?settings={sitename}">
           <button accesskey="b">
             <span style="text-decoration:underline">B</span>ack to editor</button></a>
         <a href="/copystand/">
 	    <button accesskey="c">
 	        <span style="text-decoration:underline">C</span>opy to file</button></a>
-	<div><strong>{}&nbsp;</strong><div/>
+	<div id="message">
+		<p><strong>{message}</strong></p>
+	</div>
 	{% if data %}
         <table summary="overzicht">
             <thead>
