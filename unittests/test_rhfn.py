@@ -1118,18 +1118,17 @@ class TestProgressList:
                     ('/', [('index', (date_1, date_1, date_2)),
                            ('about', (date_2, date_2, date_1))])]
         monkeypatch.setattr(testee.dml, 'get_all_doc_stats', mock_get_all_doc_stats_empty)
-        assert testee.build_progress_list('testsite') == []
+        assert testee.build_progress_list('testsite', []) == []
         monkeypatch.setattr(testee.dml, 'get_all_doc_stats', mock_get_all_doc_stats)
-        assert testee.build_progress_list('') == [('/', 'about', 1, (date_2, date_2, date_1)),
-                                                ('/', 'index', 2, (date_1, date_1, date_2)),
-                                                ('testdir1', 'index', 2, (date_2, date_2, date_2)),
-                                                ('testdir2', 'all_gone', 2, ('', '', '')),
-                                                ('testdir2', 'index', 2, (date_1, date_2, date_3)),
-                                                ('testdir2', 'removed', 0, ('[deleted]', date_2,
-                                                    date_3)),
-                                                ('testdir2', 'test', 0, (date_3, date_2, date_1)),
-                                                ('testdir2', 'twice_removed', 1, ('', '[deleted]',
-                                                    date_3))]
+        assert testee.build_progress_list('', ['/about', 'testdir2/all_gone']) == [
+                # ('/', 'about', 1, (date_2, date_2, date_1)),
+                ('/', 'index', 2, (date_1, date_1, date_2)),
+                ('testdir1', 'index', 2, (date_2, date_2, date_2)),
+                # ('testdir2', 'all_gone', 2, ('', '', '')),
+                ('testdir2', 'index', 2, (date_1, date_2, date_3)),
+                ('testdir2', 'removed', 0, ('[deleted]', date_2, date_3)),
+                ('testdir2', 'test', 0, (date_3, date_2, date_1)),
+                ('testdir2', 'twice_removed', 1, ('', '[deleted]', date_3))]
 
     def test_get_copystand_filepath(self, monkeypatch):
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
@@ -1528,9 +1527,10 @@ class TestUpdateAll:
         # monkeypatch.setattr(testee, 'build_progress_list', mock_build_progress_list_2)
         # assert testsubj.go() == []
         # testcase: document excluded in config
-        testsubj.conf = {'do-not-generate': ['/index']}
+        # ook dit geldt niet meer omdat we het filteren nu in de aangeroepen funcie doen
+        # testsubj.conf = {'do-not-generate': ['/index']}
         monkeypatch.setattr(testee, 'build_progress_list', mock_build_progress_list_2)
-        assert testsubj.go() == []
+        # assert testsubj.go() == []
         # testcase: error when fetching source
         testsubj.conf = {}
         monkeypatch.setattr(testee, 'read_src_data', mock_read_src_data_msg)

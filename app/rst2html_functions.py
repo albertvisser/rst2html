@@ -74,7 +74,8 @@ HERE = pathlib.Path(__file__).parent
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': [], 'writer': 'html5'}
-FULL_CONF = {'lang': 'en', 'starthead': '', 'endhead': '', 'seflinks': 0, 'highlight': 0}
+FULL_CONF = {'lang': 'en', 'starthead': '', 'endhead': '', 'seflinks': 0, 'highlight': 0,
+             'do-not-generate': []}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
@@ -928,7 +929,7 @@ def save_to_mirror(sitename, current, fname, conf, dry_run=False):
 
 
 # -- progress list --
-def build_progress_list(sitename):
+def build_progress_list(sitename, files_to_skip):
     """build a list of the conversion state of all site documents
     """
     result = []
@@ -943,6 +944,9 @@ def build_progress_list(sitename):
         data.insert(0, rootitem)
     for dirname, docs in data:
         for docname, stats in sorted(docs):
+            fname = dirname + docname if dirname == '/' else os.path.join(dirname, docname)
+            if fname in files_to_skip:
+                continue
             altstats = [datetime.datetime.min if x in ('[deleted]', '') else x for x in stats]
             maxval = max(altstats)
             maxidx = 2
@@ -1007,9 +1011,7 @@ class UpdateAll:
     def go(self):
         "main line"
         messages = []
-        result = build_progress_list(self.sitename)
-
-        files_to_skip = self.conf.get('do-not-generate', [])
+        result = build_progress_list(self.sitename, self.conf.get('do-not-generate', []))
         for dirname, filename, phase, stats in result:
             self.path = WEBROOT / self.sitename
             if dirname == '/':
@@ -1017,8 +1019,6 @@ class UpdateAll:
             else:
                 self.fname = '/'.join((dirname, filename))
                 self.path /= dirname
-            if self.fname in files_to_skip:
-                continue
 
             msg, self.rstdata = read_src_data(self.sitename, dirname, filename)
             if msg:
@@ -1911,7 +1911,7 @@ class R2hState:
 
     def overview(self):
         """show the state of all site documents"""
-        return build_progress_list(self.sitename)
+        return build_progress_list(self.sitename, self.conf.get('do-not-generate', []))
 
     def copystand(self, data):
         """copy the overview to a file"""
