@@ -16,12 +16,15 @@ from test import analyze_testdata
 from test.test_dml import DML, clear_site_contents  # , list_site_contents
 
 from test.fixtures import rstdata_1, rstdata_2, rstdata_3, rstdata_4, htmldata_1, htmldata_2
-
-
+confs_to_restore_after_changing = ['misc/hosts', 'nginx/flatpages']
+conf_root = os.path.expanduser('~/nginx-config/')
 
 def test_main(monkeypatch, capsys, tmp_path):
     "call main() using pytest, to make monkeypatching possible"
     destdir = tmp_path /  DML
+    for conf in confs_to_restore_after_changing:
+        (tmp_path / os.path.dirname(conf)).mkdir()
+        shutil.copyfile(os.path.join(conf_root, conf), str(tmp_path / conf))
     # if .exists(destdir):
     #     shutil.rmtree(destdir)
     destdir.mkdir()
@@ -32,6 +35,8 @@ def test_main(monkeypatch, capsys, tmp_path):
     # sitedoc, data = list_site_contents(sitename, filename=os.path.join(destdir,
     #                                                                    'test_scenario_1.out'))
     # clear_site_contents(sitename)           # remove our traces
+    for conf in confs_to_restore_after_changing:
+        shutil.copyfile(str(tmp_path / conf), os.path.join(conf_root, conf))
 
 
 def main(monkeypatch, capsys, path):
