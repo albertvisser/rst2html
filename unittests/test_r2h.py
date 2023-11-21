@@ -70,12 +70,15 @@ def test_format_progress_list(capsys):
     data_stuff, rest = rest.split('{% endfor %}', 1)
     tfoot, rest = rest.split('{% else %}', 1)
     no_data, end = rest.split('{% endif %}', 1)
-    assert r2h.format_progress_list([]) == begin + no_data + end
+    assert r2h.format_progress_list([], 'html5') == begin + no_data + end
     dates = datetime.datetime.min, datetime.datetime.max, datetime.datetime.max
     data = [('q', 'r', 2, dates)]
     middle = data_stuff.replace('{row.0}', 'q/r').replace('{row.1}', 'n/a').replace('{row.2}',
             '31-12-9999 23:59:59').replace('{row.3}', '<strong>31-12-9999 23:59:59</strong>')
-    assert r2h.format_progress_list(data) == begin + thead + middle + tfoot + end
+    assert r2h.format_progress_list(data, 'html5') == begin + thead + middle + tfoot + end
+    begin = begin.replace('main', 'div class="document"')
+    end = end.replace('main', 'div')
+    assert r2h.format_progress_list(data, 'html4') == begin + thead + middle + tfoot + end
 
 
 def test_resolve_images():
@@ -126,10 +129,14 @@ def test_format_search(monkeypatch):
     def mock_load_template_2(*args):
         return ('x{% if results %}y{% for row in data %}-{row.0}-{row.1}-{row.2}-'
                 '{% endfor %}q{% endif %}r')
+    def mock_load_template_3(*args):
+        return '<main>{% if results %}x{% for row in data %}y{% endfor %}z{% endif %}</main>'
     monkeypatch.setattr(r2h, 'load_template', mock_load_template_1)
-    assert r2h.format_search() == 'The beginning <strong>and</strong> the end'
+    assert r2h.format_search([], 'html5') == 'The beginning <strong>and</strong> the end'
     monkeypatch.setattr(r2h, 'load_template', mock_load_template_2)
-    assert r2h.format_search([['1', '2', '3'], ['a', 'b', 'c']]) == ('xy-1-2-3--a-b-c-qr')
+    assert r2h.format_search([['1', '2', '3'], ['a', 'b', 'c']], 'html5') == ('xy-1-2-3--a-b-c-qr')
+    monkeypatch.setattr(r2h, 'load_template', mock_load_template_3)
+    assert r2h.format_search([], 'html4') == '<div class="document"></div>'
 
 
 def mock_register_directives():

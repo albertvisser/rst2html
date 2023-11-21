@@ -1173,7 +1173,7 @@ def get_reflinks_in_dir(sitename, dirname='', sef=False):
                 refs = line.split("refkey::", 1)[1]
                 for ref in (x.split(":") for x in refs.split(";")):
                     word = ref[0].strip().capitalize()
-                    prefix = '/{dirname}/'.replace('//', '/')
+                    prefix = f'/{dirname}/'.replace('//', '/')
                     suffix = '/' if sef else '.html'
                     link = prefix + filename + suffix
                     if len(ref) > 1:
@@ -1251,23 +1251,23 @@ class TrefwoordenLijst:
     def start_new_letter(self):
         """produceer het begin voor een letter"""
         loc = 3 if self.sitename == 'magiokis' else 4
-        self.data[loc] += "{self.current_letter}_ "
+        self.data[loc] += f"{self.current_letter}_ "
         self.data.append("")
         if self.sitename == 'magiokis':
-            self.titel = [".. _{self.current_letter}:\n\n**{self.current_letter}**", ""]
+            self.titel = [f".. _{self.current_letter}:\n\n**{self.current_letter}**", ""]
         else:
-            self.titel = ["{self.current_letter}", "-"]
+            self.titel = [f"{self.current_letter}", "-"]
         self.linkno = 0
 
     def start_new_keyword(self, reflinks, key):
         """produceer het begin en de links voor een nieuw trefwoord"""
-        current_trefw = "+   {key}"
+        current_trefw = f"+   {key}"
         for link in reflinks[key]:
             current_trefw += " `#`__ "
             self.linkno += 1
             linknm = self.current_letter + str(self.linkno)
-            self.links.append("..  _{linknm}: {link}")
-            self.anchors.append("__ {linknm}_")
+            self.links.append(f"..  _{linknm}: {link}")
+            self.anchors.append(f"__ {linknm}_")
         self.teksten.append(current_trefw)
 
     def finish_letter(self, to_top):
@@ -1461,7 +1461,7 @@ class R2hState:
             elif self.newconf:
                 mld, newurl = new_conf(newsett, rstdata, self.get_lang())
                 if newurl:
-                    rstdata = rstdata.replace("url: ''", "url: {newurl}")
+                    rstdata = rstdata.replace("url: ''", f"url: {newurl}")
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if not mld:
             # do_urlcheck = not self.newconf
@@ -1871,7 +1871,8 @@ class R2hState:
         #     if results:
         #         return "deleted from mirror: " + ', '.join(list(results))
         if mode in ('0', '1', '2', '3'):
-            results = functions [mode](self.sitename, '*')
+            mode = int(mode)
+            results = functions[mode](self.sitename, '*')
             if results:
                 return messages[mode] + ', '.join(list(results))
         else:
