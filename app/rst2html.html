@@ -4,6 +4,14 @@
   <title>ReStructured Text translator</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   {editor_addon}
+  <script>function toggle(myarg) {{
+    x = document.getElementById(myarg);
+    if (x.style.display === 'none') {{
+      x.style.display = 'block';
+    }} else {{
+      x.style.display = 'none';
+    }}
+  }}</script>
 </head>
 <body style="background-color: #C6E2FF; color: #3a5fcd">
   <form method="post">
@@ -125,77 +133,82 @@
         <div class="table-full" style="display: inline">
 
           <div class="row-full" style="float: left">
-            <span title="
-X   _(t_activate) _(c_settings) selector
-Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)
-I   _(c_index)
-G   _(c_regen) (_(c_exec))
-Q   _(t_activate) _(c_regen) selector
-F   _(c_find)/_(c_replace)
-K   _(c_check)
-V   _(c_overview)
-
-O   _(t_activate) _(c_rstfile) selector
-L/S _(c_loadsrc)/_(c_savesrc) (_(c_exec))
-J   _(t_activate) _(c_lactions) selector
-A   _(t_activate) _(c_sactions) selector
-R   _(c_convert)
-C   _(c_saveall)
-N   _(t_activate) _(c_newfile) _(t_fld)
-
-T   _(t_activate) _(c_htmlfile) selector
-H/U _(c_loadhtml)/_(c_savehtml)
-B   _(c_showhtml)
-M   _(c_copytoroot)
-P   _(c_pending) (_(c_exec))
-D   _(t_activate) _(c_dactions) selector
-">
-            _(t_access)</span>
+            <span>_(t_access)</span>&nbsp;<button type="button" onclick="toggle('t_access')">_(t_toggle)</button>
+            <div id="t_access" style="display: block">
+              <span>X   _(t_activate) _(c_settings) selector</span><br/>
+              <span>Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)</span><br/>
+              <span>I   _(c_index)</span><br/>
+              <span>G   _(c_regen) (_(c_exec))</span><br/>
+              <span>Q   _(t_activate) _(c_regen) selector</span><br/>
+              <span>F   _(c_find)/_(c_replace)</span><br/>
+              <span>K   _(c_check)</span><br/>
+              <span>V   _(c_overview)</span><br/>
+              <span>&nbsp;</span><br/>
+              <span>O   _(t_activate) _(c_rstfile) selector</span><br/>
+              <span>L/S _(c_loadsrc)/_(c_savesrc) (_(c_exec))</span><br/>
+              <span>J   _(t_activate) _(c_lactions) selector</span><br/>
+              <span>A   _(t_activate) _(c_sactions) selector</span><br/>
+              <span>R   _(c_convert)</span><br/>
+              <span>C   _(c_saveall)</span><br/>
+              <span>N   _(t_activate) _(c_newfile) _(t_fld)</span><br/>
+              <span>&nbsp;</span><br/>
+              <span>T   _(t_activate) _(c_htmlfile) selector</span><br/>
+              <span>H/U _(c_loadhtml)/_(c_savehtml)</span><br/>
+              <span>B   _(c_showhtml)</span><br/>
+              <span>M   _(c_copytoroot)</span><br/>
+              <span>P   _(c_pending) (_(c_exec))</span><br/>
+              <span>D   _(t_activate) _(c_dactions) selector</span><br/>
+	    </div>
           </div>
           <div class="clear" style="clear: both"></div>
 
           <div class="row-full" style="float: left">
             <p><a href="http://docutils.sourceforge.io/docs/user/rst/quickref.html" target="_blank">
             _(c_qref)</a>_(t_qref)</p>
-            _(t_dir)
           </div>
           <div class="clear" style="clear: both"></div>
 
-          <div class="table-column" style="float:left">grid:</div>
-          <div class="table-column" style="float:left">
-            <span title="_(t_startc)">.. startc:: <em>x</em></span><br/>
-            <span title="_(t_firstc)">.. firstc:: <em>x</em> [<em>class</em>]</span><br/>
-            <span title="_(t_nextc)">.. nextc:: <em>x</em> [<em>class</em>]</span><br/>
-            <span title="_(t_clearc)">.. clearc::</span><br/>
-            <span title="_(t_spacer)">.. spacer:: [<em>x</em>]</span><br/>
-            <span title="_(t_endc)">.. endc:: </span>
+          <div class="row-full" style="float: left">
+		  <span>_(t_dir)<br></span>
+            <span>grid (960) layout</span>&nbsp;<button type="button" onclick="toggle('t_grid')">_(t_toggle)</button>
+            <div id="t_grid" style="display: none">
+              <span title="_(t_startc)">.. startc:: <em>x</em></span><br/>
+              <span title="_(t_firstc)">.. firstc:: <em>x</em> [<em>class</em>]</span><br/>
+              <span title="_(t_nextc)">.. nextc:: <em>x</em> [<em>class</em>]</span><br/>
+              <span title="_(t_clearc)">.. clearc::</span><br/>
+              <span title="_(t_spacer)">.. spacer:: [<em>x</em>]</span><br/>
+              <span title="_(t_endc)">.. endc:: </span>
+            </div>
           </div>
           <div class="clear" style="clear: both"></div>
 
-          <div class="table-column" style="float:left">Magiokis:</div>
-          <div class="table-column" style="float:left">
-            <span title="_(t_bottom)">.. bottom:: <em>x</em> [None | <em>filename</em>] [<em>link text</em>]</span><br/>
-            <span title="_(t_refkey)">.. refkey:: keyword [ : <em>anchor</em>]</span><br/>
-            <span title="_(t_myheader)">.. myheader:: :title:</span><br/>
-            <span title="_(t_byline)">.. byline:: datumstring</span><br/>
-            <span title="_(t_audio)">.. audio:: beschrijving</span><br/>
-            <span title="_(t_menutext)">.. menutext:: :title:</span><br/>
-            <span title="_(t_gedicht)">.. gedicht::</span><br/>
-            <span title="_(t_songtekst)">.. songtekst::</span><br/>
-            <span title="_(t_startblock)">.. startblock:: blockname</span><br/>
-            <span title="_(t_endblock)">.. endblock:: blockname</span><br/>
-            <span title="_(t_rollen)">.. rollen:: </span><br/>
-            <span title="_(t_scene)">.. scene:: </span><br/>
-            <span title="_(t_anno)">.. anno:: </span><br/>
-            <span title="_(t_transcript)">.. transcript :: :title:</span><br/>
-            <span title="_(t_startsidebar)">.. startsidebar:: </span><br/>
-            <span title="_(t_endsidebar)">.. endsidebar:: </span><br/>
-            <span title="_(t_myfooter)">.. myfooter::</span><br/>
+          <div class="row-full" style="float: left">
+            <span>Magiokis layout</span>&nbsp;<button type="button" onclick="toggle('t_magiokis')">_(t_toggle)</button>
+            <div id="t_magiokis" style="display: none">
+              <span title="_(t_bottom)">.. bottom:: <em>x</em> [None | <em>filename</em>] [<em>link text</em>]</span><br/>
+              <span title="_(t_refkey)">.. refkey:: keyword [ : <em>anchor</em>]</span><br/>
+	      <span title="_(t_myheader)">.. myheader:: <em>:title:</em></span><br/>
+	      <span title="_(t_byline)">.. byline:: <em>datumstring</em></span><br/>
+	      <span title="_(t_audio)">.. audio:: <em>beschrijving</em></span><br/>
+	      <span title="_(t_menutext)">.. menutext:: [<em>:title:</em>]</span><br/>
+              <span title="_(t_gedicht)">.. gedicht::</span><br/>
+              <span title="_(t_songtekst)">.. songtekst::</span><br/>
+	      <span title="_(t_startblock)">.. startblock:: <em>blockname</em></span><br/>
+	      <span title="_(t_endblock)">.. endblock:: <em>blockname</em></span><br/>
+              <span title="_(t_rollen)">.. rollen:: </span><br/>
+              <span title="_(t_scene)">.. scene:: </span><br/>
+              <span title="_(t_anno)">.. anno:: </span><br/>
+	      <span title="_(t_transcript)">.. transcript:: <em>:title:</em></span><br/>
+              <span title="_(t_startsidebar)">.. startsidebar:: </span><br/>
+              <span title="_(t_endsidebar)">.. endsidebar:: </span><br/>
+              <span title="_(t_myfooter)">.. myfooter::</span><br/>
+            </div>
           </div>
           <div class="clear" style="clear: both"></div>
 
-          <div class="table-column" style="float:left">Magiokis-docs:</div>
-          <div class="table-column" style="float:left">
+          <div class="row-full" style="float: left">
+            <span>Magiokis-docs layout</span>&nbsp;<button type="button" onclick="toggle('t_magiokis_docs')">_(t_toggle)</button>
+            <div id="t_magiokis_docs" style="display: none">
             <span title="_(t_startbody)">.. startbody::</span><br/>
             <span title="_(t_navlinks)">.. navlinks::</span><br/>
             <span title="_(t_textheader)">.. textheader:: [<em>text</em>]</span><br/>

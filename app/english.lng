@@ -1,6 +1,6 @@
 # onhover descriptions for buttons and fields
 
-t_access = Help on access keys (hover to show)
+t_access = Help on access keys
 t_activate = activate
 t_anno = Generate de text for an annotation
 t_audio = Generate an audio fragment with description
@@ -14,14 +14,14 @@ t_convert = Preview the result of the rst to html conversion
 t_copytoroot = Copy the stored html to the site mentioned in the config after editing the css link(s); also propagates renaming/deleting
 t_delaction = Select type of action concerning deletions 
 t_delete = Check this and press `save source` to delete the selected file 
-t_dir = Apart from the built in ones, the following <br/>directives are available (hover to view description):
+t_dir = Help on custom directives (unhide, then hover to view description):
 t_endblock = Close the div (classname is informational)
 t_endbody = Generate standard end of the body section
 t_endc = End of row/columns display
 t_endcenter = Restore margins
 t_endsidebar = Generate the code to close off the sidebar
 t_find = Start a search - and replace if desired - action for all site documents
-t_firstc = Start first x cells wide row using optional class
+t_firstc = Start first column in row, x cells wide using optional class
 t_fld = field
 t_gedicht = Generate the text of a a poem 
 t_htmlfile = Select the html file to save or load
@@ -36,7 +36,7 @@ t_myfooter = Generate the page end with mailto link
 t_myheader = Generate the page start with title and navigation menu
 t_navlinks = Generate standard navigation links
 t_newfile = Enter a new name to load or save. End with / to create a directory
-t_nextc = Start next x cells wide row using optional class
+t_nextc = Start next column in row, x cells wide using optional class
 t_opt = option
 t_overview = Present an overview of the stages of the various site documents
 t_qref =  (opens in new tab)
@@ -64,6 +64,7 @@ t_startc = Start row/columns display x cells wide (x = 12 of 16)
 t_startcenter = Temporary suspend margins to display wide image(s)
 t_startsidebar = Generate the code to start a sidebar
 t_textheader = Generate start of the text with title
+t_toggle = click to show/hide
 t_transcript = Generate the transcription of a picture
 
 # captions for buttons etc

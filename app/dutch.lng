@@ -1,6 +1,6 @@
 # onhover descriptions for buttons and fields
 
-t_access = sneltoetsen help (mouse over om te bekijken)
+t_access = Uitleg over sneltoetsen
 t_activate = activeer
 t_anno = genereer de tekst voor een annotatie
 t_audio = genereer een afspeelelement met tekst
@@ -14,14 +14,14 @@ t_convert = Bekijk het resultaat van de rst to html omzetting
 t_copytoroot = Kopieer de opgeslagen html naar de mirror omgeving genoemd in de config na aanpassing van de css link(s); ook voor doorzetten van hernoemen/verwijderen
 t_delaction = Kies een actie met betrekking tot verwijderen
 t_delete = Vink aan en doe `sla bron op` om het geselecteerde bestand te verwijderen
-t_dir = Naast de ingebouwde directives zijn nog de volgende<br/>beschikbaar (mouse over om de beschrijving te zien):
+t_dir = Uitleg over custom directives (maak zichtbaar en mouse over om de beschrijving te zien):
 t_endblock = sluit de div (classname is ter informatie)
 t_endbody = genereer standaard einde van de body section
 t_endc = einde kolomweergave
 t_endcenter = Terug naar originele marges
 t_endsidebar = genereer de code om de sidebar af te sluiten
 t_find = Start een zoek - en eventueel vervang - actie voor alle site documenten
-t_firstc = start eerste kolom met breedte van x cellen met evt. class
+t_firstc = start eerste kolom in rij met breedte van x cellen met evt. class
 t_fld = invulveld
 t_gedicht = genereer de tekst voor een gedicht
 t_htmlfile = selecteer een html bestand om te laden of op te slaan
@@ -36,7 +36,7 @@ t_myfooter = genereer het pagina einde met mailto link
 t_myheader = genereer de pagina kop met titel en navigatiemenu
 t_navlinks = genereer standaard navigatielinks
 t_newfile = Geef een nieuwe naam op om te laden of op te slaan. Eindig met / om een directory te maken
-t_nextc = start volgende kolom met breedte van x cellen met evt. class
+t_nextc = start volgende kolom in rij met breedte van x cellen met evt. class
 t_opt = optie
 t_overview = Presenteer een overzicht van de status van de documenten aanwezig in de mirror omgeving
 t_qref =  (opent in een nieuwe tab)
@@ -64,6 +64,7 @@ t_startc = start kolomweergave van x cellen breed (x = 12 of 16)
 t_startcenter = Tijdelijk marges negeren om brede images te tonen
 t_startsidebar = genereer de code om een sidebar te maken
 t_textheader = genereer begin van de tekst met titel
+t_toggle = klik om te tonen/verbergen
 t_transcript = genereer de transcriptie voor een stripfragment
 
 # captions for buttons etc
