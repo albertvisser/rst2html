@@ -55,17 +55,17 @@ def build_menu(lines, title=''):
     """create menu list from text lines
     """
     if title:
-        title = '<p></p><h2>{}</h2>'.format(title)
+        title = f'<p></p><h2>{title}</h2>'
     text = [title + '<ul class="menu">']
     for line in lines:
         line = line.strip()
         if line.startswith('`') and ' <' in line and line.endswith(">`_"):
             line = line[1:-3]
             linktext, link = line.split(' <', 1)
-            line = '<a class="reference external" href="{}">{}</a>'.format(link, linktext)
-        else:
-            line = line
-        text.append('<li>{}</li>'.format(line))
+            line = f'<a class="reference external" href="{link}">{linktext}</a>'
+        # else:
+        #     line = line
+        text.append(f'<li>{line}</li>')
     text.append('</ul>')
     return text
 
@@ -105,13 +105,12 @@ class Bottom(Directive):
             about = ''.join(('<a class="reference external" href="about.html">',
                              'terug naar de indexpagina</a> '))
         if wid:
-            start = '' if wid == '-1' else '<div class="grid_{}">'.format(wid)
-            rest = '' if nxt == 'None' else ''.join(('<a class="reference external" ',
-                                                     'href="{0}">{1}</a>')).format(nxt, ltext)
+            start = '' if wid == '-1' else f'<div class="grid_{wid}">'
+            rest = '' if nxt == 'None' else f'<a class="reference external" href="{nxt}">{ltext}</a>'
             start = ''.join((start, '<div style="text-align: center">', about, rest))
-            end = '' if wid == '-1' else ''.join(
-                '</div><div class="clear">&nbsp;</div><div class="grid_{} spacer">'
-                '&nbsp;</div><div class="clear">&nbsp;</div>').format(wid)
+            end = '' if wid == '-1' else ('</div><div class="clear">&nbsp;</div>'
+                                          f'<div class="grid_{wid} spacer">&nbsp;</div>'
+                                          '<div class="clear">&nbsp;</div>')
             end = '</div>' + end
         text_node = nodes.raw('', '<div class="madeby">content and layout created 2010 '
                               'by Albert Visser <a href="mailto:info@magiokis.nl">'
@@ -167,9 +166,9 @@ class MyHeader(Directive):
         "genereer de html"
         lines = ['<header id="header" role="banner">']
         href = self.options.get('href', '/')
-        lines.append('<a href="{}" id="logo" rel="home" title="Home">'.format(href))
+        lines.append(f'<a href="{href}" id="logo" rel="home" title="Home">')
         src = self.options.get('image', '/zing.gif')  # '/favicon.ico'
-        lines.extend(['<img alt="Home" src="{}"/>'.format(src), '</a>'])
+        lines.extend([f'<img alt="Home" src="{src}"/>', '</a>'])
         text = self.options.get('text', 'Magiokis Productions Proudly Presents!')
         lines.extend(['<div id="name-and-slogan">', '<div id="site-slogan">', text, '</div>',
                       '</div>', '</header>', '<div id="main">', '<div id="navigation">'])
@@ -183,32 +182,43 @@ class MyHeader(Directive):
             text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
             lines.extend(build_menu(text))
         lines.extend(['</div>', '</div>', '<div id="content" class="column">'])
-        lines.append('<h1 class="page-title">{}</h1>'.format(self.options.get('title', '')))
+        title = self.options.get('title', '')
+        lines.append(f'<h1 class="page-title">{title}</h1>')
         text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
 
 class ByLine(Directive):
     """genereert een byline
+    Als er een argument wordt opgegeven kan dat gebruikt worden als alternatieve tekst
+    Optionele argumenten: `author`, `date` en `lang`
+    De voorzetsels gebruikt bij auteur en datum zijn standaard in het Engels
+    Daarvan kan worden afgeweken door het voor `lang` een taalcode meet te geven
+    Momenteel is alleen nl voor Nederlands geïmplementeerd
     """
 
-    required_arguments = 1
-    optional_arguments = 0
+    required_arguments = 0
+    optional_arguments = 1
     final_argument_whitespace = True
-    option_spec = {'date': directives.unchanged}
+    option_spec = {'author' : directives.unchanged,
+                   'date': directives.unchanged,
+                   'lang': directives.unchanged}
     has_content = False
 
     def run(self):
         "genereer de html"
-        name = self.arguments[0]
-        try:
-            date = self.options['date']
-        except KeyError:
-            text = ''
-        else:
-            text = " on <time>{}</time>".format(date)
-        text_node = nodes.raw('', '<p></p><header><p><span>Submitted by </span><span>{}</span>{}'
-                              '</p></header>'.format(name, text), format='html')
+        text = self.arguments[0] if self.arguments else 'Submitted'
+        author = self.options.get('author', '')
+        date = self.options.get('date', '')
+        lang = self.options.get('lang', 'en')
+        if lang == 'nl':
+            by, on = 'door', 'op'
+        else:   # add additional language variants above this line
+            by, on = 'by', 'on'
+        authortext = f' {by} <span>{author}</span>' if author else ''
+        datetext = f' {on} <time>{date}</time>' if date else ''
+        text_node = nodes.raw('', (f'<p></p><header><p><span>{text}</span>{authortext}{datetext}'
+                                   '</p></header>'), format='html')
         return [text_node]
 
 
@@ -223,8 +233,9 @@ class Audio(Directive):
 
     def run(self):
         "genereer de html"
-        text = '<audio controls src="{}"></audio><p>{}</p>'.format(self.arguments[0],
-                                                                   '<br>\n'.join(self.content))
+        src, content = self.arguments[0], '<br>\n'.join(self.content)
+        text = f'<audio controls src="{src}"></audio><p>{content}</p>'
+
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -299,7 +310,7 @@ class Transcript(Directive):
                     lines.append('<p>')
                     paragraph_started = True
                 if line.startswith(':title:'):
-                    lines.append('<em>{}</em>'.format(line[7:].strip()))
+                    lines.append(f'<em>{line[7:].strip()}</em>')
                 else:
                     lines.append(line)
                 continue
@@ -312,13 +323,13 @@ class Transcript(Directive):
                 lines.append('<br>')
             else:
                 paragraph_started = True
-            lines.append('<em>{}: </em>{}'.format(name, text))
+            lines.append(f'<em>{name}: </em>{text}')
         if paragraph_started:
             lines.append('</p>')
-        lines.append(('</div></div> </div> </div> <script type=' "'text/javascript'" '>'
-                      "document.getElementById('transcript-content').style.visibility = 'hidden';"
-                      "document.getElementById('transcript-content').style.height = '1px';"
-                      '</script>'))
+        lines.append('</div></div> </div> </div> <script type=' "'text/javascript'" '>'
+                     "document.getElementById('transcript-content').style.visibility = 'hidden';"
+                     "document.getElementById('transcript-content').style.height = '1px';"
+                     '</script>')
         text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
@@ -339,7 +350,7 @@ class Transcript(Directive):
 #
 #     def run(self):
 #         "genereer de html"
-#         text = '<p></p><aside><section>include {}</section></aside>'.format(self.arguments[0])
+#         text = f'<p></p><aside><section>include {self.arguments[0]}</section></aside>'
 #         text_node = nodes.raw('', text, format='html')
 #         return [text_node]
 
@@ -357,28 +368,28 @@ class StrofenTekst(Directive):
     def run(self):
         "genereer de html"
         try:
-            lines = ['<div class="{}">'.format(self.soortnaam)]
+            lines = [f'<div class="{self.soortnaam}">']
         except AttributeError:
             lines = ['<div class="unnamed-container">']
         for item in self.option_spec:
             if item in self.options:
-                lines.append('<div class="{}">{}</div>'.format(item, self.options[item]))
+                lines.append(f'<div class="{item}">{self.options[item]}</div>')
         lines.append('<div class="couplet">')
         end_couplet = in_refrein = False
         for line in self.content:
             if line == '--':
                 # if end_couplet:
                 #     strofe = 'refrein' if in_refrein else 'couplet'
-                #     lines.append('<div class="{}">'.format(strofe))
+                #     lines.append(f'<div class="{strofe}">')
                 lines.append('</div>')
                 end_couplet = True
                 continue
             in_refrein = line.startswith(' ')
             if end_couplet:
                 strofe = 'refrein' if in_refrein else 'couplet'
-                lines.append('<div class="{}">'.format(strofe))
+                lines.append(f'<div class="{strofe}">')
                 end_couplet = False
-            lines.append('<div class="regel">{}</div>'.format(line))
+            lines.append(f'<div class="regel">{line}</div>')
         lines.append('</div></div>')
         text_node = nodes.raw('', '\n' + '\n'.join(lines), format='html')
         return [text_node]
@@ -398,9 +409,9 @@ class RoleSpec(Directive):
         lines = ['<div class="rollen">']
         for item in self.option_spec:
             if item in self.options:
-                lines.append('<div class="{}">{}</div>'.format(item, self.options[item]))
+                lines.append(f'<div class="{item}">{self.options[item]}</div>')
         for line in self.content:
-            lines.append('<div class="rol">{}</div>'.format(line))
+            lines.append(f'<div class="rol">{line}</div>')
         lines.append('</div>')
         text_node = nodes.raw('', '\n' + '\n'.join(lines), format='html')
         return [text_node]
@@ -424,9 +435,9 @@ class Scene(Directive):
                 found_who = True
             except ValueError:
                 if found_who:
-                    lines.append('<div class="regel">{}</div>'.format(line))
+                    lines.append(f'<div class="regel">{line}</div>')
                 else:
-                    lines.append('<div class="actie">{}</div>'.format(line))
+                    lines.append(f'<div class="actie">{line}</div>')
                 continue
             if open_claus:
                 if open_spraak:
@@ -436,15 +447,15 @@ class Scene(Directive):
                 open_claus = False
             if who:
                 lines.append('<div class="claus">')
-                lines.append('<div class="spreker">{}</div>'.format(who))
+                lines.append(f'<div class="spreker">{who}</div>')
                 lines.append('<div class="spraak">')
-                lines.append('<div class="regel">{}</div>'.format(what))
+                lines.append(f'<div class="regel">{what}</div>')
                 open_claus = open_spraak = True
             else:
                 # if open_spraak:
                 #     lines.append('</div>')
                 #     open_spraak = False
-                lines.append('<div class="actie">{}</div>'.format(what))
+                lines.append(f'<div class="actie">{what}</div>')
         if open_claus:
             if open_spraak:
                 lines.append('</div>')
@@ -468,7 +479,7 @@ class Anno(Directive):
         "genereer de html"
         lines = ['<div class="anno">']
         for line in self.content:
-            lines.append('<p>{}</p>'.format(line))
+            lines.append(f'<p>{line}</p>')
         lines.append('</div>')
         text_node = nodes.raw('', '\n' + '\n'.join(lines), format='html')
         return [text_node]
@@ -499,10 +510,10 @@ class StartBlock(Directive):
 
     def run(self):
         "genereer de html"
-        lines = ['<div class="{}">'.format(self.arguments[0])]
+        lines = [f'<div class="{self.arguments[0]}">']
         if 'text' in self.options:
             divclass = 'title'
-            lines.append('<div class="{}">{}</div>'.format(divclass, self.options['text']))
+            lines.append(f'<div class="{divclass}">{self.options["text"]}</div>')
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]
 
@@ -520,8 +531,8 @@ class EndBlock(Directive):
 
     def run(self):
         "genereer de html"
-        text_node = nodes.raw('', '</div> <!-- end {} -->\n'.format(self.arguments[0]),
-                              format='html')
+        divname = self.arguments[0]
+        text_node = nodes.raw('', f'</div> <!-- end {divname} -->\n', format='html')
         return [text_node]
 
 
@@ -557,9 +568,8 @@ class SideBarKop(Directive):
 
     def run(self):
         "genereer de html"
-        text_node = nodes.raw('', '<h1>{}</h1>'.format(self.arguments[0]),
-                               # '<div class="section"><h1>{}</h1></div>'.format(self.arguments[0]),
-                              format='html')
+        title = self.arguments[0]
+        text_node = nodes.raw('', f'<h1>{title}</h1>', format='html')
         return [text_node]
 
 
@@ -604,7 +614,7 @@ class MyFooter(Directive):
                  '<div id="footer" class="region region-bottom">',
                  '<div id="block-block-1" class="block block-block first last odd">',
                  '<footer>',
-                 '<p>{0}: <a href="mailto:{1}">{1}</a></p></footer>'.format(text, mailto))
+                 f'<p>{text}: <a href="mailto:{mailto}">{mailto}</a></p></footer>')
         text_node = nodes.raw('', '\n'.join(lines), format='html')
         return [text_node]
         # # lines = ['<p></p><div id="footer">']
@@ -628,7 +638,8 @@ class StartCols(Directive):
 
     def run(self):
         "genereer de html"
-        text = '<div class="container_{}">\n'.format(self.arguments[0])
+        colcount = self.arguments[0]
+        text = f'<div class="container_{colcount}">\n'
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -666,7 +677,7 @@ class FirstCol(Directive):
             classes = self.arguments[1]
         except IndexError:
             classes = ''
-        text = '<div class="grid_{} {}">\n'.format(width, classes)
+        text = f'<div class="grid_{width} {classes}">\n'
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -690,7 +701,7 @@ class NextCol(Directive):
             classes = self.arguments[1]
         except IndexError:
             classes = ''
-        text = '</div>\n<div class="grid_{} {}">\n'.format(width, classes)
+        text = f'</div>\n<div class="grid_{width} {classes}">\n'
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -724,16 +735,17 @@ class Spacer(Directive):
     def run(self):
         "genereer de html"
         try:
-            cls = "grid_{} ".format(self.arguments[0])
+            colcount = self.arguments[0]
+            cls = f"grid_{colcount} "
             clr = '<div class="clear">&nbsp;</div>\n'
         except IndexError:
             cls = clr = ''
-        text = '<div class="{}spacer">&nbsp;</div>\n{}'.format(cls, clr)
+        text = f'<div class="{cls}spacer">&nbsp;</div>\n{clr}'
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
 
-# ---------------- Directives for BitBucket site layout ------------------------
+# ---------------- Directives for Magiokis-docs site layout ------------------------
 class StartBody(Directive):
     """genereert de start van de container div en de header div
     """
@@ -748,7 +760,7 @@ class StartBody(Directive):
         header_text = self.options.get('header', '')   # "Albert Visser's programmer's blog"
         text = '<div id="container">'
         if header_text:
-            text += ' <div id="header">{}</div>'.format(header_text)
+            text += f' <div id="header">{header_text}</div>'
         text_node = nodes.raw('', text, format='html')
         return [text_node]
 
@@ -783,19 +795,18 @@ class NavLinks(Directive):
                 line = line.strip()[1:-1]
                 if '<' in line:  # menuoptie met tekst en link
                     menu, target = line.split('<')
-                    text.append('<li class="menu"><a href="{}">{}</a></li>'.format(target[:-2],
-                                                                                   menu.strip()))
+                    text.append(f'<li class="menu"><a href="{target[:-2]}">{menu.strip()}</a></li>')
                 else:            # alleen tekst: submenu
-                    text.append('<li class="menu">{}<ul>'.format(line))
+                    text.append(f'<li class="menu">{line}<ul>')
                     in_submenu = True
             elif line.startswith('. `') and '<' in line:  # submenuoptie met tekst en link
                 if in_submenu:
                     menu, target = line.strip()[3:-3].split('<')
-                    text.append('<li><a href="{}">{}</a></li>'.format(target, menu.strip()))
+                    text.append(f'<li><a href="{target}">{menu.strip()}</a></li>')
                 else:
-                    self.error('Submenu entry before main menu: `{}`'.format(line.strip()))
+                    self.error(f'Submenu entry before main menu: `{line.strip()}`')
             else:  # error in content
-                self.error('Illegal content: `{}`'.format(line.strip()))
+                self.error(f'Illegal content: `{line.strip()}`')
         text.append('</ul></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
@@ -817,9 +828,9 @@ class TextHeader(Directive):
             title_text = self.arguments[0]
         except IndexError:
             title_text = "&nbsp;"
-        text.append('<h1 class="page-title">{}</h1>'.format(title_text))
+        text.append(f'<h1 class="page-title">{title_text}</h1>')
         # datum = datetime.datetime.today().strftime('%A, %B %d, %Y')
-        # text.append('<p class="date">last modified on {}</p>'.format(datum))
+        # text.append(f'<p class="date">last modified on {datum}</p>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]
 
@@ -869,10 +880,10 @@ class BottomNav(Directive):
             if line.startswith('`') and ' <' in line and line.endswith(">`_"):
                 line = line[1:-3]
                 linktext, link = line.split(' <', 1)
-                line = '<a href="{}">{}</a>'.format(link, linktext)
-            else:
-                line = line
-            text.append('<li class="menu">{}</li>'.format(line))
+                line = f'<a href="{link}">{linktext}</a>'
+            # else:
+            #     line = line
+            text.append(f'<li class="menu">{line}</li>')
         text.append('</ul></div></div>')
         text_node = nodes.raw('', ''.join(text), format='html')
         return [text_node]

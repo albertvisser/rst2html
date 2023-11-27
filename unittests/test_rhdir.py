@@ -100,19 +100,48 @@ def test_myheader(monkeypatch):
 def test_byline(monkeypatch):
     monkeypatch.setattr(rhdir.ByLine, '__init__', mock_init)
     testsubj = rhdir.ByLine()
-    testsubj.arguments= ['some_name']
+    testsubj.arguments= []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
-    assert str(data) == ('<p></p><header><p><span>Submitted by </span>'
-                         '<span>some_name</span></p></header>')
+    assert str(data) == ('<p></p><header><p><span>Submitted</span></p></header>')
     testsubj = rhdir.ByLine()
-    testsubj.arguments= ['some_name']
+    testsubj.arguments= ['some_text']
     testsubj.options = {'date': 'some_date'}
     testsubj.content = []
     data = testsubj.run()[0][0]
-    assert str(data) == ('<p></p><header><p><span>Submitted by </span>'
-                         '<span>some_name</span> on <time>some_date</time></p></header>')
+    assert str(data) == ('<p></p><header><p><span>some_text</span>'
+                         ' on <time>some_date</time></p></header>')
+    testsubj.arguments= ['some_text']
+    testsubj.options = {'date': 'some_date', 'lang': 'nl'}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<p></p><header><p><span>some_text</span>'
+                         ' op <time>some_date</time></p></header>')
+    testsubj.arguments= ['some_text']
+    testsubj.options = {'author': 'some_name'}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<p></p><header><p><span>some_text</span> by '
+                         '<span>some_name</span></p></header>')
+    testsubj.arguments= ['some_text']
+    testsubj.options = {'author': 'some_name', 'lang': 'nl'}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<p></p><header><p><span>some_text</span> door '
+                         '<span>some_name</span></p></header>')
+    testsubj.arguments= ['some_text']
+    testsubj.options = {'date': 'some_date', 'author': 'some_name'}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<p></p><header><p><span>some_text</span> by <span>some_name</span>'
+                         ' on <time>some_date</time></p></header>')
+    testsubj.arguments= ['some_text']
+    testsubj.options = {'date': 'some_date', 'author': 'some_name', 'lang': 'nl'}
+    testsubj.content = []
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<p></p><header><p><span>some_text</span> door <span>some_name</span>'
+                         ' op <time>some_date</time></p></header>')
 
 
 def test_audio(monkeypatch):
