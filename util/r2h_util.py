@@ -58,7 +58,7 @@ def _do_backup(outlist, siteslist, filename):
     for sitename in siteslist:
         outlist.append(_get_site_data(sitename))
     filename = filename.replace('%d', datetime.datetime.today().strftime("%Y%m%d_%H%M%S"))
-    print('writing backup to {}'.format(filename))
+    print(f'writing backup to {filename}')
     with open(filename, "w") as _out:
         json.dump(outlist, _out, cls=CustomJSONEncoder)
 

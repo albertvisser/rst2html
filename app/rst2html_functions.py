@@ -5,21 +5,16 @@ business logic layer; data storage and retrieval stuff is in the docs2xxx module
 import os
 import shutil
 import pathlib
-import importlib
-import inspect
-## import glob
 import difflib
+import contextlib
 import html
 import urllib.request
 import urllib.error
 import datetime
-## import gettext
 import subprocess
 import collections
 
 from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
-# tijdelijk; als dit werkt dan naar app_settings verplaatsen
-BASIC_CSS = {'html4': ['reset.css', 'html4css1.css'], 'html5': ['minimal.css', 'plain.css']}
 writers = BASIC_CSS.keys()
 if DML == 'fs':
     import app.docs2fs as dml
@@ -27,7 +22,7 @@ elif DML == 'mongo':
     import app.docs2mongo as dml
 elif DML == 'postgres':
     import app.docs2pg as dml
-from app.docs2fs import read_data, save_to, load_config_data, ParserError, save_config_data
+from app.docs2fs import load_config_data, ParserError, save_config_data
 #
 # docutils stuff (including directives
 #
@@ -125,10 +120,8 @@ def translate_action(action):
 
 def format_message(mld, lang, msg_parameter):
     "get message text translation and insert message parameter"
-    try:
+    with contextlib.suppress(KeyError):
         mld = get_text(mld, lang)
-    except KeyError:
-        pass
     if '{}' in mld:
         mld = mld.format(msg_parameter)
     return mld
@@ -151,7 +144,7 @@ def post_process_title(data):
             leng = test3
             start = data[:leng]
             _, end = data[leng:].split('</title>')
-            data = ''.join((start, '<title>', title, '</title>', end))
+            data = f'{start}<title>{title}</title>{end}'
     return data
 
 
@@ -224,7 +217,7 @@ def check_directive_selectors(sitename):
     css_files = read_conf(sitename)[1]['css']
     tmpfile = '/tmp/r2h_css.css'
     command = ['wget'] + css_files + ['-O', tmpfile]
-    subprocess.run(command)
+    subprocess.run(command, check=False)
     with open(tmpfile) as infile:
         all_css = infile.read()
     missing = []
@@ -255,16 +248,16 @@ def preprocess_includes(sitename, current, data):
             msg = ''
         if msg:
             pass
-        elif len(parts) == 1:
+        elif len(parts) == len(['here']):
             include_location = current
-        elif len(parts) == 2:
+        elif len(parts) == len(['above', 'here']):
             if parts[0] == '..' and current:
                 include_location = ''
             elif parts[0] != '..' and not current:
                 include_location = parts[0]
             else:
                 msg = '.'
-        elif len(parts) == 3:
+        elif len(parts) == len(['root', 'above', 'here']):
             if not current or parts[0] == '..' or parts[1] != '..':
                 msg = '.'
             else:
@@ -316,7 +309,7 @@ def new_conf(sitename, text, lang=LANG):
 def create_server_config(sitename):
     """build a url for the mirror site and make it known to the system
     """
-    url = '.'.join((sitename, get_tldname()))
+    url = f'{sitename}.{get_tldname()}'
     add_to_hostsfile(url)
     location = str(WEBROOT / sitename)
     add_to_server(url, location)
@@ -481,15 +474,14 @@ def check_changed_settings(conf, oldconf):
         elif key == 'writer' and value not in writers:
             return {}, (invalid, 'writer')
         elif key == 'url' and value:  # must start with protocol
-            for test in ('http://', 'https://'):
-                if value.startswith(test):
-                    break
-            else:
+            if value.startswith('https://'):
+                try:
+                    urllib.request.urlopen(value)
+                except (urllib.error.HTTPError, urllib.error.URLError):
+                    return {}, (invalid, 'url')
+            elif not value.startswith('http://'):
                 return {}, (invalid, 'url')
-            try:
-                check_url(conf['url'])
-            except (urllib.error.HTTPError, urllib.error.URLError):
-                return {}, (invalid, 'url')
+            # http:// links controleren we niet, waarschijnlijk lokaal domein en anders jammer dan
         elif key in ('seflinks', 'highlight'):
             if value not in (0, 1, '0', '1', 'true', 'false', 'True', 'False'):
                 return {}, (invalid, key)
@@ -572,7 +564,7 @@ def text2conf_old(text, lang=LANG, urlcheck=True):
             if value.endswith('/'):
                 value = value[:-1]
             try:
-                check_url(value)
+                check_url_old(value)
             except (urllib.error.HTTPError, urllib.error.URLError):
                 return invalid.format('url'), {}
     if isinstance(conf['css'], str):  # als string, dan list van maken met dit als enige element
@@ -584,15 +576,6 @@ def text2conf_old(text, lang=LANG, urlcheck=True):
         elif not item.startswith('http'):
             conf['css'][ix] = 'https://' + item
     return '', conf
-
-
-def check_url(value):
-    "recursively try to find the url (we could be in a sub-site"
-    value = value.rsplit('/', 1)[0]
-    if value != 'http:/':
-        urllib.request.urlopen(value)
-    else:
-        mld = 'http link en/of lokaal domein, controle overgeslagen (check lokale server settings'
 
 
 def check_url_old(value):
@@ -666,7 +649,7 @@ def list_files(sitename, current='', naam='', ext='', deleted=False):  # , lang=
     except FileNotFoundError:
         items = []
         if current == '' and deleted is False:
-            raise ValueError("Site not found")
+            raise ValueError("Site not found") from None
     if items is None:
         raise ValueError(f"Wrong type: `{ext}`")
     if deleted:
@@ -722,7 +705,7 @@ def compare_source(sitename, current, rstfile):
     """compare current version of the document with the previous one if presentI
     """
     rstdata = ''
-    if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+    if rstfile.endswith(('/', '.tpl')):
         mld = 'incorrect_name'
     else:
         mld, newsource = read_src_data(sitename, current, rstfile)
@@ -802,10 +785,8 @@ def save_src_data(sitename, current, fname, data, new=False):
     if path.suffix not in ('', '.rst'):
         return 'rst_filename_error'
     if current and current + '/' not in list_subdirs(sitename):
-        try:
+        with contextlib.suppress(FileExistsError):
             dml.create_new_dir(sitename, current)
-        except FileExistsError:
-            pass  # already existing is ok
     try:
         if new:
             try:
@@ -820,7 +801,7 @@ def save_src_data(sitename, current, fname, data, new=False):
         if 'contents' in str(e):
             return 'supply_text'
         return str(e)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         return 'src_file_missing'
 
 
@@ -832,12 +813,13 @@ def revert_src(sitename, current, fname):
     try:
         dml.revert_rst(sitename, path.stem, current)
         return ''
-    except AttributeError as e:
+    except AttributeError:
         return 'src_name_missing'
     except FileNotFoundError as e:
-        if 'backup' in str(e):
-            return 'backup_missing'
-        return 'src_file_missing'
+        # if 'backup' in str(e):
+        #     return 'backup_missing'
+        # return 'src_file_missing'
+        return 'backup_missing' if 'backup' in str(e) else 'src_file_missing'
 
 
 def mark_deleted(sitename, current, fname):
@@ -892,10 +874,7 @@ def complete_header(conf, rstdata):
             start, end = rstdata.split(split_on, 1)
         else:
             split_on, start, end = '', '', rstdata
-        if isinstance(conf['endhead'], str):
-            middle = conf['endhead']
-        else:
-            middle = ''.join(conf['endhead'])
+        middle = conf['endhead'] if isinstance(conf['endhead'], str) else ''.join(conf['endhead'])
         rstdata = start + middle + split_on + end
     # replace references to local domain
     if conf['url']:
@@ -974,10 +953,7 @@ def get_copysearch_filepath(sitename):
 
 def get_progress_line_values(docinfo):
     "convert a progress_list entry into a sequence of text items"
-    if docinfo[0] == '/':
-        docname = docinfo[1]
-    else:
-        docname = '/'.join(docinfo[:2])
+    docname = docinfo[1] if docinfo[0] == '/' else '/'.join(docinfo[:2])
     result = [docname]
     maxidx, stats = docinfo[2:]
     for idx, dts in enumerate(stats):
@@ -1017,7 +993,7 @@ class UpdateAll:
             if dirname == '/':
                 self.fname = dirname + filename
             else:
-                self.fname = '/'.join((dirname, filename))
+                self.fname = f'{dirname}/{filename}'
                 self.path /= dirname
 
             msg, self.rstdata = read_src_data(self.sitename, dirname, filename)
@@ -1035,9 +1011,8 @@ class UpdateAll:
                     target_needed, mirror_needed = self.check_for_updated_includes(stats)
                     if not mirror_needed and saved:
                         mirror_needed = True
-            elif self.missing_only:
-                if stats.dest != datetime.datetime.min:  # bestaat, dus overslaan
-                    target_needed = mirror_needed = False
+            elif self.missing_only and stats.dest != datetime.datetime.min:  # bestaat, dus overslaan
+                target_needed = mirror_needed = False
             if target_needed:
                 msg = self.rebuild_html(dirname, filename)
                 if msg:
@@ -1297,10 +1272,9 @@ def searchdict2list(inputdict, search):
         if not lines:
             continue
         dirname, filename = filespec
+        filespec = '/' + filename
         if dirname:
-            filespec = '/'.join((dirname, filename))
-        else:
-            filespec = '/' + filename
+            filespec = dirname + filespec
         for lineno, linetext, locs in lines:
             maxlen = 80
             if len(linetext) <= maxlen:
@@ -1334,7 +1308,7 @@ class R2hState:
         """add site directory to document name
         """
         if self.current:
-            fname = '/'.join((self.current, fname))
+            fname = f'{self.current}/{fname}'
         if self.conf.get('seflinks', False):
             fname = '/index'.join(os.path.splitext(fname))
         return fname
@@ -1489,7 +1463,7 @@ class R2hState:
         """
         # import pdb; pdb.set_trace()
         if newfile:
-            if newfile.endswith('/') or newfile.endswith('.tpl'):
+            if newfile.endswith(('/', '.tpl')):
                 mld = 'incorrect_name'
             else:
                 mld = read_src_data(self.sitename, self.current, newfile)[0]
@@ -1531,7 +1505,7 @@ class R2hState:
         """
         if rstfile.startswith('-- ') and rstfile.endswith(' --'):
             rstfile = rstfile[3:-3]
-        if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+        if rstfile.endswith(('/', '.tpl')):
             mld = 'incorrect_name'
         else:
             mld = revert_src(self.sitename, self.current, rstfile)
@@ -1552,10 +1526,9 @@ class R2hState:
         """
         if rstfile.startswith('-- ') and rstfile.endswith(' --'):
             rstfile = rstfile[3:-3]
-        if rstfile.endswith('/') or rstfile.endswith('.tpl'):
+        if rstfile.endswith(('/', '.tpl')):
             mld = 'incorrect_name'
         else:
-            fname = rstfile
             mld = read_src_data(self.sitename, self.current, rstfile)[0]
         if mld == '':
             mld = mark_deleted(self.sitename, self.current, rstfile)
@@ -1600,7 +1573,6 @@ class R2hState:
             mld = check_if_rst(rstdata, self.loaded, fname)
             msg_parameter = fname
             if mld == '':
-                oldpath = path
                 path = pathlib.Path(fname)
                 if path.suffix != ".rst":
                     fname = fname + ".rst"
@@ -1739,10 +1711,7 @@ class R2hState:
     def savehtml(self, htmlfile, newfile, rstdata):
         """(re)save the html
         """
-        if newfile:
-            mld = 'html_name_wrong'
-        else:
-            mld = check_if_html(rstdata, self.loaded, htmlfile)
+        mld = 'html_name_wrong' if newfile else check_if_html(rstdata, self.loaded, htmlfile)
         if mld:
             mld = get_text(mld, self.get_lang())
         else:
@@ -1917,8 +1886,8 @@ class R2hState:
         """copy the overview to a file"""
         outfile = get_copystand_filepath(self.sitename)
         with outfile.open('w') as out:
-            for docinfo in data:
-                docinfo = get_progress_line_values(docinfo)
+            for line in data:
+                docinfo = get_progress_line_values(line)
                 print(';'.join(docinfo), file=out)
         return get_text('overview_copy_msg', self.get_lang()).format(outfile)
 

@@ -23,7 +23,7 @@ def main(args):
 
     # read settings so that we know where everything is
     try:
-        print('reading settings for {}'.format(sitename))
+        print('reading settings for {sitename}')
         sett = dmlf.read_settings(sitename)
     except FileNotFoundError:
         print("settings don't exist")
@@ -77,7 +77,7 @@ def main(args):
             dmlm.update_mirror(newsite, docname, data)
 
     for ext in args.extlist:
-        spec = "*.{}".format(ext)
+        spec = f"*.{ext}"
         entries = [str(f.relative_to(fromloc)) for f in fromloc.glob(spec)]
         for entry in entries:
             ## shutil.copyfile(str(fromloc / entry), str(destloc / entry))
@@ -115,7 +115,7 @@ def main(args):
                 dmlm.update_mirror(newsite, docname, data, dirname)
 
         for ext in args.extlist:
-            spec = "*.{}".format(ext)
+            spec = f"*.{ext}"
             entries = [str(f.relative_to(frompath)) for f in frompath.glob(spec)]
             for entry in entries:
                 mirrfile = frompath / entry

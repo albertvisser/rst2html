@@ -5,7 +5,7 @@ import app.docs2fs as dmlf
 
 
 def mock_copyfile(*args):
-    print('called copyfile: from `{}` to `{}`'.format(args[0], args[1]))
+    print(f'called copyfile: from `{args[0]}` to `{args[1]}`')
 
 
 def test_locify():
@@ -24,9 +24,9 @@ class TestNonApiFunctions:
         def mock_locify(*args):
             return pathlib.Path('.')
         def mock_is_file(*args):
-            return True if args[0].suffix else False
+            return bool(args[0].suffix)
         def mock_is_dir(*args):
-            return False if args[0].suffix else True
+            return not bool(args[0].suffix)
         def mock_iterdir_src(*args):
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
                     pathlib.Path('index.rst'), pathlib.Path('test.src'),
@@ -130,18 +130,18 @@ class TestNonApiFunctions:
         def mock_relative_to(self, *args):
             return self
         def mock_open_utf(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
+            print(f'called open() for file `{self}`')
             return open(str(tmpfile))
         def mock_open_utf_err(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
-            raise IOError('IO error on utf file')
+            print(f'called open() for file `{self}`')
+            raise OSError('IO error on utf file')
         def mock_open_iso(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
+            print(f'called open() for file `{self}`')
             return open(str(tmpfileiso))
         def mock_open_iso_err(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
+            print(f'called open() for file `{self}`')
             #return tmpfileiso.open()
-            raise IOError('IO error on iso file')
+            raise OSError('IO error on iso file')
         def mock_readlines(*args):
             return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to',  mock_relative_to)
@@ -173,9 +173,9 @@ class TestNonApiFunctions:
         def mock_open(self, *args, **kwargs):
             return open(tmpfilename, 'w')
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir for `{}`'.format(self))
+            print(f'called mkdir for `{self}`')
         def mock_replace(self, *args, **kwargs):
-            print('called replace for `{}` with `{}`'.format(self, args[0]))
+            print(f'called replace for `{self}` with `{args[0]}`')
         def read_and_remove(filename):
             with open(filename) as read_file:
                 data = read_file.read()
@@ -232,18 +232,18 @@ class TestTestApi:
 
     def test_list_site_data(self, monkeypatch, capsys):
         def mock_read_settings(*args):
-            return 'called read_settings for `{}`'.format(args[0])
+            return f'called read_settings for `{args[0]}`'
         def mock_get_sitedoc_data(*args):
-            return 'called get_sitedoc_data for `{}`'.format(args[0])
+            return f'called get_sitedoc_data for `{args[0]}`'
         def mock_list_docs(*args):
-            rest = '/{}'.format(args[2]) if len(args) > 2 else ''
+            rest = f'/{args[2]}' if len(args) > 2 else ''
             return ['doc1']
         def mock_list_dirs(*args):
             return ['dir1']
         def mock_read_data(*args):
-            return '', 'called read_data for {}'.format(args[0])
-        # formeel kloppen deze returns maar hou er rekening mee dat dit niks zegt over hoe de gegevens
-        # er uit zien
+            return '', f'called read_data for {args[0]}'
+        # formeel kloppen deze returns maar hou er rekening mee dat dit niks zegt over hoe
+        # de gegevens er uit zien
         sitename = 'testsite'
         monkeypatch.setattr(dmlf, 'read_settings', mock_read_settings)
         monkeypatch.setattr(dmlf, '_get_sitedoc_data', mock_get_sitedoc_data)
@@ -256,27 +256,27 @@ class TestTestApi:
              'settings': 'called read_settings for `testsite`',
              'docs': 'called get_sitedoc_data for `testsite`'},
             [{'_id': ('dir1/doc1', 'dest'),
-              'current': 'called read_data for {}/.target/dir1/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/dir1/doc1.html.bak'.format(siteloc)},
+              'current': f'called read_data for {siteloc}/.target/dir1/doc1.html',
+              'previous': f'called read_data for {siteloc}/.target/dir1/doc1.html.bak'},
              {'_id': ('dir1/doc1', 'src'),
-              'current': 'called read_data for {}/.source/dir1/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/dir1/doc1.rst.bak'.format(siteloc)},
+              'current': f'called read_data for {siteloc}/.source/dir1/doc1.rst',
+              'previous': f'called read_data for {siteloc}/.source/dir1/doc1.rst.bak'},
              {'_id': ('doc1', 'dest'),
-              'current': 'called read_data for {}/.target/doc1.html'.format(siteloc),
-              'previous': 'called read_data for {}/.target/doc1.html.bak'.format(siteloc)},
+              'current': f'called read_data for {siteloc}/.target/doc1.html',
+              'previous': f'called read_data for {siteloc}/.target/doc1.html.bak'},
              {'_id': ('doc1', 'src'),
-              'current': 'called read_data for {}/.source/doc1.rst'.format(siteloc),
-              'previous': 'called read_data for {}/.source/doc1.rst.bak'.format(siteloc)}])
+              'current': f'called read_data for {siteloc}/.source/doc1.rst',
+              'previous': f'called read_data for {siteloc}/.source/doc1.rst.bak'}])
 
     def test_clear_site_data(self, monkeypatch, capsys):
         def mock_rmtree_ok(*args):
-            print('called rmtree for `{}`'.format(args[0]))
+            print(f'called rmtree for `{args[0]}`')
         def mock_rmtree_err(*args):
             raise FileNotFoundError
         sitename = 'testsite'
         monkeypatch.setattr(dmlf.shutil, 'rmtree', mock_rmtree_ok)
         dmlf.clear_site_data(sitename)
-        assert capsys.readouterr().out == 'called rmtree for `{}`\n'.format(dmlf.WEBROOT / sitename)
+        assert capsys.readouterr().out == f'called rmtree for `{dmlf.WEBROOT / sitename}`\n'
         monkeypatch.setattr(dmlf.shutil, 'rmtree', mock_rmtree_err)
         dmlf.clear_site_data(sitename)
         assert capsys.readouterr().out == ''
@@ -318,9 +318,9 @@ class TestSiteLevel:
         def mock_mkdir_err(self, *args, **kwargs):
             raise FileExistsError
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir for `{}`'.format(self))
+            print(f'called mkdir for `{self}`')
         def mock_touch(self, *args, **kwargs):
-            print('called touch for `{}`'.format(self))
+            print(f'called touch for `{self}`')
         sitename = 'testsite'
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir_err)
         with pytest.raises(FileExistsError):
@@ -329,11 +329,10 @@ class TestSiteLevel:
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
         dmlf.create_new_site(sitename)
         siteloc = str(dmlf.WEBROOT / sitename)
-        assert capsys.readouterr().out == ''.join((
-            'called mkdir for `{}`\n'.format(siteloc),
-            'called mkdir for `{}`\n'.format(siteloc + '/.source'),
-            'called mkdir for `{}`\n'.format(siteloc + '/.target'),
-            'called touch for `{}`\n'.format(siteloc + '/settings.yml')))
+        assert capsys.readouterr().out == (f'called mkdir for `{siteloc}`\n'
+                                           f'called mkdir for `{siteloc}/.source`\n'
+                                           f'called mkdir for `{siteloc}/.target`\n'
+                                           f'called touch for `{siteloc}/settings.yml`\n')
 
     def test_rename_site(self):
         with pytest.raises(NotImplementedError):
@@ -343,7 +342,7 @@ class TestSiteLevel:
         testsettings = tmp_path / 'dmlfreadsett'
         testsettings.write_text ('regel 1\rregel 2\r\nregel 3\n')
         def mock_open(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
+            print(f'called open() for file `{self}`')
             return open(str(testsettings))
         def mock_load_config_data(*args):
             return {'x': 'y'}
@@ -354,15 +353,15 @@ class TestSiteLevel:
         sitename = 'testsite'
         assert dmlf.read_settings(sitename) == {'x': 'y'}
         settfile = dmlf.WEBROOT / sitename / dmlf.SETTFILE
-        assert capsys.readouterr().out == 'called open() for file `{}`\n'.format(settfile)
+        assert capsys.readouterr().out == f'called open() for file `{settfile}`\n'
         monkeypatch.setattr(dmlf, 'load_config_data', mock_load_config_data_2)
         assert dmlf.read_settings(sitename) == {}
         settfile = dmlf.WEBROOT / sitename / dmlf.SETTFILE
-        assert capsys.readouterr().out == 'called open() for file `{}`\n'.format(settfile)
+        assert capsys.readouterr().out == f'called open() for file `{settfile}`\n'
 
     def test_update_settings(self, monkeypatch, capsys, tmp_path):
         def mock_open(self, *args, **kwargs):
-            print('called open() for file `{}`'.format(self))
+            print(f'called open() for file `{self}`')
             return open(str(tmp_path / 'dmlfupd_sett'), 'w')
         def mock_save_config_data(*args, **kwargs):
             print('called save_config_data')
@@ -372,15 +371,14 @@ class TestSiteLevel:
         sitename = 'testsite'
         settfile = dmlf.WEBROOT / sitename / dmlf.SETTFILE
         assert dmlf.update_settings(sitename, {'x': 'y'}) == 'ok'
-        assert capsys.readouterr().out == ''.join(('called open() for file `{}`\n'.format(settfile),
-                                                   'called save_config_data\n'))
+        assert capsys.readouterr().out == (f'called open() for file `{settfile}`\n'
+                                           'called save_config_data\n')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
         monkeypatch.setattr(dmlf.shutil, 'copyfile', mock_copyfile)
         assert dmlf.update_settings(sitename, {'x': 'y'}) == 'ok'
-        assert capsys.readouterr().out == ''.join((
-            'called copyfile: from `{}` to `{}`\n'.format(str(settfile), str(settfile) + '.bak'),
-            'called open() for file `{}`\n'.format(settfile),
-            'called save_config_data\n'))
+        assert capsys.readouterr().out == (f'called copyfile: from `{settfile}` to `{settfile}.bak`\n'
+                                           f'called open() for file `{settfile}`\n'
+                                           'called save_config_data\n')
 
     def test_clear_settings(self):
         with pytest.raises(NotImplementedError):
@@ -390,7 +388,7 @@ class TestSiteLevel:
         def mock_locify(*args):
             return args[0] / args[1]
         def mock_iterdir(self, *args):
-            print('called iterdir for path `{}`'.format(self))
+            print(f'called iterdir for path `{self}`')
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'))
         sitename = 'testsite'
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
@@ -403,32 +401,32 @@ class TestSiteLevel:
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: True)
         assert dmlf.list_dirs(sitename) == ['.x', 'css', 'subdir']
         sitepath = dmlf.WEBROOT / sitename
-        assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
+        assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: False)
         assert dmlf.list_dirs(sitename, loc='dest') == []
         sitepath = dmlf.WEBROOT / sitename / 'dest'
-        assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
+        assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', lambda x: True)
         assert dmlf.list_dirs(sitename, loc='src') == ['.x', 'css', 'subdir']
         sitepath = dmlf.WEBROOT / sitename / 'src'
-        assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
+        assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         assert dmlf.list_dirs(sitename, loc='src') == ['.x', 'css', 'subdir']
-        assert capsys.readouterr().out == 'called iterdir for path `{}`\n'.format(sitepath)
+        assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
 
     def test_create_new_dir(self, monkeypatch, capsys):
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir for `{}`'.format(self))
+            print(f'called mkdir for `{self}`')
         def mock_touch(self, *args, **kwargs):
-            print('called touch for `{}`'.format(self))
+            print(f'called touch for `{self}`')
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
         sitename = 'testsite'
         dirname = 'testdir'
         newdir = dmlf.WEBROOT / sitename / dmlf.SRC_LOC / dirname
         dmlf.create_new_dir(sitename, dirname)
-        assert capsys.readouterr().out == ''.join(('called mkdir for `{}`\n'.format(newdir),
-                                                   'called touch for `{}`\n'.format(newdir / '.files')))
+        assert capsys.readouterr().out == (f'called mkdir for `{newdir}`\n'
+                                           f"called touch for `{newdir / '.files'}`\n")
 
     def test_remove_dir(self):
         with pytest.raises(NotImplementedError):
@@ -487,17 +485,17 @@ class TestDocLevel:
         tmpfile = tmp_path / 'dmlfread_tpl'
         tmpfile.write_text('hello\rhello\r\nhello\n')
         def mock_open(self, *args):
-            print('called open() for `{}`'.format(self))
+            print(f'called open() for `{self}`')
             return open(str(tmpfile))
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         sitename, docname = 'testsite', 'template'
         assert dmlf.read_template(sitename, docname) == 'hello\nhello\nhello\n'
         tplname = dmlf.WEBROOT / sitename / '.templates' / docname
-        assert capsys.readouterr().out == 'called open() for `{}`\n'.format(tplname)
+        assert capsys.readouterr().out == f'called open() for `{tplname}`\n'
 
     def test_write_template(self, monkeypatch, capsys, tmp_path):
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir() for `{}`'.format(self))
+            print(f'called mkdir() for `{self}`')
         def mock_save_to(filename, data):
             return f'called save_to with args `{filename}`, `{data}`'
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
@@ -509,7 +507,7 @@ class TestDocLevel:
 
     def test_create_new_doc(self, monkeypatch, capsys):
         def mock_touch(self, *args, **kwargs):
-            print('called touch() for `{}`'.format(self))
+            print(f'called touch() for `{self}`')
         with pytest.raises(AttributeError):
             dmlf.create_new_doc('sitename', '')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
@@ -519,17 +517,17 @@ class TestDocLevel:
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
         path = dmlf.WEBROOT / 'sitename' / '.source' / ('docname' + '.rst')
         dmlf.create_new_doc('sitename', 'docname')
-        assert capsys.readouterr().out == 'called touch() for `{}`\n'.format(path)
+        assert capsys.readouterr().out == f'called touch() for `{path}`\n'
         # path = dmlf.WEBROOT / 'sitename' / '.source'
         dmlf.create_new_doc('sitename', 'docname.rst')
-        assert capsys.readouterr().out == 'called touch() for `{}`\n'.format(path)
+        assert capsys.readouterr().out == f'called touch() for `{path}`\n'
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / ('docname' + '.rst')
         dmlf.create_new_doc('sitename', 'docname', 'directory')
-        assert capsys.readouterr().out == 'called touch() for `{}`\n'.format(path)
+        assert capsys.readouterr().out == f'called touch() for `{path}`\n'
 
     def test_get_doc_contents(self, monkeypatch, capsys):
         def mock_read_data(*args):
-            return '', 'read data from `{}`'.format(args[0])
+            return '', f'read data from `{args[0]}`'
         def mock_read_data_mld(*args):
             return 'read data failed', ''
         with pytest.raises(AttributeError):
@@ -540,22 +538,22 @@ class TestDocLevel:
         monkeypatch.setattr(dmlf, 'read_data', mock_read_data)
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'docname.rst'
         oldpath = dmlf.WEBROOT / 'sitename' / '.source' / 'docname.rst.bak'
-        assert dmlf.get_doc_contents('sitename', 'docname') == 'read data from `{}`'.format(path)
+        assert dmlf.get_doc_contents('sitename', 'docname') == f'read data from `{path}`'
         assert dmlf.get_doc_contents('sitename', 'docname', previous=True) == (
-                'read data from `{}`'.format(oldpath))
+                f'read data from `{oldpath}`')
         assert dmlf.get_doc_contents('sitename', 'docname.rst') == (
-                'read data from `{}`'.format(path))
+                f'read data from `{path}`')
         assert dmlf.get_doc_contents('sitename', 'docname.rst', previous=True) == (
-                'read data from `{}`'.format(oldpath))
+                f'read data from `{oldpath}`')
         path = dmlf.WEBROOT / 'sitename' / '.target' / 'docname.html'
         oldpath = dmlf.WEBROOT / 'sitename' / '.target' / 'docname.html.bak'
         assert dmlf.get_doc_contents('sitename', 'docname', 'dest') == (
-                'read data from `{}`'.format(path))
+                f'read data from `{path}`')
         assert dmlf.get_doc_contents('sitename', 'docname', 'dest', previous=True) == (
-                'read data from `{}`'.format(oldpath))
+                f'read data from `{oldpath}`')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'docname.rst'
-        assert dmlf.get_doc_contents('sitename', 'docname', 'src',
-                                     'directory') == 'read data from `{}`'.format(path)
+        assert dmlf.get_doc_contents('sitename', 'docname', 'src', 'directory') == (
+                f'read data from `{path}`')
 
     def test_update_rst(self, monkeypatch, capsys):
         def mock_list_docs_none(*args):
@@ -563,7 +561,7 @@ class TestDocLevel:
         def mock_list_docs(*args):
             return ['doc_name']
         def mock_save_to(*args):
-            print('call save_to(): save `{}` in `{}`'.format(args[1], args[0]))
+            print(f'call save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_rst('sitename', '', '')
         with pytest.raises(AttributeError):
@@ -575,10 +573,10 @@ class TestDocLevel:
         monkeypatch.setattr(dmlf, 'save_to', mock_save_to)
         dmlf.update_rst('sitename', 'doc_name', 'contents')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'doc_name.rst'
-        assert capsys.readouterr().out == 'call save_to(): save `contents` in `{}`\n'.format(path)
+        assert capsys.readouterr().out == f'call save_to(): save `contents` in `{path}`\n'
         dmlf.update_rst('sitename', 'doc_name', 'contents', 'directory')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
-        assert capsys.readouterr().out == 'call save_to(): save `contents` in `{}`\n'.format(path)
+        assert capsys.readouterr().out == f'call save_to(): save `contents` in `{path}`\n'
 
     def test_revert_rst(self, monkeypatch, capsys):
         def mock_list_docs_none(*args):
@@ -586,7 +584,7 @@ class TestDocLevel:
         def mock_list_docs(*args):
             return ['doc_name']
         def mock_rename(self, *args):
-            print('call rename() to replace `{}` with `{}`'.format(args[0], self))
+            print(f'call rename() to replace `{args[0]}` with `{self}`')
         def mock_rename_err(self, *args):
             raise FileNotFoundError
         with pytest.raises(AttributeError):
@@ -601,12 +599,10 @@ class TestDocLevel:
         monkeypatch.setattr(dmlf.pathlib.Path, 'rename', mock_rename)
         dmlf.revert_rst('sitename', 'doc_name')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'doc_name.rst'
-        assert capsys.readouterr().out == 'call rename() to replace `{}` with `{}`\n'.format(
-                path, str(path) + '.bak')
+        assert capsys.readouterr().out == f'call rename() to replace `{path}` with `{path}.bak`\n'
         dmlf.revert_rst('sitename', 'doc_name', 'directory')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
-        assert capsys.readouterr().out == 'call rename() to replace `{}` with `{}`\n'.format(
-                path, str(path) + '.bak')
+        assert capsys.readouterr().out == f'call rename() to replace `{path}` with `{path}.bak`\n'
 
     def test_mark_src_deleted(self, monkeypatch, capsys):
         def mock_list_docs_none(*args):
@@ -614,7 +610,7 @@ class TestDocLevel:
         def mock_list_docs(*args):
             return ['doc_name']
         def mock_rename(self, *args):
-            print('call rename(): from `{}` to `{}`'.format(self, args[0]))
+            print(f'call rename(): from `{self}` to `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.mark_src_deleted('sitename', '')
         monkeypatch.setattr(dmlf, 'list_docs', mock_list_docs_none)
@@ -625,11 +621,11 @@ class TestDocLevel:
         dmlf.mark_src_deleted('sitename', 'doc_name')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'doc_name.rst'
         path_n = dmlf.WEBROOT / 'sitename' / '.source' / ('doc_name' + dmlf.DELMARK)
-        assert capsys.readouterr().out == 'call rename(): from `{}` to `{}`\n'.format(path, path_n)
+        assert capsys.readouterr().out == f'call rename(): from `{path}` to `{path_n}`\n'
         dmlf.mark_src_deleted('sitename', 'doc_name', 'directory')
         path = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
         path_n = dmlf.WEBROOT / 'sitename' / '.source' / 'directory' / ('doc_name' + dmlf.DELMARK)
-        assert capsys.readouterr().out == 'call rename(): from `{}` to `{}`\n'.format(path, path_n)
+        assert capsys.readouterr().out == f'call rename(): from `{path}` to `{path_n}`\n'
 
     def test_update_html(self, monkeypatch, capsys):
         def mock_list_docs_none(*args):
@@ -637,9 +633,9 @@ class TestDocLevel:
         def mock_list_docs(*args):
             return ['doc_name']
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir() for `{}`'.format(self))
+            print(f'called mkdir() for `{self}`')
         def mock_save_to(*args):
-            print('call save_to(): save `{}` in `{}`'.format(args[1], args[0]))
+            print(f'call save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_html('sitename', '', '')
         with pytest.raises(AttributeError):
@@ -654,14 +650,12 @@ class TestDocLevel:
         assert capsys.readouterr().out == ''
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         dmlf.update_html('sitename', 'doc_name', 'contents', '/', dry_run=False)
-        assert capsys.readouterr().out == ''.join((
-            'called mkdir() for `{}`\n'.format(path.parent),
-            'call save_to(): save `contents` in `{}`\n'.format(path)))
+        assert capsys.readouterr().out == ''.join((f'called mkdir() for `{path.parent}`\n',
+                                                   f'call save_to(): save `contents` in `{path}`\n'))
         path = dmlf.WEBROOT / 'sitename' / '.target' / 'directory' / 'doc_name.html'
         dmlf.update_html('sitename', 'doc_name', 'contents', 'directory', dry_run=False)
-        assert capsys.readouterr().out == ''.join((
-            'called mkdir() for `{}`\n'.format(path.parent),
-            'call save_to(): save `contents` in `{}`\n'.format(path)))
+        assert capsys.readouterr().out == ''.join((f'called mkdir() for `{path.parent}`\n',
+                                                   f'call save_to(): save `contents` in `{path}`\n'))
 
     def test_list_deletions_target(self, monkeypatch, capsys):
         def mock_build_dirlist(*args):
@@ -697,11 +691,11 @@ class TestDocLevel:
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
-            print('deleted file `{}`'.format(self))
+            print(f'deleted file `{self}`')
         def mock_rename(self, *args, **kwargs):
-            print('renamed file `{}`'.format(self))
+            print(f'renamed file `{self}`')
         def mock_touch(self, *args, **kwargs):
-            print('created file `{}`'.format(self))
+            print(f'created file `{self}`')
         monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(dmlf.pathlib.Path, 'unlink', mock_unlink)
@@ -749,9 +743,9 @@ class TestDocLevel:
 
     def test_update_mirror(self, monkeypatch, capsys):
         def mock_mkdir(self, *args, **kwargs):
-            print('called mkdir() for `{}`'.format(self))
+            print(f'called mkdir() for `{self}`')
         def mock_save_to(*args):
-            print('called save_to(): save `{}` in `{}`'.format(args[1], args[0]))
+            print(f'called save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_mirror('sitename', '', 'data')
         with pytest.raises(AttributeError):
@@ -762,16 +756,15 @@ class TestDocLevel:
         dmlf.update_mirror('sitename', 'doc_name', 'data')
         assert capsys.readouterr().out == ''
         dmlf.update_mirror('sitename', 'doc_name', 'data', dry_run=False)
-        assert capsys.readouterr().out == 'called save_to(): save `data` in `{}`\n'.format(loc)
+        assert capsys.readouterr().out == f'called save_to(): save `data` in `{loc}`\n'
         dmlf.update_mirror('sitename', 'doc_name.rst', 'data', dry_run=False)
-        assert capsys.readouterr().out == 'called save_to(): save `data` in `{}`\n'.format(loc)
+        assert capsys.readouterr().out == f'called save_to(): save `data` in `{loc}`\n'
         dmlf.update_mirror('sitename', 'doc_name.html', 'data', '/', dry_run=False)
-        assert capsys.readouterr().out == 'called save_to(): save `data` in `{}`\n'.format(loc)
+        assert capsys.readouterr().out == f'called save_to(): save `data` in `{loc}`\n'
         loc = dmlf.WEBROOT / 'sitename' / 'directory' / 'doc_name.html'
         dmlf.update_mirror('sitename', 'doc_name.html', 'data', 'directory', dry_run=False)
-        assert capsys.readouterr().out == ''.join((
-            'called mkdir() for `{}`\n'.format(loc.parent),
-            'called save_to(): save `data` in `{}`\n'.format(loc)))
+        assert capsys.readouterr().out == ''.join((f'called mkdir() for `{loc.parent}`\n',
+                                                   f'called save_to(): save `data` in `{loc}`\n'))
 
     def test_list_deletions_mirror(self, monkeypatch, capsys):
         def mock_build_dirlist(*args):
@@ -807,7 +800,7 @@ class TestDocLevel:
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
-            print('deleted file `{}`'.format(self))
+            print(f'deleted file `{self}`')
         monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(dmlf.pathlib.Path, 'unlink', mock_unlink)

@@ -6,7 +6,7 @@ import sys
 import os
 import pprint
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app_settings import DML, WEBROOT
+from app_settings import DML, WEBROOT  # deze laatste nodig vanwege gebruik in aanroepende module
 if DML == 'fs':
     print('using file system dml')
     import app.docs2fs as dml
@@ -28,7 +28,7 @@ def list_site_contents(sitename, filename=''):
         errs = str(e)
         sitedoc, docdata = {}, []
     if not filename:
-        print('\n--------- Listing contents of site {} ----------'.format(sitename))
+        print(f'\n--------- Listing contents of site {sitename} ----------')
         if errs:
             print(errs)
         else:

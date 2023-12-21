@@ -24,8 +24,9 @@ def test_bottom(monkeypatch):
     testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
+    year = rhdir.datetime.datetime.today().year
     data = testsubj.run()[0][0]
-    assert str(data) == ('<div class="madeby">content and layout created 2010 by Albert Visser '
+    assert str(data) == (f'<div class="madeby">content and layout created {year} by Albert Visser '
                          '<a href="mailto:info@magiokis.nl">contact me</a></div>')
     testsubj = rhdir.Bottom()
     testsubj.arguments = ['3', '../nn', 'll']
@@ -34,7 +35,7 @@ def test_bottom(monkeypatch):
     data = testsubj.run()[0][0]
     assert str(data) == ('<div class="grid_3"><div style="text-align: center">'
                          '<a class="reference external" href="../nn">ll</a>'
-                         '<div class="madeby">content and layout created 2010 by Albert Visser '
+                         f'<div class="madeby">content and layout created {year} by Albert Visser '
                          '<a href="mailto:info@magiokis.nl">contact me</a></div></div></div>'
                          '<div class="clear">&nbsp;</div><div class="grid_3 spacer">'
                          '&nbsp;</div><div class="clear">&nbsp;</div>')
@@ -45,7 +46,7 @@ def test_bottom(monkeypatch):
     data = testsubj.run()[0][0]
     assert str(data) == ('<div style="text-align: center"><a class="reference external" '
                          'href="about.html">terug naar de indexpagina</a> '
-                         '<div class="madeby">content and layout created 2010 by Albert Visser '
+                         f'<div class="madeby">content and layout created {year} by Albert Visser '
                          '<a href="mailto:info@magiokis.nl">contact me</a></div></div>')
 
 
@@ -206,9 +207,8 @@ def test_transcript(monkeypatch, capsys):
     # testsubj.options = {'title': 'o'}
     testsubj.content = [':title: o', 'x', 'y::z', '::', 'a::b', '::c', 'd', '::e']
     data = testsubj.run()[0][0]  # .children[0]
-    assert str(data) == ''.join((start, '<p><em>o</em><br>', 'x<br>', '<em>y: </em>z</p>',
-                                 '<p><em>a: </em>b<br>', '<em>a: </em>c<br>',
-                                 'd<br>', '<em>a: </em>e</p>', end))
+    assert str(data) == (f'{start}<p><em>o</em><br>x<br><em>y: </em>z</p><p><em>a: </em>b<br>'
+                         f'<em>a: </em>c<br>d<br><em>a: </em>e</p>{end}')
 
 
 def test_strofentekst(monkeypatch):
@@ -329,7 +329,7 @@ def test_gedicht(monkeypatch, capsys):
     def mock_init(self, *args):
         print('initializing class with soortnaam', self.soortnaam)
     monkeypatch.setattr(rhdir.StrofenTekst, '__init__', mock_init)
-    testsubj = rhdir.Gedicht()
+    rhdir.Gedicht()
     assert capsys.readouterr().out == 'initializing class with soortnaam gedicht\n'
 
 
@@ -337,7 +337,7 @@ def test_songtekst(monkeypatch, capsys):
     def mock_init(self, *args):
         print('initializing class with soortnaam', self.soortnaam)
     monkeypatch.setattr(rhdir.StrofenTekst, '__init__', mock_init)
-    testsubj = rhdir.SongTekst()
+    rhdir.SongTekst()
     assert capsys.readouterr().out == 'initializing class with soortnaam songtekst\n'
 
 

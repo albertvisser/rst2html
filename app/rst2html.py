@@ -5,7 +5,7 @@ presentation layer
 # import sys
 # import os
 import pathlib
-import datetime
+# import datetime
 import cherrypy
 ## sys.path.append('.')
 import app.rst2html_functions as rhfn
@@ -125,7 +125,6 @@ def resolve_images(rstdata, url, loc, use_sef=False, fname=''):
             #     begin = begin[1:]
             data.append(begin)
             rstdata = rstdata[pos2:]
-            from_root = False
             if rstdata.startswith('/'):
                 rstdata = url.rstrip('/') + rstdata
             else:

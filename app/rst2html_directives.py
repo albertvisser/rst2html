@@ -1,6 +1,7 @@
 """Directives for Magiokis site
 """
 import pathlib
+import datetime
 # Import Docutils document tree nodes module.
 from docutils import nodes
 # Import ``directives`` module (contains conversion functions).
@@ -102,19 +103,19 @@ class Bottom(Directive):
         if nxt.startswith("../"):
             about = ""
         else:
-            about = ''.join(('<a class="reference external" href="about.html">',
-                             'terug naar de indexpagina</a> '))
+            about = '<a class="reference external" href="about.html">terug naar de indexpagina</a> '
         if wid:
             start = '' if wid == '-1' else f'<div class="grid_{wid}">'
             rest = '' if nxt == 'None' else f'<a class="reference external" href="{nxt}">{ltext}</a>'
-            start = ''.join((start, '<div style="text-align: center">', about, rest))
+            start += f'<div style="text-align: center">{about}{rest}'
             end = '' if wid == '-1' else ('</div><div class="clear">&nbsp;</div>'
                                           f'<div class="grid_{wid} spacer">&nbsp;</div>'
                                           '<div class="clear">&nbsp;</div>')
             end = '</div>' + end
-        text_node = nodes.raw('', '<div class="madeby">content and layout created 2010 '
-                              'by Albert Visser <a href="mailto:info@magiokis.nl">'
-                              'contact me</a></div>'.join((start, end)), format='html')
+        year = datetime.date.today().year
+        text_node = nodes.raw('', f'{start}<div class="madeby">content and layout created {year}'
+                              ' by Albert Visser <a href="mailto:info@magiokis.nl">'
+                              f'contact me</a></div>{end}', format='html')
         return [text_node]
 
 
@@ -261,10 +262,7 @@ class MenuText(Directive):
         if navmenu:
             lines.append('<div id="navigation">')
             title = '&nbsp;'
-        if title:
-            text = build_menu(self.content, title=title)
-        else:
-            text = build_menu(self.content)
+        text = build_menu(self.content, title=title) if title else build_menu(self.content)
         lines.extend(text)
         if navmenu:
             lines.append('</div>')

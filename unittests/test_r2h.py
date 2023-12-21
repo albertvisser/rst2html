@@ -1,5 +1,3 @@
-import os
-import pathlib
 import datetime
 
 import pytest
@@ -145,7 +143,7 @@ def mock_register_directives():
 
 
 def mock_format_output(*args):
-    return 'format_output for ' + ', '.join(['{}'.format(x) for x in args])
+    return 'format_output for ' + ', '.join([f'{x}' for x in args])
 
 
 class TestRst2Html:
@@ -163,7 +161,7 @@ class TestRst2Html:
         monkeypatch.setattr(testsubj.state, 'index', mock_index)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.index() == ('format_output for rst, html, new, mld, data, sett,'
-                                    ' {}'.format(testsubj.state))
+                                    f' {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.index\n'
 
     def test_loadconf(self, monkeypatch, capsys):
@@ -174,8 +172,7 @@ class TestRst2Html:
         monkeypatch.setattr(testsubj.state, 'loadconf', mock_loadconf)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.loadconf(rstfile='r', htmlfile='h') == ('format_output for r, h, new, mld,'
-                                                                ' data, sett,'
-                                                                ' {}'.format(testsubj.state))
+                                                                f' data, sett, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.loadconf\n'
 
     def test_saveconf(self, monkeypatch, capsys):
@@ -186,8 +183,7 @@ class TestRst2Html:
         monkeypatch.setattr(testsubj.state, 'saveconf', mock_saveconf)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.saveconf(rstfile='r', htmlfile='h') == ('format_output for r, h, new, mld,'
-                                                                ' data, sett,'
-                                                                ' {}'.format(testsubj.state))
+                                                                f' data, sett, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.saveconf\n'
 
     def test_loadrst(self, monkeypatch, capsys):
@@ -207,15 +203,14 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.loadrst(settings='s', rstfile='r', htmlfile='h', newfile='n', rstdata='d',
                                 l_action='status') == ('format_output for r, h, n, message,'
-                                                       ' d, s, {}'.format(testsubj.state))
+                                                       f' d, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.status\n'
         assert testsubj.loadrst(settings='s', rstfile='r', htmlfile='h', newfile='n', rstdata='d',
                                 l_action='changes') == ('format_output for r, h, n, message,'
-                                                       ' diff, s, {}'.format(testsubj.state))
+                                                       f' diff, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.diffsrc\n'
         assert testsubj.loadrst(settings='s', rstfile='r') == ('format_output for r, html, new,'
-                                                                ' mld, data, s,'
-                                                                ' {}'.format(testsubj.state))
+                                                               f' mld, data, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.loadrst\n'
 
     def test_saverst(self, monkeypatch, capsys):
@@ -239,19 +234,19 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
                                 s_action='revert') == ('format_output for rstfile, htmlfile, newfile,'
-                                                       ' mld, rstdata, s, {}'.format(testsubj.state))
+                                                       f' mld, rstdata, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.revert\n'
         assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
                                 s_action='rename') == ('format_output for rstfile, htmlfile, newfile,'
-                                                       ' mld, rstdata, s, {}'.format(testsubj.state))
+                                                       f' mld, rstdata, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.rename\n'
         assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
                                 s_action='delete') == ('format_output for rstfile, htmlfile, newfile,'
-                                                       ' mld, rstdata, s, {}'.format(testsubj.state))
+                                                       f' mld, rstdata, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.delete\n'
         assert testsubj.saverst(settings='s', rstfile='r', newfile='n', rstdata='d',
                                 s_action='x') == ('format_output for rstfile, htmlfile, newfile,'
-                                                  ' mld, rstdata, s, {}'.format(testsubj.state))
+                                                  f' mld, rstdata, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.saverst\n'
 
     def test_convert(self, monkeypatch, capsys):
@@ -269,7 +264,7 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.convert(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                 rstdata='data') == ('format_output for r, h, n, mld, data, s,'
-                                                    ' {}'.format(testsubj.state))
+                                                    f' {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.convert\n'
         monkeypatch.setattr(testsubj.state, 'convert', mock_convert_nomld)
         assert testsubj.convert(settings='s', rstfile='r', htmlfile='h', newfile='n',
@@ -284,8 +279,7 @@ class TestRst2Html:
         monkeypatch.setattr(testsubj.state, 'saveall', mock_saveall)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.saveall(settings='s', rstdata='r') == ('format_output for rst, html, new,'
-                                                                ' mld, r, s,'
-                                                                ' {}'.format(testsubj.state))
+                                                                f' mld, r, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.saveall\n'
 
     def test_loadhtml(self, monkeypatch, capsys):
@@ -296,8 +290,7 @@ class TestRst2Html:
         monkeypatch.setattr(testsubj.state, 'loadhtml', mock_loadhtml)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.loadhtml(settings='s', newfile='n') == ('format_output for rst, html, n,'
-                                                                ' mld, data, s,'
-                                                                ' {}'.format(testsubj.state))
+                                                                f' mld, data, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.loadhtml\n'
 
     def test_showhtml(self, monkeypatch, capsys):
@@ -315,7 +308,7 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.showhtml(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                 rstdata='data') == ('format_output for r, h, n, mld, data, s,'
-                                                    ' {}'.format(testsubj.state))
+                                                    f' {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.showhtml\n'
         monkeypatch.setattr(testsubj.state, 'showhtml', mock_showhtml_nomld)
         assert testsubj.showhtml(settings='s', rstfile='r', htmlfile='h', newfile='n',
@@ -329,9 +322,8 @@ class TestRst2Html:
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'savehtml', mock_savehtml)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.savehtml(settings='s', rstfile='r',
-                                 htmlfile='h') == ('format_output for r, h, new, mld, data, s,'
-                                                   ' {}'.format(testsubj.state))
+        assert testsubj.savehtml(settings='s', rstfile='r', htmlfile='h') == (
+                f'format_output for r, h, new, mld, data, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.savehtml\n'
 
     def test_copytoroot(self, monkeypatch, capsys):
@@ -341,10 +333,9 @@ class TestRst2Html:
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'copytoroot', mock_copytoroot)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.copytoroot(settings='s', rstfile='r',
-                                   htmlfile='h', newfile='n',
+        assert testsubj.copytoroot(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                    rstdata='rst') == ('format_output for r, h, n, mld, rst, s,'
-                                                      ' {}'.format(testsubj.state))
+                                                      f' {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.copytoroot\n'
 
     def test_migdel(self, monkeypatch, capsys):
@@ -354,10 +345,9 @@ class TestRst2Html:
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'propagate_deletions', mock_propagate)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.migdel(settings='s', rstfile='r',
-                               htmlfile='h', newfile='n',
+        assert testsubj.migdel(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                rstdata='rst') == ('format_output for r, h, n, mld, rst, s,'
-                                                  ' {}'.format(testsubj.state))
+                                                  f' {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.propagate_deletions\n'
 
     def test_makerefdoc(self, monkeypatch, capsys):
@@ -368,15 +358,13 @@ class TestRst2Html:
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'makerefdoc', mock_makerefdoc)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.makerefdoc(settings='s', rstfile='r',
-                                   htmlfile='h', newfile='n',
+        assert testsubj.makerefdoc(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                    rstdata='d') == ('format_output for rref, href, n, ok, dref,'
-                                                    ' s, {}'.format(testsubj.state))
+                                                    f' s, {testsubj.state}')
         monkeypatch.setattr(testsubj.state, 'makerefdoc', mock_makerefdoc_nok)
-        assert testsubj.makerefdoc(settings='s', rstfile='r',
-                                   htmlfile='h', newfile='n',
+        assert testsubj.makerefdoc(settings='s', rstfile='r', htmlfile='h', newfile='n',
                                    rstdata='d') == ('format_output for r, h, n, nok, d,'
-                                                    ' s, {}'.format(testsubj.state))
+                                                    f' s, {testsubj.state}')
 
     def test_convert_all(self, monkeypatch, capsys):
         def mock_convert_all(*args, **kwargs):
@@ -433,10 +421,9 @@ class TestRst2Html:
         testsubj = r2h.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'check', mock_check)
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
-        assert testsubj.check(settings='s', rstfile='r',
-                              htmlfile='h', newfile='n',
+        assert testsubj.check(settings='s', rstfile='r', htmlfile='h', newfile='n',
                               rstdata='data') == ('format_output for r, h, n, mld, data, s,'
-                                                  ' {}'.format(testsubj.state))
+                                                  f' {testsubj.state}')
 
     def test_overview(self, monkeypatch, capsys):
         def mock_overview(*args):

@@ -73,8 +73,8 @@ def main(monkeypatch, capsys, path):
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "Not a valid filename"
 
-    # check_url bij uitzondering patchen anders krijgen we een endless loop
-    monkeypatch.setattr(r2h.rhfn, 'check_url', lambda x: True)
+    # # check_url bij uitzondering patchen anders krijgen we een endless loop
+    # monkeypatch.setattr(r2h.rhfn, 'check_url', lambda x: True)
 
     # simulate saving new conf - using a new name
     dbdata, htmldata = comp.dump_data_and_compare('04_saveconf_new',
@@ -446,7 +446,7 @@ def main(monkeypatch, capsys, path):
     assert "doc ('testdoc2', 'src') is changed" in dbdata
     # fs versie detecteert wijzging niet in de file statistics
     # want de backup krijgt dezelfde datetime als het origineel
-    if DML != 'fs':
+    if DML != 'fs':               # FIXME is dit correct? ruff zegt dat dit altijd goed is
         assert '/ testdoc2 src was changed', "doc ('testdoc2', 'src') is changed" in dbdata
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "testdoc2.rst reverted to backup"

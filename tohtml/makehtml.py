@@ -59,16 +59,14 @@ class MainFrame(qtw.QMainWindow):
     def refresh_display(self):
         """(re)show the converted input"""
         failed = False
+        if not os.path.exists(self.input):
+            failed = True
+            qtw.QMessageBox.critical(self, f'{self.mode}view', f'File {self.input} does not exist')
+            return failed
         self.app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
         try:
             f_in = open(self.input)
-        except FileNotFoundError:
-            failed = True
-            self.app.restoreOverrideCursor()
-            qtw.QMessageBox.critical(self, '{}view'.format(self.mode),
-                                     'File {} does not exist'.format(self.input))
-            return failed
-        except UnicodeDecodingError:
+        except UnicodeDecodeError:
             f_in = open(self.input, encoding='latin-1')
         with f_in:
             data = ''.join([x for x in f_in])

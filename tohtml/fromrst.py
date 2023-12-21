@@ -11,4 +11,4 @@ def main(input):
     if not input:
         print("usage: python(3) htmlfromrst.py <filename>")
     else:
-        frm = MainFrame(None, input, 'rst')
+        MainFrame(None, input, 'rst')

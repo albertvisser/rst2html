@@ -4,7 +4,7 @@ from collections import defaultdict
 import datetime
 import shutil
 import pathlib
-
+import contextlib
 import yaml
 save_config_data = yaml.dump
 load_config_data = yaml.safe_load  # let's be paranoid
@@ -135,9 +135,9 @@ def read_data(fname):   # to be used for actual file system data
     on failure: returns error message and empty string for data
     """
     sitename = fname.relative_to(WEBROOT).parts[0]
-    if read_settings(sitename).get('seflinks', False):
-        if fname.suffix == '.html' and fname.stem != 'index':
-            fname = fname.with_suffix('') / 'index.html'
+    if (read_settings(sitename).get('seflinks', False) and
+            fname.suffix == '.html' and fname.stem != 'index'):
+        fname = fname.with_suffix('') / 'index.html'
     #
     mld = data = ''
     try:
@@ -147,9 +147,9 @@ def read_data(fname):   # to be used for actual file system data
         try:
             with fname.open(encoding='iso-8859-1') as f_in:
                 data = ''.join(f_in.readlines())
-        except IOError as e:
+        except OSError as e:
             mld = str(e)
-    except IOError as e:
+    except OSError as e:
         mld = str(e)
     data = data.replace('\r\n', '\n')
     return mld, data
@@ -230,7 +230,7 @@ def create_new_site(sitename):
     try:
         path.mkdir()
     except FileExistsError:
-        raise FileExistsError('site_name_taken')
+        raise FileExistsError('site_name_taken') from None
     src = path / SRC_LOC
     src.mkdir()
     targ = path / DEST_LOC
@@ -437,7 +437,7 @@ def revert_rst(sitename, doc_name, directory=''):
     try:
         oldpath.rename(path)
     except FileNotFoundError:
-        raise FileNotFoundError('no_backup')
+        raise FileNotFoundError('no_backup') from None
 
 
 def mark_src_deleted(sitename, doc_name, directory=''):
@@ -492,7 +492,7 @@ def list_deletions_target(sitename, directory=''):
         path = root / dirname if dirname != '/' else root
         filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
         if dirname != '/':
-            filelist = ['/'.join((dirname, x)) for x in filelist]
+            filelist = [f'{dirname}/{x}' for x in filelist]
         to_delete.extend(filelist)
     return sorted(to_delete)
 
@@ -506,7 +506,7 @@ def apply_deletions_target(sitename, directory=''):
         path = root / dirname if dirname != '/' else root
         for item in path.glob('*' + DELMARK):
             if dirname != '/':
-                deleted.append('/'.join((dirname, item.name)))
+                deleted.append(f'{dirname}/{item.name}')
             else:
                 deleted.append(item.name)
             item.unlink()
@@ -556,7 +556,7 @@ def list_deletions_mirror(sitename, directory=''):
             path /= dirname
         filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
         if dirname != '/':
-            filelist = ['/'.join((dirname, x)) for x in filelist]
+            filelist = [f'{dirname}/{x}' for x in filelist]
         to_delete.extend(filelist)
     return sorted(to_delete)
 
@@ -570,7 +570,7 @@ def apply_deletions_mirror(sitename, directory=''):
         path = root / dirname if dirname != '/' else root
         for item in path.glob('*' + DELMARK):
             if dirname != '/':
-                deleted.append('/'.join((dirname, item.name)))
+                deleted.append(f'{dirname}/{item.name}')
             else:
                 deleted.append(item.name)
             item.unlink()
@@ -643,7 +643,7 @@ def list_site_data(sitename):
         fnames.extend([(x, ftype) for x in names])
         for dirname in list_dirs(sitename, ftype):
             names = list_docs(sitename, ftype, dirname)
-            fnames.extend([('/'.join((dirname, x)), ftype) for x in names])
+            fnames.extend([(f'{dirname}/{x}', ftype) for x in names])
     base = WEBROOT / sitename
     for name, ftype in sorted(fnames):
         path = base / SRC_LOC if ftype == 'src' else base / DEST_LOC
@@ -660,7 +660,5 @@ def clear_site_data(sitename):
     """remove site from file system by removing mirror and underlying
     """
     path = WEBROOT / sitename
-    try:
+    with contextlib.suppress(FileNotFoundError):
         shutil.rmtree(str(path))
-    except FileNotFoundError:
-        pass

@@ -110,34 +110,31 @@ class Comparer:
         result = []
         for subdir in list(newsite['docs']):
             if subdir not in oldsite['docs']:
-                result.append('new subdir: {}'.format(subdir))
+                result.append(f'new subdir: {subdir}')
                 continue
             olddir = oldsite['docs'][subdir]
             for doc in newsite['docs'][subdir]:
                 if doc not in olddir:
-                    result.append('new doc in subdir {}: {}'.format(subdir, doc))
+                    result.append(f'new doc in subdir {subdir}: {doc}')
                     continue
                 olddoc = olddir[doc]
                 for doctype in newsite['docs'][subdir][doc]:
                     if doctype not in olddoc:
-                        result.append('new doctype for doc {} in {}: {}'.format(
-                            doc, subdir, doctype))
+                        result.append(f'new doctype for doc {doc} in {subdir}: {doctype}')
                     else:
                         mindate = datetime.datetime.min
                         test = newsite['docs'][subdir][doc][doctype].get('updated', None)
                         test2 = newsite['docs'][subdir][doc][doctype].get('deleted', False)
                         if test and test != olddoc[doctype].get('updated', mindate):
                             if doctype != 'mirror':
-                                result.append('{} {} {} was changed'.format( subdir, doc, doctype))
+                                result.append(f'{subdir} {doc} {doctype} was changed')
                             else:
-                                result.append('{} {} was copied to mirror (again)' ''.format(subdir,
-                                                                                             doc))
+                                result.append(f'{subdir} {doc} was copied to mirror (again)' '')
                         elif test2 != olddoc[doctype].get('deleted', False):
                             if doctype == 'mirror':
-                                result.append('{} {} {} was deleted'.format( subdir, doc, doctype))
+                                result.append(f'{subdir} {doc} {doctype} was deleted')
                             else:
-                                result.append('{} {} {} was marked as deleted'.format(subdir, doc,
-                                                                                      doctype))
+                                result.append(f'{subdir} {doc} {doctype} was marked as deleted')
         return result
 
 
@@ -148,9 +145,9 @@ class Comparer:
         newids = [x['_id'] for x in newdocs]
         for _id in set(oldids + newids):
             if _id in oldids and _id not in newids:
-                result.append('doc {} is removed'.format(_id))
+                result.append(f'doc {_id} is removed')
             elif _id in newids and _id not in oldids:
-                result.append('doc {} is new'.format(_id))
+                result.append(f'doc {_id} is new')
             else:
                 for doc in olddocs:
                     if doc['_id'] == _id:
@@ -162,7 +159,7 @@ class Comparer:
                         break
                 if (newdoc['current'] != olddoc['current'] or
                         newdoc['previous'] != olddoc['previous']):
-                    result.append('doc {} is changed'.format(_id))
+                    result.append(f'doc {_id} is changed')
         return result
 
 
@@ -229,18 +226,17 @@ class Comparer:
                 if key.endswith('_list'):
                     for value in olddata[key]:
                         if value not in newdata[key]:
-                            diff.append('{}: removed value "{}"'.format(key, value))
+                            diff.append(f'{key}: removed value "{value}"')
                     for value in newdata[key]:
                         if value not in olddata[key]:
-                            diff.append('{}: added value "{}"'.format(key, value))
+                            diff.append(f'{key}: added value "{value}"')
                 elif key == 'textdata':
                     if newdata[key]:
-                        diff.append('{} changed'.format(key))
+                        diff.append(f'{key} changed')
                     else:
-                        diff.append('{} cleared'.format(key))
+                        diff.append(f'{key} cleared')
                 elif key == 'mld_text':
-                    diff.append('{} is "{}"'.format(key, newdata[key]))
+                    diff.append(f'{key} is "{newdata[key]}"')
                 else:
-                    diff.append('{}: value was "{}", is now "{}"'.format(
-                        key, olddata[key], newdata[key]))
+                    diff.append(f'{key}: value was "{olddata[key]}", is now "{newdata[key]}"')
         return diff

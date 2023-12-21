@@ -1,8 +1,5 @@
 import argparse
 import collections
-import rst2html_functions as rhfn
-import bs4 as bs
-from app_settings import DB_WEBROOT
 import docs2fs as dmlf
 import docs2mongo as dmlm
 import docs2pg as dmlp
@@ -17,9 +14,9 @@ def main(args):
     sitename = args.input
     find = args.search
     replace = args.replace
-    report = ['search in site "{}" documents for "{}"'.format(sitename, find)]
+    report = [f'search in site "{sitename}" documents for "{find}"']
     if replace is not None:
-        report[0] += ' and replace with "{}"'.format(replace)
+        report[0] += f' and replace with "{replace}"'
     # determine dml to use
     if sitename in dmlf.list_sites():
         dml = dmlf
@@ -28,7 +25,7 @@ def main(args):
     elif sitename in dmlp.list_sites():
         dml = dmlp
     else:
-        return ['sitename `{}` not found in known configurations'.format(sitename)]
+        return [f'sitename `{sitename}` not found in known configurations']
     report.append('')
     results = read_dir(dml, sitename, find, replace)
     for dirname in dml.list_dirs(sitename, 'src'):
@@ -46,12 +43,12 @@ def main(args):
         #     lines = []
         if not value:
             continue
-        lines = ['  at line {} index {}: {}'.format(x, z, y) for (x, y, z) in value]
+        lines = [f'  at line {x} index {y}: {z}' for (x, y, z) in value]
         if len(lines) == 1:
             starter_line += lines[0]
             lines = []
         report.extend([starter_line] + lines)
-    if len(report) == 2:
+    if len(report) == len(['header', 'lines']):
         report.append('  nothing found')
     return report
 

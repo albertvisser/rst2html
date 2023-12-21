@@ -3,8 +3,9 @@
 import datetime
 import shutil
 import pathlib
+import contextlib
 from pymongo import MongoClient
-from pymongo.collection import Collection
+from pymongo.collection import Collection   # needed for unittests?
 from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 from .docs2fs import save_to
 cl = MongoClient()
@@ -19,7 +20,6 @@ site_coll = db.site_coll
 #     Collection.replace_one = Collection.update
 #     # Collection.find_one_and_delete = Collection.remove
 #     Collection.delete_many = Collection.remove
-
 
 #
 # dml-specifieke subroutines:
@@ -78,13 +78,6 @@ def _get_stats(docinfo):
     # if deleted:
     #    return None
     return Stats(*stats)
-
-
-    for dirname, doclist in sitedoc['docs'].items():
-        for docname, docinfo in doclist.items():
-                test = sitedoc['docs'][directory][docname][doctype]['deleted']
-## def _add_sitecoll_doc(data):
-    ## site_coll.insert_one(data)
 
 
 #
@@ -222,9 +215,8 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
                 test = sitedoc['docs'][directory][docname][doctype]['deleted']
                 if deleted and test:
                     doclist.append(docname)
-            else:
-                if not deleted:
-                    doclist.append(docname)
+            elif not deleted:
+                doclist.append(docname)
     return doclist  # returns all documents of the given type
 
 
@@ -233,7 +225,7 @@ def list_templates(site_name):
     sitedoc = _get_site_doc(site_name)
     if 'templates' not in sitedoc:
         return []
-    return sorted([x for x in sitedoc['templates'].keys()])
+    return sorted([x for x in sitedoc['templates']])
 
 
 def read_template(site_name, doc_name):
@@ -294,9 +286,9 @@ def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=Fal
     try:
         doc_id = sitedoc['docs'][directory][doc_name][doctype]['docid']
         # throws TypeError when doc_name doesn't exist, KeyError on nonexisting docid
-    except (TypeError, KeyError):
+    except (TypeError, KeyError) as exc:
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError("no_document".format(doc_name)) from exc
     doc_data = site_coll.find({'_id': doc_id})[0]
     if previous:
         return doc_data['previous']
@@ -417,17 +409,14 @@ def list_deletions_target(site_name, directory=''):
     """list pending deletions in source environment"""
     if not directory:
         directory = '/'
-    if directory == '*':
-        directories = ['/'] + list_dirs(site_name, 'src')
-    else:
-        directories = [directory]
+    directories = ['/'] + list_dirs(site_name, 'src') if directory == '*' else [directory]
     sitedoc = _get_site_doc(site_name)
     deletions = []
     for directory in directories:
         for doc_name in sitedoc['docs'][directory]:
             if sitedoc['docs'][directory][doc_name]['src'].get('deleted', False):
                 if directory != '/':
-                    doc_name = '/'.join((directory, doc_name))
+                    doc_name = f'{directory}/{doc_name}'
                 deletions.append(doc_name)
     return deletions
 
@@ -437,10 +426,7 @@ def apply_deletions_target(site_name, directory=''):
     """
     if not directory:
         directory = '/'
-    if directory == '*':
-        directories = ['/'] + list_dirs(site_name, 'src')
-    else:
-        directories = [directory]
+    directories = ['/'] + list_dirs(site_name, 'src') if directory == '*' else [directory]
     sitedoc = _get_site_doc(site_name)
     changed = False
     deleted = []
@@ -457,7 +443,7 @@ def apply_deletions_target(site_name, directory=''):
                     sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
                 sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
                 if directory != '/':
-                    doc_name = '/'.join((directory, doc_name))
+                    doc_name = f'{directory}/{doc_name}'
                 deleted.append(doc_name)
                 changed = True
     if changed:
@@ -507,17 +493,14 @@ def list_deletions_mirror(site_name, directory=''):
     """list pending deletions in target environment"""
     if not directory:
         directory = '/'
-    if directory == '*':
-        directories = ['/'] + list_dirs(site_name, 'dest')
-    else:
-        directories = [directory]
+    directories = ['/'] + list_dirs(site_name, 'dest') if directory == '*' else [directory]
     sitedoc = _get_site_doc(site_name)
     deletions = []
     for directory in directories:
         for doc_name in sitedoc['docs'][directory]:
             if sitedoc['docs'][directory][doc_name].get('dest', {}).get('deleted', False):
                 if directory != '/':
-                    doc_name = '/'.join((directory, doc_name))
+                    doc_name = f'{directory}/{doc_name}'
                 deletions.append(doc_name)
     return deletions
 
@@ -527,10 +510,7 @@ def apply_deletions_mirror(site_name, directory=''):
     """
     if not directory:
         directory = '/'
-    if directory == '*':
-        directories = ['/'] + list_dirs(site_name, 'dest')
-    else:
-        directories = [directory]
+    directories = ['/'] + list_dirs(site_name, 'dest') if directory == '*' else [directory]
     sitedoc = _get_site_doc(site_name)
     deleted = []
     for directory in directories:
@@ -547,10 +527,7 @@ def apply_deletions_mirror(site_name, directory=''):
     path = WEBROOT / site_name
     deletions = []
     for directory, doc_name in deleted:
-        if directory == '/':
-            docpath = path / doc_name
-        else:
-            docpath = path / directory / doc_name
+        docpath = path / doc_name if directory == '/' else path / directory / doc_name
         ext = LOC2EXT['dest']
         if docpath.suffix != ext:
             docpath = docpath.with_suffix(ext)
@@ -559,7 +536,7 @@ def apply_deletions_mirror(site_name, directory=''):
         # dir_name = directory.replace('/', '')
         # deletions.append(f'{dir_name}/{doc_name}')
         if directory != '/':
-            doc_name = '/'.join((directory, doc_name))
+            doc_name = f'{directory}/{doc_name}'
         deletions.append(doc_name)
     return deletions
 
@@ -568,10 +545,7 @@ def get_doc_stats(site_name, docname, dirname=''):
     """get statistics for a document in a site subdirectory"""
     docname = pathlib.Path(docname).stem
     sitedoc = _get_site_doc(site_name)
-    if dirname:
-        docinfo = sitedoc['docs'][dirname][docname]
-    else:
-        docinfo = sitedoc['docs']['/'][docname]
+    docinfo = sitedoc['docs'][dirname][docname] if dirname else sitedoc['docs']['/'][docname]
     return _get_stats(docinfo)
 
 
@@ -610,7 +584,7 @@ def list_site_data(site_name):
     for item in site_coll.find({'_id': {'$in': id_list}}):
         docname, locname, dirname = id_dict[item['_id']]
         if dirname != '/':
-            docname = '/'.join((dirname, docname))
+            docname = f'{dirname}/{docname}'
         item['_id'] = (docname, locname)
         data.append(item)
     return sitedoc, sorted(data, key=lambda x: x['_id'])
@@ -650,7 +624,5 @@ def clear_site_data(site_name):
         ## except TypeError:
             ## site_coll.remove({'_id': {'$in': sorted(id_list)}})
 
-    try:
+    with contextlib.suppress(FileNotFoundError):
         shutil.rmtree(str(path))
-    except FileNotFoundError:
-        pass
