@@ -1118,10 +1118,14 @@ class TestProgressList:
                 ('testdir2', 'test', 0, (date_3, date_2, date_1)),
                 ('testdir2', 'twice_removed', 1, ('', '[deleted]', date_3))]
 
-    def test_get_copystand_filepath(self, monkeypatch):
+    def test_get_copystand_filepath(self, monkeypatch, capsys):
+        def mock_mkdir(self, **kwargs):
+            print(f'called {self}.mkdir with args', kwargs)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
-        reportname = 'overview-20200101000000'
-        assert testee.get_copystand_filepath('s') == pathlib.Path(testee.WEBROOT / 's' / reportname)
+        monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
+        reportdir = testee.WEBROOT / 's' / '.overview'
+        assert testee.get_copystand_filepath('s') == reportdir / '20200101000000'
+        assert capsys.readouterr().out == f"called {reportdir}.mkdir with args {{'exist_ok': True}}\n"
 
     def test_get_progress_line_values(self):
         mindate = testee.datetime.datetime.min
@@ -1363,10 +1367,14 @@ class TestSearchRelated:
                     ('dir/file', 24, 'geen  **regel** ing')]
         assert testee.searchdict2list(inputdict, 'regel') == expected
 
-    def test_get_copysearch_filepath(self, monkeypatch):
+    def test_get_copysearch_filepath(self, monkeypatch, capsys):
+        def mock_mkdir(self, **kwargs):
+            print(f'called {self}.mkdir with args', kwargs)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
-        reportname = 'search-results-20200101000000'
-        assert testee.get_copysearch_filepath('s') == pathlib.Path(testee.WEBROOT / 's' / reportname)
+        monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
+        reportdir = testee.WEBROOT / 's' / '.search-results'
+        assert testee.get_copysearch_filepath('s', 't') == reportdir / 't-20200101000000'
+        assert capsys.readouterr().out == f"called {reportdir}.mkdir with args {{'exist_ok': True}}\n"
 
 
 class TestUpdateAll:

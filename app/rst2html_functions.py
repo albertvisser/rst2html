@@ -942,13 +942,17 @@ def build_progress_list(sitename, files_to_skip):
 def get_copystand_filepath(sitename):
     "determine filename to use for saving the progress overview data"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-    return WEBROOT / sitename / f'overview-{dts}'
+    path = WEBROOT / sitename / '.overview'
+    path.mkdir(exist_ok=True)
+    return path / dts
 
 
-def get_copysearch_filepath(sitename):
+def get_copysearch_filepath(sitename, search):
     "determine filename to use for saving the search results"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
-    return  WEBROOT / sitename / f'search-results-{dts}'
+    path = WEBROOT / sitename / '.search-results'
+    path.mkdir(exist_ok=True)
+    return path / f'{search}-{dts}'
 
 
 def get_progress_line_values(docinfo):
@@ -1854,9 +1858,9 @@ class R2hState:
 
     def copysearch(self, data):
         """copy the search results to a file"""
-        outfile = get_copysearch_filepath(self.sitename)
+        search, replace, results = data
+        outfile = get_copysearch_filepath(self.sitename, search)
         with outfile.open('w') as out:
-            search, replace, results = data
             # heading = 'searched for `{}`'.format(search)
             heading = get_text('search_msg', self.get_lang()).format(search)
             if replace:
