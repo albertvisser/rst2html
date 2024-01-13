@@ -5,7 +5,7 @@ import shutil
 import pathlib
 import contextlib
 from pymongo import MongoClient
-from pymongo.collection import Collection   # needed for unittests?
+# from pymongo.collection import Collection   # needed for unittests?
 from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 from .docs2fs import save_to
 cl = MongoClient()
