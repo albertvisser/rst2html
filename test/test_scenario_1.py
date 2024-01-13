@@ -446,8 +446,8 @@ def main(monkeypatch, capsys, path):
     assert "doc ('testdoc2', 'src') is changed" in dbdata
     # fs versie detecteert wijzging niet in de file statistics
     # want de backup krijgt dezelfde datetime als het origineel
-    if DML != 'fs':               # FIXME is dit correct? ruff zegt dat dit altijd goed is
-        assert '/ testdoc2 src was changed', "doc ('testdoc2', 'src') is changed" in dbdata
+    if DML != 'fs':
+        assert '/ testdoc2 src was changed' in dbdata
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "testdoc2.rst reverted to backup"
     assert "testdoc2.rst" in htmldata['rstfile']['values']
