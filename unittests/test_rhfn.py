@@ -1,39 +1,55 @@
-"""test suite uitvoerbaar met bv. `pytest test.rhfn`
+"""unittests for ./app/rst2html_functions.py
 
 verifiëren dat hulpmethodes aangeroepen worden heb ik gedaan door deze te monkeypatchen met een
 methode die een print statement doet en dat dan met capsys te controleren;
 later bedacht ik dat ik dan meteen de argumenten kon laten tonen, dit kan desgewenst nog toegevoegd
 worden in de eerder geschreven mock methoden
 """
-import pathlib
+# import pathlib
 import datetime
 import pytest
 
 import app.rst2html_functions as testee
+from app_settings import LANG
 
 FIXDATE = datetime.datetime(2020, 1, 1)
 
 def mock_default_site():
+    """stub
+    """
     return 'testsite'
 
 
 def mock_get_lang(*args):
+    """stub
+    """
     return ''
 
 
 def mock_get_text(*args):
+    """stub
+    """
     return args[0]
 
 
 class MockDatetime:
+    """stub for datetime.Datetime object
+    """
     @classmethod
     def today(cls):
+        """stub
+        """
         return FIXDATE
 
 
 class TestLangRelated:
+    """unittests for functions related to language support
+    """
     def test_get_text(self):
-        "voorlopig even met hard gecodeerde verwachte uitkomsten"
+        """unittest for rst2html_functions.get_text
+
+        voorlopig even met hard gecodeerde verwachte uitkomsten
+        """
         lang_keyword = 't_settings'
         lang_string_nl = 'selecteer een settings bestand'
         lang_string_en = ('Select a settings file, indicating the site to work on and other'
@@ -41,14 +57,17 @@ class TestLangRelated:
 
         assert testee.get_text(lang_keyword, 'en') == lang_string_en
         assert testee.get_text(lang_keyword, 'nl') == lang_string_nl
-        from app_settings import LANG
         if LANG == 'en':
             assert testee.get_text(lang_keyword) == lang_string_en
         elif LANG == 'nl':
             assert testee.get_text(lang_keyword) == lang_string_nl
 
     def test_translate_action(self, monkeypatch):
+        """unittest for rst2html_functions.translate_action
+        """
         def mock_get_text(*args):
+            """stub
+            """
             return args[0]
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         assert testee.translate_action('rename') == 'rename'
@@ -59,7 +78,11 @@ class TestLangRelated:
         assert testee.translate_action('c_delete') == 'delete'
 
     def test_format_message(self, monkeypatch):
+        """unittest for rst2html_functions.format_message
+        """
         def mock_get_text(*args):
+            """stub
+            """
             raise KeyError
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         assert testee.format_message('test: {}', '', 'parm') == 'test: parm'
@@ -69,9 +92,11 @@ class TestLangRelated:
 
 
 class TestR2HRelated:
-    "functies die met het omzetproces te maken hebben"
+    """unittests for functions related to the conversion process using Docutils
+    """
     def test_post_process_title(self):
-        ""
+        """unittest for rst2html_functions.post_process_title
+        """
         wo_title = ('<html><head></head>'
                     '<body><h1 class="page-titel">Welkom</h1>Hallo allemaal</body>')
         w_title_nok = ('<html><head></head>'
@@ -87,10 +112,16 @@ class TestR2HRelated:
         assert testee.post_process_title(w_title_ok) == expected
 
     def test_rst2html(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.rst2html
+        """
         def mock_publish_string(*args, **kwargs):
+            """stub
+            """
             print('docutils.publish_string got called')
             return b''
         def mock_post_process_title(*args):
+            """stub
+            """
             print('post_process_title got called')
         invoer = "Hababarulala"
         with pytest.raises(TypeError):
@@ -102,8 +133,12 @@ class TestR2HRelated:
                                            'post_process_title got called\n')
 
     def test_register_directives(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.register_directives
+        """
         def mock_register_directive(*args):
-            print('args for directives.register_directive: `{}` `{}`'.format(*args))
+            """stub
+            """
+            print(f'args for directives.register_directive: `{args[0]}` `{args[1]}`')
         monkeypatch.setattr(testee, 'standard_directives', {'name1': 'fun1', 'name2': 'fun2'})
         monkeypatch.setattr(testee.rd.directives, 'register_directive', mock_register_directive)
         testee.register_directives()
@@ -116,12 +151,16 @@ class TestR2HRelated:
         assert capsys.readouterr().out == ''
 
     def test_get_directives_used(self):
+        """unittest for rst2html_functions.get_directives_used
+        """
         assert testee.get_directives_used({}) == set()
         data = {('', 'index'): [(1, '.. directive::', [1]), (2, '.. direct::', [1])],
                 ('dir', 'text'): [(1, '.. directive', [1])]}
         assert testee.get_directives_used(data) == {'directive', 'direct'}
 
     def test_get_idcls(self):
+        """unittest for rst2html_functions.get_idcls
+        """
         testee.rhdir.directive_selectors = {'directive': [('selector', 'class'),
                                                         ('selector', 'id_1')],
                                           'direct': [('selector', 'class'), ('selector', 'id_2')]}
@@ -129,27 +168,45 @@ class TestR2HRelated:
         assert testee.get_idcls({'directive', 'direct'}) == {'class', 'id_1', 'id_2'}
 
     def test_check_directive_selectors(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.check_directive_selectors
+        """
         def mock_search_site(*args):
+            """stub
+            """
             return {('', 'index'): [(1, 'directive', [1]), (2, 'direct', [1])]}
         def mock_get_directives_used(*args):
+            """stub
+            """
             print('called get_directives_used')
             return {'directive', 'direct'}
         def mock_get_directives_used_none(*args):
+            """stub
+            """
             print('called get_directives_used')
             return {}
         def mock_get_idcls(*args):
+            """stub
+            """
             print('called get_idcls')
             return {'class_1', 'id_1', 'id_2', 'class_2'}
         def mock_get_idcls_none(*args):
+            """stub
+            """
             print('called get_idcls')
             return {}
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {'css': ['test1.css', 'test2.css']}
         def mock_run_found_all(*args, **kwargs):
+            """stub
+            """
             print('call subprocess with args', ' '.join([f'`{x}`' for x in args[0]]))
             with open('/tmp/r2h_css.css', 'w') as out:
                 out.write('selector.class_1 #id_1 .class_2 selector#id_2\n')
         def mock_run_not_all(*args, **kwargs):
+            """stub
+            """
             print('call subprocess with args', ' '.join(['`{x}`' for x in args[0]]))
             with open('/tmp/r2h_css.css', 'w') as out:
                 out.write('selector.class_1 #id_1 \n')
@@ -174,12 +231,20 @@ class TestR2HRelated:
         assert sorted(testee.check_directive_selectors('testsite')) == ['class_2', 'id_2']
         capsys.readouterr()  # swallow stdout/err
 
-    def test_preprocess_includes(self, monkeypatch, capsys):
+    def test_preprocess_includes(self, monkeypatch):
+        """unittest for rst2html_functions.preprocess_includes
+        """
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {'lang': testee.LANG}
         def mock_read_src_data(*args):
+            """stub
+            """
             return '', f'include {args[0]} {args[1]} {args[2]}'
         def mock_read_src_data_msg(*args):
+            """stub
+            """
             return 'fname_invalid', ''
         monkeypatch.setattr(testee, 'read_conf', mock_read_conf)
         # lege invoer
@@ -187,7 +252,7 @@ class TestR2HRelated:
         # fout bij ophalen include
         data = 'eerste regel\n\n.. incl:: jansen\n\ntweede regel\n'
         monkeypatch.setattr(testee, 'read_src_data', mock_read_src_data_msg)
-        expected = ('eerste regel\n\n.. error:: Not a valid filename: jansen\n\ntweede regel\n')
+        expected = 'eerste regel\n\n.. error:: Not a valid filename: jansen\n\ntweede regel\n'
         assert testee.preprocess_includes('testsite', '', data) == expected
         # '.. incl:: docname' in root
         monkeypatch.setattr(testee, 'read_src_data', mock_read_src_data)
@@ -235,13 +300,22 @@ class TestR2HRelated:
 
 
 class TestConfRelated:
-    "tests for site / configuration related functions"
+    """unittests for site / configuration related functions
+    """
     def test_default_site(self, monkeypatch):
+        """unittest for rst2html_functions.default_site
+        """
         def no_sitelist():
+            """stub
+            """
             return []
         def sitelist_without_dflt():
+            """stub
+            """
             return ['site_1', 'site_2']
         def sitelist_with_dflt():
+            """stub
+            """
             return ['site_0', 'blabla']
         monkeypatch.setattr(testee.dml, 'list_sites', no_sitelist)
         assert testee.default_site() == ''
@@ -252,20 +326,35 @@ class TestConfRelated:
         assert testee.default_site() == 'blabla'
 
     def test_new_conf(self, monkeypatch):
+        """unittest for rst2html_functions.new_conf
+        """
         def text2conf_notok(*args):
+            """stub
+            """
             return 'Not OK', {}
         def text2conf_emptyurl(*args):
+            """stub
+            """
             return '', {'url': ''}
         def text2conf_ok(*args):
+            """stub
+            """
             return '', {'url': 'http://www.example.org'}
         def get_text_msg(*args):
+            """stub
+            """
             return 'Not Created'
         def create_conf(*args):
+            """stub
+            """
             return 'new_site'
         def create_site_exc(*args):
+            """stub
+            """
             raise FileExistsError('Exists')
         def create_site_ok(*args):
-            pass
+            """stub
+            """
         monkeypatch.setattr(testee, 'text2conf', text2conf_notok)
         monkeypatch.setattr(testee, 'get_text', get_text_msg)
         assert testee.new_conf('', '') == ('Not Created Not OK', '')
@@ -279,11 +368,19 @@ class TestConfRelated:
         assert testee.new_conf('', '') == ('', '')
 
     def test_create_server_config(self, monkeypatch):
+        """unittest for rst2html_functions.create_server_config
+        """
         def mock_get_tldname(*args):
+            """stub
+            """
             return 'example.com'
         def mock_add_to_hostsfile(*args):
+            """stub
+            """
             print('mock_add_to_hostsfile was called')
         def mock_add_to_server(*args):
+            """stub
+            """
             print('mock_add_to_server was called')
         monkeypatch.setattr(testee, 'get_tldname', mock_get_tldname)
         monkeypatch.setattr(testee, 'add_to_hostsfile', mock_add_to_hostsfile)
@@ -294,27 +391,41 @@ class TestConfRelated:
     # thuishoren in een data-benaderingsmodule, dan wel dat het ophalen van gegevens uit een extern
     # bestand in zo'n module thuishoort waardoor het wel monkeypatchbaar wordt
     def test_get_tldname(self):
+        """unittest for rst2html_functions.get_tldname
+        """
         # voor bepalen tldname kijken we in eerst /etc/hosts: eerste entry met een punt erin
         # pas als die niet bestaat kijken we of er iets in /etc/hostname staat (computernaam)
         # maar dat is niet te testen zonder /etc/hosts aan te passen
         assert testee.get_tldname() == 'lemoncurry.nl'
 
-    def add_to_hostsfile(self):  # not really testable (yet)
-        pass
+    def _test_add_to_hostsfile(self):  # not really testable (yet)
+        """unittest for rst2html_functions.add_to_hostsfile
+        """
 
-    def add_to_server(self):  # not really testable (yet)
-        pass
+    def _test_add_to_server(self):  # not really testable (yet)
+        """unittest for rst2html_functions.add_to_server
+        """
 
     def test_init_css(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.init_css
+        """
         def mock_read_settings_empty(*args):
-            return {'css': [] }
+            """stub
+            """
+            return {'css': []}
         def mock_read_settings_basic_plus(*args):
+            """stub
+            """
             return {'css': testee.BASIC_CSS['html5'][:2] + ['960.css', 'myowncss.css',
-                                             'http://www.example.com/static/css.css'] }
+                                             'http://www.example.com/static/css.css']}
         def mock_copyfile(*args):
-            print('copying `{}` to `{}`'.format(*args))
+            """stub
+            """
+            print(f'copying `{args[0]}` to `{args[1]}`')
         def mock_update_settings(*args):
-            print('update_settings called with args `{}` `{}`'.format(*args))
+            """stub
+            """
+            print(f'update_settings called with args `{args[0]}` `{args[1]}`')
         monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_empty)
         monkeypatch.setattr(testee.shutil, 'copyfile', mock_copyfile)
         monkeypatch.setattr(testee.dml, 'update_settings', mock_update_settings)
@@ -335,7 +446,7 @@ class TestConfRelated:
         assert capsys.readouterr().out == (''.join(copy_lines) + "update_settings called with"
                                            " args `testsite` `{{'css': [{}, {}], 'writer':"
                                            " 'html5'}}`\n".format(*update_lines))
-        if not there_present: # teardown if necessary
+        if not there_present:  # teardown if necessary
             there.parent.rmdir()
         monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_basic_plus)
         testee.init_css(sitename)
@@ -347,11 +458,19 @@ class TestConfRelated:
                 " 'http://www.example.com/static/css.css'], 'writer': 'html5'}`\n")
 
     def test_list_confs(self, monkeypatch):
+        """unittest for rst2html_functions.list_confs
+        """
         def mock_list_sites_none():
+            """stub
+            """
             return []
         def mock_list_sites_one():
+            """stub
+            """
             return ['one']
         def mock_list_sites_more():
+            """stub
+            """
             return ['first', 'next', 'last']
         monkeypatch.setattr(testee.dml, 'list_sites', mock_list_sites_none)
         assert testee.list_confs() == ''
@@ -365,10 +484,16 @@ class TestConfRelated:
                                            '<option selected="selected">last</option>')
 
     def test_read_conf(self, monkeypatch):
+        """unittest for rst2html_functions.read_conf
+        """
         mocked_settings = {'x': 'y'}
         def mock_read_settings_notfound(*args):
+            """stub
+            """
             raise FileNotFoundError
         def mock_read_settings_found(*args):
+            """stub
+            """
             return mocked_settings
         monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_notfound)
         assert testee.read_conf('testsite') == ('no_such_sett', None)
@@ -376,54 +501,82 @@ class TestConfRelated:
         assert testee.read_conf('testsite') == ('', mocked_settings)
 
     def test_conf2text(self, monkeypatch):
+        """unittest for rst2html_functions.conf2text
+        """
         def mock_save_config_data(confdict, **kwargs):
+            """stub
+            """
             return confdict
         monkeypatch.setattr(testee, 'save_config_data', mock_save_config_data)
         conf_in = {'test': 'tested', 'url': 'gargl', 'css': ['gargl/snork.css', 'test.css']}
         conf_out = {'test': 'tested', 'url': 'gargl', 'css': ['url + snork.css', 'test.css']}
         assert testee.conf2text(conf_in) == conf_out
 
-    def test_text2conf_old(self, monkeypatch):
+    def _test_text2conf_old(self, monkeypatch):
+        """unittest for rst2html_functions.text2conf_old
+        """
         def mock_get_text(*args):
+            """stub
+            """
             return args[0] + ': {}'
         def mock_load_config_data_error(*args):
+            """stub
+            """
             raise testee.ParserError
         def mock_load_config_data_empty(*args):
+            """stub
+            """
             return {}
         def mock_load_config_data_basic(*args):
+            """stub
+            """
             return testee.DFLT_CONF
         def mock_load_config_data_hig_fout(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['hig'] = 'hallo'
             return conf
         def mock_load_config_data_lang_fout(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['lang'] = 'du'
             return conf
         def mock_load_config_url_not_http(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['url'] = 'x'
             print(conf)
             return conf
         def mock_load_config_url_other(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['url'] = 'http://x/'
             return conf
         def mock_check_url(*args):
+            """stub
+            """
             # raise testee.urllib.error.HTTPError
             raise testee.urllib.error.URLError('x')
         def mock_load_config_css_simple(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['css'] = 'a_string'
             return conf
         def mock_load_config_css_double(*args):
+            """stub
+            """
             conf = {x: y for x, y in testee.DFLT_CONF.items()}
             conf['url'] = 'http://x'
             conf['css'] = ['url + a_string', 'http://stuff']
             return conf
         def mock_check_url_ok(*args):
-            pass
-
+            """stub
+            """
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_error)
         assert testee.text2conf_old('') == ('sett_no_good: {}', {})
@@ -441,22 +594,29 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'check_url_old', mock_check_url)
         assert testee.text2conf_old('') == ('sett_invalid: url', {})
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_simple)
-        expected = {x: y for x, y in testee.DFLT_CONF.items()}
-        expected.update({'css': ['https://a_string']})
+        expected = dict(testee.DFLT_CONF.items()).update({'css': ['https://a_string']})
         assert testee.text2conf_old('') == ('', expected)
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_double)
         monkeypatch.setattr(testee, 'check_url_old', mock_check_url_ok)
-        expected = {x: y for x, y in testee.DFLT_CONF.items()}
-        expected.update({'url': 'http://x','css': ['http://x/a_string', 'http://stuff']})
+        expected = dict(testee.DFLT_CONF.items()).update(
+                {'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
         assert testee.text2conf_old('') == ('', expected)
 
     def test_check_changed_settings(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.check_changed_settings
+        """
         def mock_check(arg):
+            """stub
+            """
             print(f'called check_url with arg `{arg}`')
         def mock_check_urlerror(arg):
+            """stub
+            """
             print(f'called check_url with arg `{arg}`')
             raise testee.urllib.error.URLError(x)
         def mock_check_httperror(arg):
+            """stub
+            """
             print(f'called check_url with arg `{arg}`')
             raise testee.urllib.error.HTTPError('x', 'y', 'z', 'a', 'b')
         assert testee.check_changed_settings({'x': 'y', 'a': 'b'}, {'x': 'y', 'a': 'b'}) == (
@@ -473,7 +633,7 @@ class TestConfRelated:
         assert testee.check_changed_settings({'hig': '1'}, {}) == ({'hig': '1'}, ())
         assert testee.check_changed_settings({'hig': 0}, {}) == ({}, ('sett_invalid', 'hig'))
         assert testee.check_changed_settings({'hig': -1}, {}) == ({}, ('sett_invalid', 'hig'))
-        assert testee.check_changed_settings({'hig': 1},{}) == ({'hig': 1}, ())
+        assert testee.check_changed_settings({'hig': 1}, {}) == ({'hig': 1}, ())
         assert testee.check_changed_settings({'hig': 1.2}, {}) == ({'hig': 1.2}, ())
 
         assert testee.check_changed_settings({'lang': ''}, {}) == ({}, ('sett_invalid', 'lang'))
@@ -527,7 +687,9 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'convert_css', lambda x: ([x['css']], ()))
         assert testee.check_changed_settings({'css': 'x.css'}, {}) == ({'css': ['x.css']}, ())
 
-    def test_convert_css(self, monkeypatch, capsys):
+    def test_convert_css(self):
+        """unittest for rst2html_functions.convert_css
+        """
         assert testee.convert_css({'css': ''}) == (['https://'], ())
         assert testee.convert_css({'css': 'x'}) == (['https://x'], ())
         assert testee.convert_css({'css': 'url + x'}) == ([], ('conf_no_url',))
@@ -535,7 +697,11 @@ class TestConfRelated:
         assert testee.convert_css({'css': 'url + x', 'url': 'y'}) == (['y/x'], ())
 
     def test_ensure_basic_css(self, monkeypatch, capsys, tmp_path):
+        """unittest for rst2html_functions.ensure_basic_css
+        """
         def mock_copyfile(*args):
+            """stub
+            """
             print('called shutil.copyfile with args', args)
         monkeypatch.setattr(testee, 'WEBROOT', tmp_path / 'webroot')
         monkeypatch.setattr(testee, 'HERE', tmp_path / 'here' / 'static')
@@ -550,23 +716,35 @@ class TestConfRelated:
         conf = {'css': [testee.BASIC_CSS['html5'][1], 'y.css'], 'writer': 'html5'}
         (there / testee.BASIC_CSS['html5'][1]).touch()
         newconf = {'css': [f'url + css/{x}' for x in testee.BASIC_CSS['html5']] + ['y.css'],
-                    'writer': 'html5'}
+                   'writer': 'html5'}
         assert testee.ensure_basic_css(sitename, conf) == newconf
         # assert capsys.readouterr().out == ''
         copyee = testee.BASIC_CSS['html5'][0]
         assert capsys.readouterr().out == ('called shutil.copyfile with args'
                                            f" ('{here}/{copyee}', '{there}/{copyee}')\n")
 
-    def test_text2conf(self, monkeypatch, capsys):
+    def test_text2conf(self, monkeypatch):
+        """unittest for rst2html_functions.text2conf
+        """
         def mock_get_text(*args):
+            """stub
+            """
             return args[0] + ': {}'
         def mock_load_config_data_error(*args):
+            """stub
+            """
             raise testee.ParserError
         def mock_load_config_data_empty(*args):
+            """stub
+            """
             return {}
         def mock_load_config_data_basic(*args):
+            """stub
+            """
             return testee.DFLT_CONF
         def mock_load_config_data_wrong_key(*args):
+            """stub
+            """
             retval = testee.DFLT_CONF
             retval['hello'] = 'goodbye'
             return retval
@@ -582,9 +760,14 @@ class TestConfRelated:
         assert testee.text2conf('') == (('sett_noexist', 'hello'), {})
 
     def test_check_url_old(self, monkeypatch):
+        """unittest for rst2html_functions.check_url_old
+        """
         def mock_urlopen_ok(*args):
-            pass
+            """stub
+            """
         def mock_urlopen(*args):
+            """stub
+            """
             raise testee.urllib.error.URLError('x')
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_urlopen_ok)
         assert testee.check_url_old('') is None
@@ -593,18 +776,32 @@ class TestConfRelated:
             testee.check_url_old('http://test/testerdetest')
 
     def test_save_conf_old(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_conf_old
+        """
         def mock_read_settings_error(*args):
+            """stub
+            """
             raise FileNotFoundError
         def mock_read_settings(*args):
+            """stub
+            """
             return {}
         def mock_get_text(*args):
+            """stub
+            """
             return 'no_such_sett for `{}`'
         def mock_text2conf_error(*args):
+            """stub
+            """
             return True, {}
         def mock_text2conf(*args):
+            """stub
+            """
             return False, {'url': False}
         def mock_update_settings(*args):
-            print('called update_settings for `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('called update_settings for', args)
         monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_error)
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         assert testee.save_conf_old('testsite', '') == 'no_such_sett for `testsite`'
@@ -614,32 +811,54 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'text2conf_old', mock_text2conf)
         monkeypatch.setattr(testee.dml, 'update_settings', mock_update_settings)
         assert not testee.save_conf_old('testsite', '')
-        assert capsys.readouterr().out == "called update_settings for `testsite` `{'url': False}`\n"
+        assert capsys.readouterr().out == "called update_settings for ('testsite', {'url': False})\n"
 
     def test_save_conf(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_conf
+        """
         def mock_read_settings_error(*args):
+            """stub
+            """
             raise FileNotFoundError
         def mock_read_settings(*args):
+            """stub
+            """
             return {'css': 'x', 'url': ''}
         def mock_get_text(*args):
+            """stub
+            """
             print(f'called get_text for `{args[0]}`')
             return args[0]
         def mock_text2conf_error(*args):
+            """stub
+            """
             return ('text2conf-error',), {}
         def mock_text2conf(*args):
+            """stub
+            """
             return False, {'css': 'x', 'url': 'z'}
         def mock_text2conf_other_value(*args):
+            """stub
+            """
             return False, {'css': 'y', 'url': 'z'}
         def mock_check(*args):
+            """stub
+            """
             print('called check_changed_settings with args', args)
             return args[0], ''
         def mock_check_error(*args):
+            """stub
+            """
             print('called check_changed_settings with args', args)
             return {}, ('invalid value found for {}', 'key')
         def mock_ensure(*args):
+            """stub
+            """
             print('called ensure_basic_css with args', args)
             return {'css': 'yy', 'url': 'z'}
         def mock_update_settings(*args):
+            """stub
+            """
             print('called update_settings with args', args)
             return ''
         monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_error)
@@ -683,14 +902,24 @@ class TestConfRelated:
 
 
 class TestSiteRelated:
+    """unittests for rst2html_functions.SiteRelated
+    """
     def test_list_subdirs(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.list_subdirs
+        """
         def mock_list_dirs(*args):
+            """stub
+            """
             print('ext arg is', args[1])
             return ['my_hovercraft', 'cheese_shop']
         def mock_list_dirs_empty(*args):
+            """stub
+            """
             print('ext arg is', args[1])
             return []
         def mock_list_dirs_error(*args):
+            """stub
+            """
             print('ext arg is', args[1])
             raise FileNotFoundError
         sitename = 'testsite'
@@ -708,21 +937,39 @@ class TestSiteRelated:
         assert capsys.readouterr().out == 'ext arg is src\n'
 
     def test_list_files(self, monkeypatch):
+        """unittest for rst2html_functions.list_files
+        """
         def mock_list_docs(*args, **kwargs):
+            """stub
+            """
             return ['luxury-yacht', 'throatwobbler-mangrove']
         def mock_list_docs_empty(*args, **kwargs):
+            """stub
+            """
             return []
         def mock_list_docs_not_found(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError
         def mock_list_docs_wrong_type(*args, **kwargs):
+            """stub
+            """
             return
         def mock_list_subdirs(*args):
+            """stub
+            """
             return ['my_hovercraft/', 'cheese_shop/']
         def mock_list_subdirs_empty(*args):
+            """stub
+            """
             return []
         def mock_list_templates(*args):
+            """stub
+            """
             return ['letter.tpl', 'number.tpl']
         def mock_list_templates_empty(*args):
+            """stub
+            """
             return []
         sitename = 'testsite'
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_not_found)
@@ -757,9 +1004,15 @@ class TestSiteRelated:
                 '<option>throatwobbler-mangrove.html</option>')
 
     def test_make_new_dir(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.make_new_dir
+        """
         def mock_create_new_dir(*args):
+            """stub
+            """
             print('create_new_dir called')
         def mock_create_new_dir_failed(*args):
+            """stub
+            """
             raise FileExistsError
         sitename, filename = 'testsite', 'testname'
         monkeypatch.setattr(testee.dml, 'create_new_dir', mock_create_new_dir)
@@ -770,26 +1023,38 @@ class TestSiteRelated:
 
 
 class TestSourceRelated:
+    """unittests for rst2html_functions.SourceRelated
+    """
     sitename, filename = 'testsite', 'testname'
 
     def test_read_src_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.read_src_data
+        """
         def mock_get_doc_contents(*args, **kwargs):
-            print('got args `{}`, `{}`, `{}`, `{}`'.format(*args))
+            """stub
+            """
+            print('got args', args)
         def mock_get_doc_contents_error_1(*args, **kwargs):
+            """stub
+            """
             raise AttributeError
         def mock_get_doc_contents_error_2(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError
         assert testee.read_src_data(self.sitename, '', self.filename + '.x') == (
             'rst_filename_error', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents)
         testee.read_src_data(self.sitename, '', self.filename + '.rst')
-        assert capsys.readouterr().out == 'got args `testsite`, `testname`, `src`, ``\n'
+        assert capsys.readouterr().out == "got args ('testsite', 'testname', 'src', '')\n"
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_1)
         assert testee.read_src_data(self.sitename, '', self.filename) == ('src_name_missing', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_2)
         assert testee.read_src_data(self.sitename, '', self.filename) == ('src_file_missing', '')
 
-    def test_check_if_rst(self, monkeypatch):
+    def test_check_if_rst(self):
+        """unittest for rst2html_functions.check_if_rst
+        """
         assert testee.check_if_rst('', '') == 'supply_text'
         assert testee.check_if_rst('...', '') == 'rst_invalid'
         assert testee.check_if_rst('...', testee.RST) == ''
@@ -800,27 +1065,49 @@ class TestSourceRelated:
         assert testee.check_if_rst('...', testee.RST, '..') == 'src_name_missing'
 
     def test_save_src_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_src_data
+        """
         def mock_list_subdirs(*args):
+            """stub
+            """
             return ['hello/']
         def mock_create_new_dir(*args):
+            """stub
+            """
             print('called create_new_dir with args', args)
         def mock_create_new_dir_exists(*args):
+            """stub
+            """
             raise FileExistsError
         def mock_create_new_doc(*args, **kwargs):
+            """stub
+            """
             print('called create_new_doc with args', args, kwargs)
         def mock_create_new_doc_exists(*args, **kwargs):
+            """stub
+            """
             raise FileExistsError
         def mock_update_rst(*args, **kwargs):
+            """stub
+            """
             print('called update_rst with args', args, kwargs)
             # print('args for update_rst: `{}` `{}` `{}` `{}`'.format(args[0], args[1], args[2],
             #                                                         kwargs['directory']))
         def mock_update_rst_error_1(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('name')
         def mock_update_rst_error_2(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('contents')
         def mock_update_rst_error_3(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('something else')
         def mock_update_rst_error_4(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError
 
         assert testee.save_src_data(self.sitename, '', self.filename + '.x', '...') == (
@@ -858,8 +1145,12 @@ class TestSourceRelated:
         assert testee.save_src_data(self.sitename, 'hello', self.filename + '.rst', '...') == (
             'src_file_missing')
 
-    def _test_compare_source(self, monkeypatch, capsys):
+    def _test_compare_source(self, monkeypatch):
+        """stub
+        """
         def mock_context_diff(*args, **kwargs):
+            """stub
+            """
             return 'called context_diff with args', args, kwargs
         monkeypatch.setattr(testee.difflib, 'context_diff', mock_context_diff)
         assert testee.compare_source('sitename', 'new source', 'old source') == (
@@ -867,13 +1158,23 @@ class TestSourceRelated:
                 " {'fromfile': 'current text', 'tofile': 'previous text'}")
 
     def test_revert_src(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.revert_src
+        """
         def mock_revert_rst(*args, **kwargs):
+            """stub
+            """
             print('called revert_rst with args', args, kwargs)
         def mock_revert_rst_error(*args, **kwargs):
+            """stub
+            """
             raise AttributeError
         def mock_revert_rst_error_2(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError('backup')
         def mock_revert_rst_error_3(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError('other')
         assert testee.revert_src(self.sitename, '', self.filename + '.x') == (
                 'rst_filename_error')
@@ -892,12 +1193,19 @@ class TestSourceRelated:
             'src_file_missing')
 
     def test_mark_deleted(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.mark_deleted
+        """
         def mock_mark_src_deleted(*args, **kwargs):
-            print('args for mark_src_deleted: `{}` `{}` `{}`'.format(args[0], args[1],
-                                                              kwargs['directory']))
+            """stub
+            """
+            print(f"args for mark_src_deleted: `{args[0]}` `{args[1]}` `{kwargs['directory']}`")
         def mock_mark_src_deleted_noname(*args, **kwargs):
+            """stub
+            """
             raise AttributeError()
         def mock_mark_src_deleted_nofile(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError
 
         assert testee.mark_deleted(self.sitename, '', self.filename + '.x') == (
@@ -913,27 +1221,43 @@ class TestSourceRelated:
                 'src_file_missing')
 
     def test_read_tpl_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.read_tpl_data
+        """
         def mock_read_template(*args):
+            """stub
+            """
             print('read_template called')
         monkeypatch.setattr(testee.dml, 'read_template', mock_read_template)
         testee.read_tpl_data(self.sitename, self.filename)
         assert capsys.readouterr().out == 'read_template called\n'
 
     def test_save_tpl_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_tpl_data
+        """
         def mock_write_template(*args):
+            """stub
+            """
             print('write_template called')
         monkeypatch.setattr(testee.dml, 'write_template', mock_write_template)
         testee.save_tpl_data(self.sitename, self.filename, '')
         assert capsys.readouterr().out == 'write_template called\n'
 
     def test_compare_source(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.compare_source
+        """
         def mock_read_data(*args):
+            """stub
+            """
             print('called testee.read_src_data() with args', args)
             return '', 'new source'
         def mock_get_contents(*args, **kwargs):
+            """stub
+            """
             print('called dml.read_src_data() with args', args, kwargs)
             return 'old source'
         def mock_diff(*args, **kwargs):
+            """stub
+            """
             print('called unified_diff() with args', args)
             return 'compared sources'
         monkeypatch.setattr(testee, 'read_src_data', mock_read_data)
@@ -950,26 +1274,38 @@ class TestSourceRelated:
 
 
 class TestTargetRelated:
+    """unittests for rst2html_functions.TargetRelated
+    """
     sitename, filename = 'testsite', 'testname'
 
     def test_read_html_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.read_html_data
+        """
         def mock_get_doc_contents(*args):
-            print('got args `{}`, `{}`, `{}`, `{}`'.format(*args))
+            """stub
+            """
+            print('got args', args)
         def mock_get_doc_contents_error_1(*args, **kwargs):
+            """stub
+            """
             raise AttributeError
         def mock_get_doc_contents_error_2(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError
         assert testee.read_html_data(self.sitename, '', self.filename + '.x') == (
             'html_filename_error', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents)
         testee.read_html_data(self.sitename, '', self.filename + '.html')
-        assert capsys.readouterr().out == 'got args `testsite`, `testname`, `dest`, ``\n'
+        assert capsys.readouterr().out == "got args ('testsite', 'testname', 'dest', '')\n"
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_1)
         assert testee.read_html_data(self.sitename, '', self.filename) == ('html_name_missing', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_2)
         assert testee.read_html_data(self.sitename, '', self.filename) == ('html_file_missing', '')
 
-    def test_check_if_html(self, monkeypatch):
+    def test_check_if_html(self):
+        """unittest for rst2html_functions.check_if_html
+        """
         assert testee.check_if_html('', '') == 'supply_text'
         assert testee.check_if_html('...', '') == 'load_html'
         assert testee.check_if_html('...', testee.HTML) == ''
@@ -980,46 +1316,59 @@ class TestTargetRelated:
         assert testee.check_if_html('...', testee.HTML, '..') == 'html_name_missing'
 
     def test_save_html_data(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_html_data
+        """
         def mock_apply_deletions_target(*args):
-            print('args for apply_deletions: `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('args for apply_deletions:', args)
         def mock_update_html(*args, **kwargs):
-            print('args for update_html: `{}` `{}` `{}` `{}` `{}`'.format(args[0], args[1], args[2],
-                                                                          kwargs['directory'],
-                                                                          kwargs['dry_run']))
+            """stub
+            """
+            print(f'args for update_html: `{args[0]}` `{args[1]}` `{args[2]}`'
+                  f" `{kwargs['directory']}` `{kwargs['dry_run']}`")
         def mock_update_html_error_1(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('name')
         def mock_update_html_error_2(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('contents')
         def mock_update_html_error_3(*args, **kwargs):
+            """stub
+            """
             raise FileNotFoundError('not-found')
 
         monkeypatch.setattr(testee.dml, 'apply_deletions_target', mock_apply_deletions_target)
         assert testee.save_html_data(self.sitename, '', self.filename + '.x', '...') == (
                 'html_filename_error')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == ''
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n'
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
                                            'args for update_html: `testsite` `testname` `...` '
                                            '`` `False`\n')
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...', True) == ''
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n'
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
                                            'args for update_html: `testsite` `testname` `...` '
                                            '`` `True`\n')
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_1)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'html_name_missing')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_2)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'supply_text')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_3)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'not-found')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
 
     def test_complete_header(self):
+        """unittest for rst2html_functions.complete_header
+        """
         assert testee.complete_header({'url': ''}, '...') == '...'
         rstdata = 'my<head>hurts'
         conf = {'url': '', 'starthead': 'aches and '}
@@ -1040,68 +1389,89 @@ class TestTargetRelated:
         assert testee.complete_header(conf, rstdata) == '/ en /'
 
     def test_save_to_mirror(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.save_to_mirror
+        """
         def mock_apply_deletions_mirror(*args):
-            print('args for apply_deletions: `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('args for apply_deletions:', args)
         def mock_read_html_data(*args):
-            print('args for read_html_data: `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('args for read_html_data:', args)
             return '', '...'
         def mock_read_html_data_error(*args):
+            """stub
+            """
             return 'read_html_data failed', ''
         def mock_complete_header(*args):
-            print('args for complete_header: `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('args for complete_header:', args)
             return '...'
         def mock_update_mirror(*args, **kwargs):
-            print('args for update_mirror: `{}` `{}` `{}` `{}` `{}`'.format(args[0], args[1],
-                                                                            args[2],
-                                                                            kwargs['directory'],
-                                                                            kwargs['dry_run']))
+            """stub
+            """
+            print(f'args for update_mirror: `{args[0]}` `{args[1]}` `{args[2]}`'
+                  f" `{kwargs['directory']}` `{kwargs['dry_run']}`")
         def mock_update_mirror_failed_1(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('name')
         def mock_update_mirror_failed_2(*args, **kwargs):
+            """stub
+            """
             raise AttributeError('error')
         monkeypatch.setattr(testee.dml, 'apply_deletions_mirror', mock_apply_deletions_mirror)
         assert testee.save_to_mirror(self.sitename, '', self.filename + '.x', {}) == (
                 'html_filename_error')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
         monkeypatch.setattr(testee, 'read_html_data', mock_read_html_data_error)
         assert testee.save_to_mirror(self.sitename, '', self.filename, {}) == (
                 'read_html_data failed')
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
         monkeypatch.setattr(testee, 'read_html_data', mock_read_html_data)
         monkeypatch.setattr(testee, 'complete_header', mock_complete_header)
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror)
         assert testee.save_to_mirror(self.sitename, '', self.filename, {}) == ''
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n'
-            'args for read_html_data: `testsite` `` `testname`\n'
-            'args for complete_header: `{}` `...`\n'
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
+            "args for read_html_data: ('testsite', '', 'testname')\n"
+            "args for complete_header: ({}, '...')\n"
             'args for update_mirror: `testsite` `testname` `...` `` `False`\n')
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror_failed_1)
         assert testee.save_to_mirror(self.sitename, 'en', self.filename, {}) == 'html_name_missing'
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` `en`\n'
-            'args for read_html_data: `testsite` `en` `testname`\n'
-            'args for complete_header: `{}` `...`\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', 'en')\n"
+            "args for read_html_data: ('testsite', 'en', 'testname')\n"
+            "args for complete_header: ({}, '...')\n")
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror_failed_2)
         assert testee.save_to_mirror(self.sitename, '', self.filename + '.html', {}) == 'error'
-        assert capsys.readouterr().out == ('args for apply_deletions: `testsite` ``\n'
-            'args for read_html_data: `testsite` `` `testname`\n'
-            'args for complete_header: `{}` `...`\n')
+        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
+            "args for read_html_data: ('testsite', '', 'testname')\n"
+            "args for complete_header: ({}, '...')\n")
 
 
 class TestProgressList:
+    """unittests for functions related to progress list building
+    """
     def test_build_progress_list(self, monkeypatch):
+        """unittest for rst2html_functions.build_progress_list
+        """
         date_1 = datetime.datetime(2020, 1, 1)
         date_2 = datetime.datetime(2020, 1, 2)
         date_3 = datetime.datetime(2020, 1, 3)
         def mock_get_all_doc_stats_empty(*args):
+            """stub
+            """
             return []
         def mock_get_all_doc_stats(*args):
+            """stub
+            """
             nonlocal date_1, date_2, date_3
             return [('testdir2', [('test', (date_3, date_2, date_1)),
                                   ('index', (date_1, date_2, date_3)),
                                   ('removed', ('[deleted]', date_2, date_3)),
                                   ('twice_removed', ('', '[deleted]', date_3)),
-                                  ('all_gone', ('', '', '')),
-                                      ]),
+                                  ('all_gone', ('', '', ''))]),
                     ('testdir1', [('index', (date_2, date_2, date_2))]),
                     ('/', [('index', (date_1, date_1, date_2)),
                            ('about', (date_2, date_2, date_1))])]
@@ -1119,7 +1489,11 @@ class TestProgressList:
                 ('testdir2', 'twice_removed', 1, ('', '[deleted]', date_3))]
 
     def test_get_copystand_filepath(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.get_copystand_filepath
+        """
         def mock_mkdir(self, **kwargs):
+            """stub
+            """
             print(f'called {self}.mkdir with args', kwargs)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
@@ -1128,12 +1502,14 @@ class TestProgressList:
         assert capsys.readouterr().out == f"called {reportdir}.mkdir with args {{'exist_ok': True}}\n"
 
     def test_get_progress_line_values(self):
+        """unittest for rst2html_functions.get_progress_line_values
+        """
         mindate = testee.datetime.datetime.min
         maxdate = testee.datetime.datetime.max
-        line = ('/', 'index', 0,  (maxdate, mindate, mindate))
+        line = ('/', 'index', 0, (maxdate, mindate, mindate))
         expected = ['index', '--> 31-12-9999 23:59:59 <--', 'n/a', 'n/a']
         assert testee.get_progress_line_values(line) == expected
-        line = ('dir', 'file', 2,  (maxdate, maxdate, maxdate))
+        line = ('dir', 'file', 2, (maxdate, maxdate, maxdate))
         expected = ['dir/file', '31-12-9999 23:59:59', '31-12-9999 23:59:59',
                     '--> 31-12-9999 23:59:59 <--']
         assert testee.get_progress_line_values(line) == expected
@@ -1143,27 +1519,41 @@ class TestProgressList:
 
 
 class TestTrefwLijst:
+    """unittests for functions related to reference list building
+    """
     def test_get_reflinks_in_dir(self, monkeypatch):
+        """unittest for rst2html_functions.get_reflinks_in_dir
+        """
         def mock_list_docs_empty(*args, **kwargs):
+            """stub
+            """
             return []
         def mock_list_docs(*args, **kwargs):
+            """stub
+            """
             return ['doc2skip1', 'doc2skip2', 'doctogo']
         def mock_list_docs_2(*args, **kwargs):
+            """stub
+            """
             return ['docnorefs', 'doc-w-refs']
         def mock_get_doc_stats(*args):
+            """stub
+            """
             if args[1] == 'doc2skip1':
                 return testee.dml.Stats(2, 1, 1)
-            elif args[1] == 'doc2skip2':
+            if args[1] == 'doc2skip2':
                 return testee.dml.Stats(2, 2, 1)
-            else:
-                return testee.dml.Stats(2, 2, 2)
+            return testee.dml.Stats(2, 2, 2)
         def mock_read_src_data_error(*args):
+            """stub
+            """
             return 'read_src_error', ''
         def mock_read_src_data(*args):
+            """stub
+            """
             if args[2] == 'docnorefs':
                 return '', ''
-            else:
-                return '', '.. refkey:: itsaref\n.. refkey:: alsoaref: here'
+            return '', '.. refkey:: itsaref\n.. refkey:: alsoaref: here'
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_empty)
         assert testee.get_reflinks_in_dir('testsite') == ({}, [])
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs)
@@ -1177,6 +1567,8 @@ class TestTrefwLijst:
                                                          'Alsoaref': ['/doc-w-refs.html#here']}, [])
 
     def test_class(self):
+        """unittest for rst2html_functions.TrefwoordenLijst(.__init__)
+        """
         testobj = testee.TrefwoordenLijst('testsite')
         assert testobj.sitename == 'testsite'
         assert testobj.lang == testee.LANG
@@ -1189,21 +1581,37 @@ class TestTrefwLijst:
         assert testobj.anchors == []
 
     def test_build(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.build
+        """
         def mock_get_reflinks_none(*args):
+            """stub
+            """
             return {}, []
         def mock_get_reflinks(*args):
+            """stub
+            """
             # print('called get_reflinks')
             return {'x': ['doc'], 'y': ['doc1', 'doc2']}, ['a message']
         def mock_start_page(*args):
+            """stub
+            """
             print('called start_page')
             return 'first to_top'
         def mock_finish_letter(*args):
+            """stub
+            """
             print(f'called finish_letter with `{args[1]}`')
         def mock_clear_containers(*args):
+            """stub
+            """
             print('called clear_containers')
         def mock_start_new_letter(*args):
+            """stub
+            """
             print('called start_new_letter')
         def mock_start_new_keyword(*args):
+            """stub
+            """
             print(f'called start_new_keyword with `{args[2]}`')
 
         monkeypatch.setattr(testee.TrefwoordenLijst, 'get_reflinks', mock_get_reflinks_none)
@@ -1237,10 +1645,16 @@ class TestTrefwLijst:
                                            'called finish_letter with `+   top_`\n')
 
     def test_get_reflinks(self, monkeypatch):
+        """unittest for rst2html_functions.get_reflinks
+        """
         def mock_get_reflinks_in_dir(*args, **kwargs):
+            """stub
+            """
             dirname = args[1] if len(args) > 1 else ''
             return {'trefw': f'{dirname}/doc'}, [f'error from {dirname}']
         def mock_list_dirs(*args):
+            """stub
+            """
             return ['subdir']
         monkeypatch.setattr(testee, 'get_reflinks_in_dir', mock_get_reflinks_in_dir)
         monkeypatch.setattr(testee.dml, 'list_dirs', mock_list_dirs)
@@ -1254,7 +1668,11 @@ class TestTrefwLijst:
                                                                  'error from subdir'])
 
     def test_start_page(self, monkeypatch):
+        """unittest for rst2html_functions.start_page
+        """
         def mock_get_text(*args):
+            """stub
+            """
             return 'Index Header'
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         testobj = testee.TrefwoordenLijst('magiokis')
@@ -1265,6 +1683,8 @@ class TestTrefwLijst:
         assert testobj.data == ['.. _top:', '`back to root </>`_', '', '.. textheader:: Index', '']
 
     def test_start_new_letter(self):
+        """unittest for rst2html_functions.start_new_letter
+        """
         testobj = testee.TrefwoordenLijst('magiokis')
         testobj.data = ['', '', '', ' ']
         testobj.current_letter = 'A'
@@ -1281,6 +1701,8 @@ class TestTrefwLijst:
         assert testobj.linkno == 0
 
     def test_start_new_keyword(self):
+        """unittest for rst2html_functions.start_new_keyword
+        """
         testobj = testee.TrefwoordenLijst('testsite')
         testobj.teksten = ['a']
         testobj.start_new_keyword({'x': []}, 'x')
@@ -1298,6 +1720,8 @@ class TestTrefwLijst:
         assert testobj.teksten == ['+   x `#`__ ']
 
     def test_finish_letter(self):
+        """unittest for rst2html_functions.finish_letter
+        """
         testobj = testee.TrefwoordenLijst('testsite')
         testobj.data = ['xxx']
         testobj.titel = ['Dit', 'is een titel']
@@ -1310,32 +1734,46 @@ class TestTrefwLijst:
 
 
 class TestSearchRelated:
+    """unittests for rst2html_functions.SearchRelated
+    """
     def test_search_site(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.search_site
+        """
         def mock_read_dir(*args):
+            """stub
+            """
             if len(args) == 3:
-                print('read_dir called with args `{}` `{}` `{}`'.format(*args))
+                print('read_dir called with args', args)
                 where = '/'
             else:
-                print('read_dir called with args `{}` `{}` `{}` `{}`'.format(*args))
+                print('read_dir called with args', args)
                 where = args[3]
             return {where: ['this', 'that']}
         def mock_list_dirs(*args):
+            """stub
+            """
             return ['subdir']
 
         monkeypatch.setattr(testee, 'read_dir', mock_read_dir)
         monkeypatch.setattr(testee.dml, 'list_dirs', mock_list_dirs)
         assert testee.search_site('testsite', 'needle', 'safety pin') == {'/': ['this', 'that'],
-                                                                        'subdir':['this', 'that']}
-        assert capsys.readouterr().out == ('read_dir called with args `testsite` `needle`'
-                                           ' `safety pin`\n'
-                                           'read_dir called with args `testsite` `needle`'
-                                           ' `safety pin` `subdir`\n')
+                                                                          'subdir': ['this', 'that']}
+        assert capsys.readouterr().out == ("read_dir called with args ('testsite', 'needle',"
+                                           " 'safety pin')\n"
+                                           "read_dir called with args ('testsite', 'needle',"
+                                           " 'safety pin', 'subdir')\n")
 
     def test_read_dir(self, monkeypatch):
+        """unittest for rst2html_functions.read_dir
+        """
         def mock_list_docs(*args, **kwargs):
+            """stub
+            """
             return ['doc1', 'doc2']
         def mock_process_file(*args):
-            return 'processed `{}` `{}` `{}` `{}` `{}`'.format(*args)
+            """stub
+            """
+            return f'processed `{args[0]}` `{args[1]}` `{args[2]}` `{args[3]}` `{args[4]}`'
 
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs)
         monkeypatch.setattr(testee, 'process_file', mock_process_file)
@@ -1344,22 +1782,30 @@ class TestSearchRelated:
                 ('dirname', 'doc2'): 'processed `testsite` `dirname` `doc2` `needle` `pin`'}
 
     def test_process_file(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.process_file
+        """
         def mock_get_doc_contents(*args):
-            print('args for get_doc `{}`, `{}`, `{}`, `{}`'.format(*args))
+            """stub
+            """
+            print('args for get_doc:', args)
             return 'text\nnothing\nmore text'
         def mock_update_rst(*args):
-            print('args for update_rst: `{}` `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('args for update_rst:', args)
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents)
         monkeypatch.setattr(testee.dml, 'update_rst', mock_update_rst)
         assert testee.process_file('testsite', 'dir', 'file', 'text', 'taxes') == [(1, 'text', [1]),
                 (3, 'more text', [6])]
-        assert capsys.readouterr().out == ( 'args for get_doc `testsite`, `file`, `src`, `dir`\n'
-                                            'args for update_rst: `testsite` `file`'
-                                            ' `taxes\nnothing\nmore taxes` `dir`\n')
+        assert capsys.readouterr().out == ("args for get_doc: ('testsite', 'file', 'src', 'dir')\n"
+                                           "args for update_rst: ('testsite', 'file',"
+                                           " 'taxes\\nnothing\\nmore taxes', 'dir')\n")
 
-    def test_searchdict2list(self, monkeypatch):
+    def test_searchdict2list(self):
+        """unittest for rst2html_functions.searchdict2list
+        """
         inputdict = {('', 'index'): [(1, 'regel na regel', [1, 10]),
-                                     (3, 'een eindeloos uitzicht vol regels' + 20 * '@#$%' , [28])],
+                                     (3, 'een eindeloos uitzicht vol regels' + 20 * '@#$%', [28])],
                      ('dir', 'file0'): [],
                      ('dir', 'file'): [(24, 'geen regeling', [6])]}
         expected = [('/index', 1, ' **regel**  na  **regel** '),
@@ -1368,7 +1814,11 @@ class TestSearchRelated:
         assert testee.searchdict2list(inputdict, 'regel') == expected
 
     def test_get_copysearch_filepath(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.get_copysearch_filepath
+        """
         def mock_mkdir(self, **kwargs):
+            """stub
+            """
             print(f'called {self}.mkdir with args', kwargs)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
@@ -1378,8 +1828,10 @@ class TestSearchRelated:
 
 
 class TestUpdateAll:
-    """tests for regenerate all functionality"""
+    """unittests for regenerate all functionality"""
     def test_check_for_includes(self, monkeypatch, tmp_path):
+        """unittest for rst2html_functions.check_for_includes
+        """
         fake_webroot = tmp_path / 'rhfntest'
         fake_sitename = 'testsite'
         monkeypatch.setattr(testee, 'WEBROOT', fake_webroot)
@@ -1394,6 +1846,8 @@ class TestUpdateAll:
         assert testee.check_for_includes(fake_sitename, rstdata) == ['include']
 
     def test_update_all_class(self):
+        """unittest for rst2html_functions.update_all_class
+        """
         sitename, conf = 'testsite', {'css': []}
         testsubj = testee.UpdateAll(sitename, conf)
         assert testsubj.sitename == sitename
@@ -1409,7 +1863,11 @@ class TestUpdateAll:
         assert testsubj.show_only
 
     def test_rebuild_mirror(self, monkeypatch, capsys, tmp_path):
+        """unittest for rst2html_functions.rebuild_mirror
+        """
         def mock_save_to_mirror(*args, **kwargs):
+            """stub
+            """
             run = '(dry run)' if kwargs.get('dry_run', False) else ''
             print(f'save_to_mirror {run} was called')
             return ''
@@ -1428,16 +1886,26 @@ class TestUpdateAll:
         assert capsys.readouterr().out == ''
 
     def test_rebuild_html(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.rebuild_html
+        """
         def mock_rst2html(*args):
+            """stub
+            """
             print('rst2html was called')
             return ''
         def mock_save_html_data(*args, **kwargs):
+            """stub
+            """
             run = '(dry run)' if kwargs.get('dry_run', False) else ''
             print(f'save_html_data {run} was called')
             return ''
         def mock_save_html_data_msg(*args, **kwargs):
+            """stub
+            """
             return 'save_html_data_err'
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {'lang': testee.LANG}
         monkeypatch.setattr(testee, 'read_conf', mock_read_conf)
 
@@ -1459,11 +1927,19 @@ class TestUpdateAll:
         assert testsubj.rebuild_html(dirname, filename) == 'regen_target_msg'  # 'save_html_data_err'
 
     def test_check_for_updated_includes(self, monkeypatch):
+        """unittest for rst2html_functions.check_for_updated_includes
+        """
         def mock_check_for_includes_none(*args):
+            """stub
+            """
             return []
         def mock_check_for_includes_some(*args):
+            """stub
+            """
             return ['hello', 'you']
         def mock_get_doc_stats(*args):
+            """stub
+            """
             return testee.dml.Stats(2, 2, 2)
 
         sitename, conf = 'testsite', {'css': []}
@@ -1486,33 +1962,58 @@ class TestUpdateAll:
         assert testsubj.include_timestamps == {'hello': testee.dml.Stats(2, 2, 2),
                                                'you': testee.dml.Stats(2, 2, 2)}
 
-    def test_update_all_go(self, monkeypatch, capsys):
+    def test_update_all_go(self, monkeypatch):
+        """unittest for rst2html_functions.update_all_go
+        """
         def mock_build_progress_list_empty(*args):
+            """stub
+            """
             return []
         def mock_build_progress_list_0(*args):
+            """stub
+            """
             return [('/', 'index', 0, testee.dml.Stats(2, 1, 1)),
                     ('hi', 'index', 1, testee.dml.Stats(2, 2, 1))]
         def mock_build_progress_list_1(*args):
+            """stub
+            """
             return [('/', 'index', 1, testee.dml.Stats(2, 2, 1))]
         def mock_build_progress_list_2(*args):
+            """stub
+            """
             return [('/', 'index', 2, testee.dml.Stats(2, 2, 2))]
         def mock_read_src_data_msg(*args):
+            """stub
+            """
             return 'message from read_src_data', ''
         def mock_read_src_data(*args):
+            """stub
+            """
             return '', 'some_text'
         def mock_check_for_updated_includes_all(*args):
+            """stub
+            """
             return True, True
         def mock_check_for_updated_includes_none(*args):
+            """stub
+            """
             return False, False
         def mock_rebuild_html(*args):
+            """stub
+            """
             return ''
         def mock_rebuild_html_msg(*args):
+            """stub
+            """
             return 'message from rebuild_html'
         def mock_rebuild_mirror(*args):
+            """stub
+            """
             return ''
         def mock_rebuild_mirror_msg(*args):
+            """stub
+            """
             return 'message from rebuild_mirror'
-            return '', True
 
         # testcase: nothing in progress list (unrealistic)
         testsubj = testee.UpdateAll('testsite', {})
@@ -1571,9 +2072,11 @@ class TestUpdateAll:
 
 
 class TestR2hState:
-    """tests for the logic in the methods of the state class
+    """unittests for rst2html_functions.R2hState (i.e. the logic in the methods of the state class)
     """
     def test_init(self, monkeypatch):
+        """unittest for R2hState.init
+        """
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
         assert testsubj.sitename == 'testsite'
@@ -1584,6 +2087,8 @@ class TestR2hState:
         assert testsubj.loaded == 'initial'  # testee.RST
 
     def test_currentify(self, monkeypatch):
+        """unittest for R2hState.currentify
+        """
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
         testsubj.current = ''
@@ -1594,6 +2099,8 @@ class TestR2hState:
         assert testsubj.currentify('filename.x') == 'dirname/filename/index.x'
 
     def test_get_lang(self, monkeypatch):
+        """unittest for R2hState.get_lang
+        """
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
         assert testsubj.get_lang() == testee.LANG
@@ -1602,13 +2109,23 @@ class TestR2hState:
         assert testsubj.get_lang() == 'en'
 
     def test_get_conf(self, monkeypatch):
+        """unittest for R2hState.get_conf
+        """
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {'key1': 'value1', 'key2': 'value2'}
         def mock_list_subdirs(*args):
+            """stub
+            """
             return ['subdir1', 'subdir2']
         def mock_read_conf_mld(*args):
+            """stub
+            """
             return 'error', {}
         def mock_get_text(*args):
+            """stub
+            """
             return '`{}` conf error'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -1633,11 +2150,19 @@ class TestR2hState:
         assert testsubj.get_conf('testsite') == '`testsite` conf error'
 
     def test_index(self, monkeypatch):
+        """unittest for R2hState.index
+        """
         def mock_get_conf(*args):
+            """stub
+            """
             return ''
         def mock_get_conf_msg(*args):
+            """stub
+            """
             return 'msg from get_conf'
         def mock_conf2text(*args):
+            """stub
+            """
             return 'confdata'
 
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -1675,11 +2200,19 @@ class TestR2hState:
                                     'testsite')
 
     def test_loadconf(self, monkeypatch):
+        """unittest for R2hState.loadconf
+        """
         def mock_get_conf(*args):
+            """stub
+            """
             return ''
         def mock_get_conf_err(*args):
+            """stub
+            """
             return 'error from get_conf'
         def mock_conf2text(*args):
+            """stub
+            """
             return 'text from conf'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -1697,28 +2230,48 @@ class TestR2hState:
         assert testsubj.sitename == 'newsett'
 
     def test_saveconf(self, monkeypatch, capsys):
+        """unittest for R2hState.saveconf
+        """
         def mock_get_conf(*args):
+            """stub
+            """
             return ''
         def mock_get_conf_err(*args):
+            """stub
+            """
             return 'error from get_conf'
+        def mock_get_conf_mld(*args):
+            """stub
+            """
+            return 'mld from get_conf'
         def mock_new_conf_msg(*args):
+            """stub
+            """
             return 'new_conf_msg', 'new-url'
         def mock_new_conf(*args):
+            """stub
+            """
             return '', 'new-url'
         def mock_new_conf_nourl(*args):
+            """stub
+            """
             return '', 'new-url'
         def mock_save_conf(*args, **kwargs):
+            """stub
+            """
             print('call save_conf with args', args, kwargs)
             return ''
-        def mock_save_conf_mld(*argsi, **kwargs):
+        def mock_save_conf_mld(*args, **kwargs):
+            """stub
+            """
             return 'mld from save_conf'
         def mock_init_css(*args):
+            """stub
+            """
             print('call init_css')
-        def mock_get_conf(*args):
-            return ''
-        def mock_get_conf_mld(*args):
-            return 'mld from get_conf'
         def mock_conf2text(*args):
+            """stub
+            """
             return 'conf2text'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -1759,17 +2312,27 @@ class TestR2hState:
                                                                       'conf2text', 'newsett', '')
 
     def test_loadrst(self, monkeypatch):
+        """unittest for R2hState.loadrst
+        """
         def mock_get_text(*args):
+            """stub
+            """
             if args[0] == 'c_newitem':
                 return '-- new --'
-            elif args[0] == 'chdir_down':
+            if args[0] == 'chdir_down':
                 return args[0] + ' into `{}`'
             return args[0]
         def mock_read_tpl_data(*args):
+            """stub
+            """
             return 'template data'
         def mock_read_src_data(*args):
+            """stub
+            """
             return '', 'source data'
         def mock_read_src_data_mld(*args):
+            """stub
+            """
             return 'mld from read_src_data', ''
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -1799,7 +2362,11 @@ class TestR2hState:
         assert testsubj.rstfile == 'testfile'
 
     def test_rename(self, monkeypatch, capsys):
+        """unittest for R2hState.rename
+        """
         def mock_mark_deleted(*args):
+            """stub
+            """
             print('called mark_deleted with args', args)
             return 'oepsie'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -1825,10 +2392,16 @@ class TestR2hState:
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
     def test_diffsrc(self, monkeypatch, capsys):
+        """unittest for R2hState.diffsrc
+        """
         def mock_compare_source(*args):
+            """stub
+            """
             print(f'called compare_source() with {args = }')
             return '', 'newdata'
         def mock_compare_source_mld(*args):
+            """stub
+            """
             return 'other_msg', 'rstdata'
         monkeypatch.setattr(testee, 'compare_source', mock_compare_source)
         testsubj = testee.R2hState()
@@ -1847,6 +2420,8 @@ class TestR2hState:
         assert testsubj.loaded != testee.DIFF
 
     def test_revert(self, monkeypatch, capsys):
+        """unittest for R2hState.revert
+        """
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
         monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
@@ -1864,7 +2439,11 @@ class TestR2hState:
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
     def test_delete(self, monkeypatch, capsys):
+        """unittest for R2hState.delete
+        """
         def mock_mark_deleted(*args):
+            """stub
+            """
             print('called mark_deleted with args', args)
             return 'oepsie'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -1888,21 +2467,35 @@ class TestR2hState:
         assert testsubj.rstdata == ''
 
     def test_saverst(self, monkeypatch, capsys):
+        """unittest for R2hState.saverst
+        """
         def mock_translate_action(*args):
+            """stub
+            """
             return args[0]
         def mock_make_new_dir(*args):
-            print('make_new_dir called using args `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('make_new_dir called using args', args)
             return ''
         def mock_save_tpl_data(*args):
-            print('save_tpl_data called using args `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('save_tpl_data called using args', args)
             return ''
         def mock_check_if_rst(*args):
-            print('check_if_rst called using args `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('check_if_rst called using args', args)
             return ''
         def mock_save_src_data(*args):
-            print('save_src_data called using args `{}` `{}` `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('save_src_data called using args', args)
             return ''
         def mock_get_text_exc(*args):
+            """stub
+            """
             raise KeyError
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -1912,22 +2505,22 @@ class TestR2hState:
         testsubj.newfile = 'c'
         monkeypatch.setattr(testee, 'make_new_dir', lambda x, y: 'mld from make_new_dir {}')
         assert testsubj.saverst('dirname/', '', '') == ('mld from make_new_dir dirname', 'a',
-                                                            'b', 'c', '')
+                                                        'b', 'c', '')
         monkeypatch.setattr(testee, 'make_new_dir', mock_make_new_dir)
         assert testsubj.saverst('dirname/', '', '') == ('new_subdir', 'dirname/', 'b',
-                                                            '', '')
-        assert capsys.readouterr().out == 'make_new_dir called using args `testsite` `dirname`\n'
+                                                        '', '')
+        assert capsys.readouterr().out == "make_new_dir called using args ('testsite', 'dirname')\n"
 
         testsubj.rstfile = 'a'
         testsubj.htmlfile = 'b'
         testsubj.newfile = 'c'
-        monkeypatch.setattr(testee, 'save_tpl_data',lambda x, y, z: 'mld from save_tpl_data')
+        monkeypatch.setattr(testee, 'save_tpl_data', lambda x, y, z: 'mld from save_tpl_data')
         assert testsubj.saverst('test.tpl', '', 'data') == ('mld from save_tpl_data', 'a', 'b',
-                                                                'c', 'data')
+                                                            'c', 'data')
         monkeypatch.setattr(testee, 'save_tpl_data', mock_save_tpl_data)
         assert testsubj.saverst('-- test.tpl --', '', 'data') == ('tpl_saved', '', '', '', 'data')
-        assert capsys.readouterr().out == ('save_tpl_data called using args `testsite` `test.tpl`'
-                                           ' `data`\n')
+        assert capsys.readouterr().out == ("save_tpl_data called using args ('testsite', 'test.tpl',"
+                                           " 'data')\n")
         assert testsubj.oldtext == 'data'
         assert testsubj.rstdata == 'data'
 
@@ -1941,33 +2534,45 @@ class TestR2hState:
         monkeypatch.setattr(testee, 'save_src_data', lambda x, y, z, a, b: 'mld from save_src_data')
         assert testsubj.saverst('oldfile', 'newfile', 'data') == ('mld from save_src_data', 'a',
                                                                   'b', 'c', 'data')
-        assert capsys.readouterr().out == ('check_if_rst called using args `data` `loaded`'
-                                           ' `newfile`\n')
+        assert capsys.readouterr().out == ("check_if_rst called using args ('data', 'loaded',"
+                                           " 'newfile')\n")
         monkeypatch.setattr(testee, 'save_src_data', mock_save_src_data)
         assert testsubj.saverst('oldfile', '', 'data') == ('rst_saved', 'oldfile.rst',
                                                            'oldfile.html', '', 'data')
-        assert capsys.readouterr().out == ('check_if_rst called using args `data` `loaded`'
-                                           ' `oldfile`\n'
-                                           'save_src_data called using args `testsite` ``'
-                                           ' `oldfile.rst` `data` `False`\n')
+        assert capsys.readouterr().out == ("check_if_rst called using args ('data', 'loaded',"
+                                           " 'oldfile')\n"
+                                           "save_src_data called using args ('testsite', '',"
+                                           " 'oldfile.rst', 'data', False)\n")
         assert testsubj.oldtext == 'data'
         assert testsubj.rstdata == 'data'
 
     def test_convert(self, monkeypatch, capsys):
-        """ in: rstfile, newfile, rstdata; out: mld, previewdata, fname
+        """unittest for R2hState.convert
         """
         def mock_check_if_rst(*args):
+            """stub
+            """
             return ''
         def mock_check_if_rst_mld(*args):
+            """stub
+            """
             return 'mld from check_if_rst'
         def mock_save_src_data(*args):
+            """stub
+            """
             print('save_src_data called')
             return ''
         def mock_save_src_data_mld(*args):
+            """stub
+            """
             return 'mld from save_src_data'
         def mock_rst2html(*args):
+            """stub
+            """
             return args[0]
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {}
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2000,25 +2605,41 @@ class TestR2hState:
         assert capsys.readouterr().out == 'save_src_data called\n'
 
     def test_saveall(self, monkeypatch, capsys):
-        """in: rstfile, newfile, rstdata; out: mld, rstfile, htmlfile, newfile
+        """unittest for R2hState.saveall
         """
         def mock_check_if_rst(*args):
+            """stub
+            """
             return ''
         def mock_check_if_rst_mld(*args):
+            """stub
+            """
             return 'mld from check_if_rst'
         def mock_save_src_data(*args):
-            print('save_src_data got args `{}` `{}` `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('save_src_data got args', args)
             return ''
         def mock_save_src_data_mld(*args):
+            """stub
+            """
             return 'mld from save_src_data'
         def mock_rst2html(*args):
+            """stub
+            """
             return 'converted txt'
         def mock_save_html_data(*args):
-            print('save_html_data got args `{}` `{}` `{}` `{}`'.format(*args))
+            """stub
+            """
+            print('save_html_data got args', args)
             return ''
         def mock_save_html_data_mld(*args):
+            """stub
+            """
             return 'mld from save_html_data for {}'
         def mock_read_conf(*args):
+            """stub
+            """
             return '', {'lang': testee.LANG}
         monkeypatch.setattr(testee, 'read_conf', mock_read_conf)
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -2040,31 +2661,39 @@ class TestR2hState:
                                                      'new')
         testsubj.oldtxt = 'converted data'
         assert testsubj.saveall('r', '', 'txt') == ('mld from save_src_data', 'r.rst', 'r.html',
-                                                     'new')
+                                                    'new')
         monkeypatch.setattr(testee, 'save_src_data', mock_save_src_data)
         monkeypatch.setattr(testee, 'save_html_data', mock_save_html_data_mld)
         assert testsubj.saveall('r', '', 'txt') == ('mld from save_html_data for r.html', 'r.rst',
 
                                                     'r.html', '')
-        assert capsys.readouterr().out == ('save_src_data got args `testsite` `` `r.rst` `txt`'
-                                           ' `False`\n')
+        assert capsys.readouterr().out == ("save_src_data got args ('testsite', '', 'r.rst', 'txt',"
+                                           " False)\n")
         assert testsubj.oldtext == 'txt'
         assert testsubj.rstdata == 'txt'
         monkeypatch.setattr(testee, 'save_html_data', mock_save_html_data)
         monkeypatch.setattr(testee, 'rst2html', mock_rst2html)
         assert testsubj.saveall('r', '', 'txt') == ('rst_2_html', 'r.rst', 'r.html', '')
-        assert capsys.readouterr().out == ('save_html_data got args `testsite` `` `r.html`'
-                                           ' `converted txt`\n')
+        assert capsys.readouterr().out == ("save_html_data got args ('testsite', '', 'r.html',"
+                                           " 'converted txt')\n")
 
     def test_status(self, monkeypatch):
+        """unittest for R2hState.status
+        """
         def mock_get_doc_stats(*args):
+            """stub
+            """
             return testee.dml.Stats(datetime.datetime.fromtimestamp(2),
                                   datetime.datetime.fromtimestamp(2),
                                   datetime.datetime.fromtimestamp(2))
         def mock_get_doc_stats_2(*args):
+            """stub
+            """
             return testee.dml.Stats(datetime.datetime.fromtimestamp(2), datetime.datetime.min,
                                   datetime.datetime.min)
         def mock_get_doc_stats_3(*args):
+            """stub
+            """
             return testee.dml.Stats(datetime.datetime.min, datetime.datetime.min,
                                   datetime.datetime.min)
         testsubj = testee.R2hState()
@@ -2091,9 +2720,15 @@ class TestR2hState:
         assert testsubj.status('file') == 'not possible to get stats'
 
     def test_loadhtml(self, monkeypatch):
+        """unittest for R2hState.loadhtml
+        """
         def mock_read_html_data(*args):
+            """stub
+            """
             return '', 'some&nbsp;text'
         def mock_read_html_data_mld(*args):
+            """stub
+            """
             return 'mld from read_html_data', ''
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2116,15 +2751,25 @@ class TestR2hState:
         assert testsubj.loaded == testee.HTML
 
     def test_showhtml(self, monkeypatch, capsys):
+        """unittest for R2hState.showhtml
+        """
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         def mock_check_if_html(*args):
+            """stub
+            """
             return ''
         def mock_check_if_html_mld(*args):
+            """stub
+            """
             return 'mld from check_if_html'
         def mock_save_html_data(*args):
+            """stub
+            """
             print('call save_html_data')
             return ''
         def mock_save_html_data_mld(*args):
+            """stub
+            """
             return 'mld from save_html_data'
         testsubj = testee.R2hState()
         monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
@@ -2142,13 +2787,23 @@ class TestR2hState:
         assert capsys.readouterr().out == 'call save_html_data\n'
 
     def test_savehtml(self, monkeypatch):
+        """unittest for R2hState.savehtml
+        """
         def mock_check_if_html(*args):
+            """stub
+            """
             return ''
         def mock_check_if_html_mld(*args):
+            """stub
+            """
             return 'mld from check_if_html'
         def mock_save_html_data(*args):
+            """stub
+            """
             return ''
         def mock_save_html_data_mld(*args):
+            """stub
+            """
             return 'mld from save_html_data'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2160,7 +2815,7 @@ class TestR2hState:
                                                                    'newname')
         monkeypatch.setattr(testee, 'check_if_html', mock_check_if_html_mld)
         assert testsubj.savehtml('oldhtml', '', 'text') == ('mld from check_if_html', 'data',
-                                                                   'newname')
+                                                            'newname')
         monkeypatch.setattr(testee, 'check_if_html', mock_check_if_html)
         monkeypatch.setattr(testee, 'save_html_data', mock_save_html_data_mld)
         assert testsubj.savehtml('oldhtml', '', 'text') == ('mld from save_html_data', 'data', '')
@@ -2169,13 +2824,23 @@ class TestR2hState:
         assert testsubj.htmlfile == 'fname'
 
     def test_copytoroot(self, monkeypatch):
+        """unittest for R2hState.copytoroot
+        """
         def mock_check_if_html(*args):
+            """stub
+            """
             return ''
         def mock_check_if_html_mld(*args):
+            """stub
+            """
             return 'mld from check_if_html'
         def mock_save_to_mirror(*args):
+            """stub
+            """
             return ''
         def mock_save_to_mirror_mld(*args):
+            """stub
+            """
             return 'mld from save_to_mirror'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2192,25 +2857,43 @@ class TestR2hState:
         assert testsubj.htmlfile == 'htmlfile'
 
     def test_propagate_deletions(self, monkeypatch, capsys):
+        """unittest for R2hState.propagate_deletions
+        """
         def mock_list_target(*args):
+            """stub
+            """
             print('called list_deletions_target()')
             return ['this', 'that']
         def mock_list_target_none(*args):
+            """stub
+            """
             return []
         def mock_apply_target(*args):
+            """stub
+            """
             print('called apply_deletions_target()')
             return ['one', 'two']
         def mock_apply_target_none(*args):
+            """stub
+            """
             return []
         def mock_list_mirror(*args):
+            """stub
+            """
             print('called list_deletions_mirror()')
             return ['this', 'that']
         def mock_list_mirror_none(*args):
+            """stub
+            """
             return []
         def mock_apply_mirror(*args):
+            """stub
+            """
             print('called apply_deletions_mirror()')
             return ['one', 'two']
         def mock_apply_mirror_none(*args):
+            """stub
+            """
             return []
         monkeypatch.setattr(testee.dml, 'list_deletions_target', mock_list_target)
         monkeypatch.setattr(testee.dml, 'apply_deletions_target', mock_apply_target)
@@ -2236,21 +2919,37 @@ class TestR2hState:
         assert testsubj.propagate_deletions('3') == 'no deletions pending'
 
     def test_makerefdoc(self, monkeypatch):
+        """unittest for R2hState.makerefdoc
+        """
         def mock_trefwlijst(*args, **kwargs):
+            """stub
+            """
             return 'index data', False
         def mock_trefwlijst_norefs(*args, **kwargs):
+            """stub
+            """
             return '', True
         def mock_trefwlijst_err(*args, **kwargs):
+            """stub
+            """
             return 'data', True
         def mock_save_src_data(*args, **kwargs):
+            """stub
+            """
             if kwargs.get('new', False):
                 return 'mld from save_src_data'
             return ''
         def mock_rst2html(*args):
+            """stub
+            """
             return 'converted data'
         def mock_save_html_data(*args):
+            """stub
+            """
             return ''
         def mock_save_to_mirror(*args):
+            """stub
+            """
             return ''
 
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -2279,14 +2978,22 @@ class TestR2hState:
         assert testsubj.loaded == testee.RST
 
     def test_convert_all(self, monkeypatch):
+        """unittest for R2hState.convert_all
+        """
         def mock_update_all_go(*args, **kwargs):
+            """stub
+            """
             return [('/index', 'just text'), ('/other', 'formatted: {}')]
         def mock_update_all_go_empty(*args, **kwargs):
+            """stub
+            """
             return []
         def mock_get_text(*args):
+            """stub
+            """
             if args[0] == 'in_sim':
                 return args[0]
-            elif args[0] == 'docs_converted':
+            if args[0] == 'docs_converted':
                 return 'converted {}'
             return args[0]
 
@@ -2309,11 +3016,19 @@ class TestR2hState:
                                                             'formatted: /other'))
 
     def test_search(self, monkeypatch):
+        """unittest for R2hState.search
+        """
         def mock_search_site(*args):
+            """stub
+            """
             return ['found this', 'and that']
         def mock_search_site_none(*args):
+            """stub
+            """
             return []
         def mock_searchdict2list(*args):
+            """stub
+            """
             return args[0]
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2330,10 +3045,16 @@ class TestR2hState:
         assert testsubj.search('not found', 'replaced') == ('nothing found, no replacements', [])
 
     def test_copysearch(self, monkeypatch, tmp_path):
+        """unittest for R2hState.copysearch
+        """
         path = tmp_path / 'copysearch'
         def mock_get_copysearch_filepath(*args):
+            """stub
+            """
             return path
         def mock_get_progress_line_values(*args):
+            """stub
+            """
             return ['x', 'y', 'z', 'q']
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2345,9 +3066,15 @@ class TestR2hState:
                                     'text1 line 1: result1\ntext2 line 2: result2\n')
 
     def test_check(self, monkeypatch):
+        """unittest for R2hState.check
+        """
         def mock_check_directive_selectors(*args):
+            """stub
+            """
             return []
         def mock_check_directive_selectors_missing(*args):
+            """stub
+            """
             return ['x', 'y']
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2360,7 +3087,11 @@ class TestR2hState:
                                     ' in the linked css files: x, y')
 
     def test_overview(self, monkeypatch):
+        """unittest for R2hState.overview
+        """
         def mock_build_progress_list(*args):
+            """stub
+            """
             return 'called build_progress_list'
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
@@ -2368,10 +3099,16 @@ class TestR2hState:
         assert testsubj.overview() == 'called build_progress_list'
 
     def test_copystand(self, monkeypatch, tmp_path):
+        """unittest for R2hState.copystand
+        """
         path = tmp_path / 'copystand'
         def mock_get_copystand_filepath(*args):
+            """stub
+            """
             return path
         def mock_get_progress_line_values(*args):
+            """stub
+            """
             return ['x', 'y', 'z', 'q']
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()

@@ -1,4 +1,5 @@
-import pytest
+"""unittests for ./app/rst2html_directives.py
+"""
 import app.rst2html_directives as rhdir
 # docutils handelt zelf ontbrekende verplichte argumenten af dus hoeven we hier niet te doen
 # with pytest.raises(KeyError):
@@ -6,10 +7,13 @@ import app.rst2html_directives as rhdir
 
 
 def mock_init(*args):
-    pass
+    """stub to mimic initialisation of the directive classes
+    """
 
 
 def test_build_menu():
+    """unittest for rst2html_directives.build_menu
+    """
     assert rhdir.build_menu(['bladibla\n', '` ', '`<>', '<>`_', '`x <y>`_'],
                             'Hallo') == ['<p></p><h2>Hallo</h2><ul class="menu">',
                                          '<li>bladibla</li>', '<li>`</li>', '<li>`<></li>',
@@ -19,6 +23,8 @@ def test_build_menu():
 
 
 def test_bottom(monkeypatch):
+    """unittest for rst2html_directives.Bottom
+    """
     monkeypatch.setattr(rhdir.Bottom, '__init__', mock_init)
     testsubj = rhdir.Bottom()
     testsubj.arguments = []
@@ -51,27 +57,35 @@ def test_bottom(monkeypatch):
 
 
 def test_refkey(monkeypatch):
+    """unittest for rst2html_directives.Refkey
+    """
     monkeypatch.setattr(rhdir.RefKey, '__init__', mock_init)
     testsubj = rhdir.RefKey()
-    testsubj.arguments= ['hallo']
+    testsubj.arguments = ['hallo']
     testsubj.options = {}
     testsubj.content = []
     assert testsubj.run() == []
 
 
 def test_myinclude(monkeypatch):
+    """unittest for rst2html_directives.MyInclude
+    """
     monkeypatch.setattr(rhdir.MyInclude, '__init__', mock_init)
     testsubj = rhdir.MyInclude()
     assert testsubj.run() == []
 
 
 def test_myheader(monkeypatch):
+    """unittest for rst2html_directives.MyHeader
+    """
     def mock_build_menu(*args):
+        """stub
+        """
         return 'menu_text'
     monkeypatch.setattr(rhdir.MyHeader, '__init__', mock_init)
     monkeypatch.setattr(rhdir, 'build_menu', mock_build_menu)
     testsubj = rhdir.MyHeader()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -82,13 +96,13 @@ def test_myheader(monkeypatch):
                          '<div id="main"><div id="navigation">menu_text</div></div>'
                          '<div id="content" class="column"><h1 class="page-title"></h1>')
 
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {'title': 'Hello World!',
                         'href': 'Go-Home!',
                         'image': 'link-to-image',
                         'text': 'XXXXX',
                         'menu': 'menufile.rst',
-                        'site': 'helloworld' }
+                        'site': 'helloworld'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<header id="header" role="banner"><a href="Go-Home!" id="logo" '
@@ -99,45 +113,47 @@ def test_myheader(monkeypatch):
 
 
 def test_byline(monkeypatch):
+    """unittest for rst2html_directives.ByLine
+    """
     monkeypatch.setattr(rhdir.ByLine, '__init__', mock_init)
     testsubj = rhdir.ByLine()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>Submitted</span></p></header>')
     testsubj = rhdir.ByLine()
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'date': 'some_date'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>some_text</span>'
                          ' on <time>some_date</time></p></header>')
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'date': 'some_date', 'lang': 'nl'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>some_text</span>'
                          ' op <time>some_date</time></p></header>')
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'author': 'some_name'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>some_text</span> by '
                          '<span>some_name</span></p></header>')
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'author': 'some_name', 'lang': 'nl'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>some_text</span> door '
                          '<span>some_name</span></p></header>')
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'date': 'some_date', 'author': 'some_name'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('<p></p><header><p><span>some_text</span> by <span>some_name</span>'
                          ' on <time>some_date</time></p></header>')
-    testsubj.arguments= ['some_text']
+    testsubj.arguments = ['some_text']
     testsubj.options = {'date': 'some_date', 'author': 'some_name', 'lang': 'nl'}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -146,9 +162,11 @@ def test_byline(monkeypatch):
 
 
 def test_audio(monkeypatch):
+    """unittest for rst2html_directives.Audio
+    """
     monkeypatch.setattr(rhdir.Audio, '__init__', mock_init)
     testsubj = rhdir.Audio()
-    testsubj.arguments= ['listen-to-this']
+    testsubj.arguments = ['listen-to-this']
     testsubj.options = {}
     testsubj.content = ['x', 'y']
     data = testsubj.run()[0][0]
@@ -156,32 +174,38 @@ def test_audio(monkeypatch):
 
 
 def test_menutext(monkeypatch):
+    """unittest for rst2html_directives.MenuText
+    """
     def mock_build_menu(*args, **kwargs):
+        """stub
+        """
         title = kwargs.get('title', '')
         return '{}<>{}<>'.format(title, ''.join([x for x in args[0]]))
     monkeypatch.setattr(rhdir.MenuText, '__init__', mock_init)
     monkeypatch.setattr(rhdir, 'build_menu', mock_build_menu)
     testsubj = rhdir.MenuText()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<><>'
     testsubj = rhdir.MenuText()
-    testsubj.arguments= ['is_navmenu']
+    testsubj.arguments = ['is_navmenu']
     testsubj.options = {}
     testsubj.content = ['line_1']
     data = testsubj.run()[0][0]
     assert str(data) == '<div id="navigation">&nbsp;<>line_1<></div>'
     testsubj = rhdir.MenuText()
-    testsubj.arguments= ['menu_title']
+    testsubj.arguments = ['menu_title']
     testsubj.options = {}
     testsubj.content = ['line_1']
     data = testsubj.run()[0][0]
     assert str(data) == 'menu_title<>line_1<>'
 
 
-def test_transcript(monkeypatch, capsys):
+def test_transcript(monkeypatch):
+    """unittest for rst2html_directives.Transcript
+    """
     start = (" <script type='text/javascript'>\n   function toggle_expander(id) {\n"
              "     var e = document.getElementById(id);\n"
              "     if (e.style.visibility == 'hidden') {\n"
@@ -212,9 +236,11 @@ def test_transcript(monkeypatch, capsys):
 
 
 def test_strofentekst(monkeypatch):
+    """unittest for rst2html_directives.StrofenTekst
+    """
     monkeypatch.setattr(rhdir.StrofenTekst, '__init__', mock_init)
     testsubj = rhdir.StrofenTekst()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {'titel': 'een titel', 'tekst': 'een tekst'}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -223,7 +249,7 @@ def test_strofentekst(monkeypatch):
                          '\n</div></div>')
     testsubj = rhdir.StrofenTekst()
     testsubj.soortnaam = 'x'
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['een regel', '--', 'nog een regel', '--', ' nog een', '--', '   nog een',
                         '--', 'en nog een']
@@ -242,16 +268,18 @@ def test_strofentekst(monkeypatch):
 
 
 def test_rolespec(monkeypatch):
+    """unittest for rst2html_directives.RoleSpec
+    """
     monkeypatch.setattr(rhdir.RoleSpec, '__init__', mock_init)
     testsubj = rhdir.RoleSpec()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {'titel': 'een titel', 'tekst': 'een tekst'}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == ('\n<div class="rollen">\n<div class="titel">een titel</div>'
                          '\n<div class="tekst">een tekst</div>\n</div>')
     testsubj = rhdir.RoleSpec()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['regel 1', 'regel 2']
     data = testsubj.run()[0][0]
@@ -260,21 +288,23 @@ def test_rolespec(monkeypatch):
 
 
 def test_scene(monkeypatch):
+    """unittest for rst2html_directives.Scene
+    """
     monkeypatch.setattr(rhdir.Scene, '__init__', mock_init)
     testsubj = rhdir.Scene()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '\n<div class="scene">\n</div>'
     testsubj = rhdir.Scene()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['xx yy']
     data = testsubj.run()[0][0]
     assert str(data) == ('\n<div class="scene">\n<div class="actie">xx yy</div>\n</div>')
     testsubj = rhdir.Scene()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['::xx']
     data = testsubj.run()[0][0]
@@ -282,7 +312,7 @@ def test_scene(monkeypatch):
     # ik weet niet of dit is wat ik wil, maar zo beginnen is mogelijk ook geen realistische situatie
     # en moet ik misschien afkeuren
     testsubj = rhdir.Scene()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['xx::yy', 'zz::aa']
     data = testsubj.run()[0][0]
@@ -295,7 +325,7 @@ def test_scene(monkeypatch):
                          '\n</div>\n</div>\n</div>')
 
     testsubj = rhdir.Scene()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['xx::yy', 'xx yy', '::aa', '::bb']
     data = testsubj.run()[0][0]
@@ -316,9 +346,11 @@ def test_scene(monkeypatch):
 
 
 def test_anno(monkeypatch):
+    """unittest for rst2html_directives.Anno
+    """
     monkeypatch.setattr(rhdir.Anno, '__init__', mock_init)
     testsubj = rhdir.Anno()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['een regel', 'nog een regel']
     data = testsubj.run()[0][0]
@@ -326,7 +358,11 @@ def test_anno(monkeypatch):
 
 
 def test_gedicht(monkeypatch, capsys):
+    """unittest for rst2html_directives.Gedicht
+    """
     def mock_init(self, *args):
+        """stub
+        """
         print('initializing class with soortnaam', self.soortnaam)
     monkeypatch.setattr(rhdir.StrofenTekst, '__init__', mock_init)
     rhdir.Gedicht()
@@ -334,7 +370,11 @@ def test_gedicht(monkeypatch, capsys):
 
 
 def test_songtekst(monkeypatch, capsys):
+    """unittest for rst2html_directives.SongTekst
+    """
     def mock_init(self, *args):
+        """stub
+        """
         print('initializing class with soortnaam', self.soortnaam)
     monkeypatch.setattr(rhdir.StrofenTekst, '__init__', mock_init)
     rhdir.SongTekst()
@@ -342,15 +382,17 @@ def test_songtekst(monkeypatch, capsys):
 
 
 def test_startblock(monkeypatch):
+    """unittest for rst2html_directives.StartBlock
+    """
     monkeypatch.setattr(rhdir.StartBlock, '__init__', mock_init)
     testsubj = rhdir.StartBlock()
-    testsubj.arguments= ['block']
+    testsubj.arguments = ['block']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div class="block">'
     testsubj = rhdir.StartBlock()
-    testsubj.arguments= ['block']
+    testsubj.arguments = ['block']
     testsubj.options = {'text': 'this is a block'}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -358,9 +400,11 @@ def test_startblock(monkeypatch):
 
 
 def test_endblock(monkeypatch):
+    """unittest for rst2html_directives.EndBlock
+    """
     monkeypatch.setattr(rhdir.EndBlock, '__init__', mock_init)
     testsubj = rhdir.EndBlock()
-    testsubj.arguments= ['block']
+    testsubj.arguments = ['block']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -368,9 +412,11 @@ def test_endblock(monkeypatch):
 
 
 def test_startsidebar(monkeypatch):
+    """unittest for rst2html_directives.StartSideBar
+    """
     monkeypatch.setattr(rhdir.StartSideBar, '__init__', mock_init)
     testsubj = rhdir.StartSideBar()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -379,9 +425,11 @@ def test_startsidebar(monkeypatch):
 
 
 def test_sidebarkop(monkeypatch):
+    """unittest for rst2html_directives.SideBarKop
+    """
     monkeypatch.setattr(rhdir.SideBarKop, '__init__', mock_init)
     testsubj = rhdir.SideBarKop()
-    testsubj.arguments= ['Tekst']
+    testsubj.arguments = ['Tekst']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -389,9 +437,11 @@ def test_sidebarkop(monkeypatch):
 
 
 def test_endsidebar(monkeypatch):
+    """unittest for rst2html_directives.EndSideBar
+    """
     monkeypatch.setattr(rhdir.EndSideBar, '__init__', mock_init)
     testsubj = rhdir.EndSideBar()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -400,9 +450,11 @@ def test_endsidebar(monkeypatch):
 
 
 def test_myfooter(monkeypatch):
+    """unittest for rst2html_directives.MyFooter
+    """
     monkeypatch.setattr(rhdir.MyFooter, '__init__', mock_init)
     testsubj = rhdir.MyFooter()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -411,7 +463,7 @@ def test_myfooter(monkeypatch):
                          "<footer>\n<p>Please don't copy without source attribution. contact me:"
                          ' <a href="mailto:info@magiokis.nl">info@magiokis.nl</a></p></footer>')
     testsubj = rhdir.MyFooter()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {'text': 'some text', 'mailto': 'message-me'}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -422,9 +474,11 @@ def test_myfooter(monkeypatch):
 
 
 def test_startcols(monkeypatch):
+    """unittest for rst2html_directives.StartCols
+    """
     monkeypatch.setattr(rhdir.StartCols, '__init__', mock_init)
     testsubj = rhdir.StartCols()
-    testsubj.arguments= ['x']
+    testsubj.arguments = ['x']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -432,9 +486,11 @@ def test_startcols(monkeypatch):
 
 
 def test_endcols(monkeypatch):
+    """unittest for rst2html_directives.EndCols
+    """
     monkeypatch.setattr(rhdir.EndCols, '__init__', mock_init)
     testsubj = rhdir.EndCols()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -442,15 +498,17 @@ def test_endcols(monkeypatch):
 
 
 def test_firstcol(monkeypatch):
+    """unittest for rst2html_directives.FirstCol
+    """
     monkeypatch.setattr(rhdir.FirstCol, '__init__', mock_init)
     testsubj = rhdir.FirstCol()
-    testsubj.arguments= ['x']
+    testsubj.arguments = ['x']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div class="grid_x ">\n'
     testsubj = rhdir.FirstCol()
-    testsubj.arguments= ['x', 'y']
+    testsubj.arguments = ['x', 'y']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -458,15 +516,17 @@ def test_firstcol(monkeypatch):
 
 
 def test_nextcol(monkeypatch):
+    """unittest for rst2html_directives.NextCol
+    """
     monkeypatch.setattr(rhdir.NextCol, '__init__', mock_init)
     testsubj = rhdir.NextCol()
-    testsubj.arguments= ['x']
+    testsubj.arguments = ['x']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '</div>\n<div class="grid_x ">\n'
     testsubj = rhdir.NextCol()
-    testsubj.arguments= ['x', 'y']
+    testsubj.arguments = ['x', 'y']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -474,9 +534,11 @@ def test_nextcol(monkeypatch):
 
 
 def test_clearcol(monkeypatch):
+    """unittest for rst2html_directives.ClearCol
+    """
     monkeypatch.setattr(rhdir.ClearCol, '__init__', mock_init)
     testsubj = rhdir.ClearCol()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -484,15 +546,17 @@ def test_clearcol(monkeypatch):
 
 
 def test_spacer(monkeypatch):
+    """unittest for rst2html_directives.Spacer
+    """
     monkeypatch.setattr(rhdir.Spacer, '__init__', mock_init)
     testsubj = rhdir.Spacer()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div class="spacer">&nbsp;</div>\n'
     testsubj = rhdir.Spacer()
-    testsubj.arguments= ['x']
+    testsubj.arguments = ['x']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -501,15 +565,17 @@ def test_spacer(monkeypatch):
 
 
 def test_startbody(monkeypatch):
+    """unittest for rst2html_directives.StartBody
+    """
     monkeypatch.setattr(rhdir.StartBody, '__init__', mock_init)
     testsubj = rhdir.StartBody()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div id="container">'
     testsubj = rhdir.StartBody()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {'header': 'some text'}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -517,32 +583,36 @@ def test_startbody(monkeypatch):
 
 
 def test_navlinks(monkeypatch, capsys):
+    """unittest for rst2html_directives.NavLinks
+    """
     def mock_error(self, *args):
+        """stub
+        """
         print(args[0])
     monkeypatch.setattr(rhdir.NavLinks, '__init__', mock_init)
     testsubj = rhdir.NavLinks()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div id="navigation"><ul></ul></div>'
     testsubj = rhdir.NavLinks()
     monkeypatch.setattr(rhdir.NavLinks, 'error', mock_error)
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['menu tekst?']
     data = testsubj.run()[0][0]
     assert str(data) == '<div id="navigation"><ul></ul></div>'
     assert capsys.readouterr().out == 'Illegal content: `menu tekst?`\n'
     testsubj = rhdir.NavLinks()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['. `menu <jansen']
     data = testsubj.run()[0][0]
     assert str(data) == ('<div id="navigation"><ul></ul></div>')
     assert capsys.readouterr().out == 'Submenu entry before main menu: `. `menu <jansen`\n'
     testsubj = rhdir.NavLinks()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['`linktekst <linkadres>`_', '`menutekst`', '. `linktekst <linkadres>`_',
                         '. `linktekst <linkadres>`_', '`linktekst <linkadres>`_']
@@ -557,15 +627,17 @@ def test_navlinks(monkeypatch, capsys):
 
 
 def test_textheader(monkeypatch):
+    """unittest for rst2html_directives.TextHeader
+    """
     monkeypatch.setattr(rhdir.TextHeader, '__init__', mock_init)
     testsubj = rhdir.TextHeader()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div id="body"><h1 class="page-title">&nbsp;</h1>'
     testsubj = rhdir.TextHeader()
-    testsubj.arguments= ['some text']
+    testsubj.arguments = ['some text']
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -573,9 +645,11 @@ def test_textheader(monkeypatch):
 
 
 def test_startmarginless(monkeypatch):
+    """unittest for rst2html_directives.StartMarginless
+    """
     monkeypatch.setattr(rhdir.StartMarginless, '__init__', mock_init)
     testsubj = rhdir.StartMarginless()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -583,9 +657,11 @@ def test_startmarginless(monkeypatch):
 
 
 def test_endmarginless(monkeypatch):
+    """unittest for rst2html_directives.EndMarginless
+    """
     monkeypatch.setattr(rhdir.EndMarginless, '__init__', mock_init)
     testsubj = rhdir.EndMarginless()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
@@ -593,15 +669,17 @@ def test_endmarginless(monkeypatch):
 
 
 def test_bottomnav(monkeypatch):
+    """unittest for rst2html_directives.BottomNav
+    """
     monkeypatch.setattr(rhdir.BottomNav, '__init__', mock_init)
     testsubj = rhdir.BottomNav()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]
     assert str(data) == '<div><div id="botnav"><ul></ul></div></div>'
     testsubj = rhdir.BottomNav()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = ['', 'plain text', '` only', '` < only', '` <>`_', '`x <y>`_']
     data = testsubj.run()[0][0]
@@ -612,9 +690,11 @@ def test_bottomnav(monkeypatch):
 
 
 def test_endbody(monkeypatch):
+    """unittest for rst2html_directives.EndBody
+    """
     monkeypatch.setattr(rhdir.EndBody, '__init__', mock_init)
     testsubj = rhdir.EndBody()
-    testsubj.arguments= []
+    testsubj.arguments = []
     testsubj.options = {}
     testsubj.content = []
     data = testsubj.run()[0][0]

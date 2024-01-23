@@ -1,3 +1,5 @@
+"""unittests for ./app/docs2pg.py
+"""
 import datetime
 import pytest
 import app.docs2pg as dmlp
@@ -16,6 +18,8 @@ import app.docs2pg as dmlp
 
 
 def test_is_equal():
+    """unittest for docs2pg.is_equal
+    """
     assert dmlp._is_equal([1], 1)
     assert not dmlp._is_equal([0], 1)
     with pytest.raises(TypeError):
@@ -23,48 +27,77 @@ def test_is_equal():
 
 
 class MockDatetime:
+    """stub for datetime.DateTime object
+    """
     def utcnow(*args):
+        """stub
+        """
         return 'now'
 
 
 class MockConn:
+    """stub for psycopg2.Connection object
+    """
     def cursor(self, *args, **kwargs):
+        """stub
+        """
         return MockCursor()
 
     def commit(self, *args, **kwargs):
+        """stub
+        """
         print('called commit() on connection')
 
 
 class MockCursor:
+    """stub for psycopg2.Cursor object
+    """
     def __iter__(self):
-        pass
+        """stub
+        """
 
     def execute(self, *args):
+        """stub
+        """
         print(f'execute SQL: `{args[0]}`')
         if len(args) > 1:
             print('  with:', ', '.join([f'`{x}`' for x in args[1]]))
 
     def executemany(self, *args):
+        """stub
+        """
         print(f'execute SQL: `{args[0]}`')
         if len(args) > 1:
             print('  with:', ', '.join([f'`{x}`' for x in args[1]]))
 
     def commit(self, *args, **kwargs):
+        """stub
+        """
         print('called commit() on cursor')
 
     def close(self, *args, **kwargs):
+        """stub
+        """
         print('called close()')
 
     def fetchone(self, *args, **kwargs):
-        pass
+        """stub
+        """
 
     def fetchall(self, *args, **kwargs):
-        pass
+        """stub
+        """
 
 
 class TestNonApiFunctions:
+    """unittests for functions outside of the dml API
+    """
     def test_get_site_id(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_site_id
+        """
         def mock_fetchone(self, *args):
+            """stub
+            """
             return (99,)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
@@ -75,7 +108,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_get_dir_id(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_dir_id
+        """
         def mock_fetchone(self, *args):
+            """stub
+            """
             return ('dir_id',)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
@@ -86,7 +123,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_get_all_dir_ids(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_all_dir_ids
+        """
         def mock_fetchall(self, *args):
+            """stub
+            """
             return (('dirid01',), ('dirid02',))
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
@@ -97,7 +138,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_get_docs_in_dir(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_docs_in_dir
+        """
         def mock_fetchall(self, *args):
+            """stub
+            """
             return (('docname_01',), ('docname_02',))
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
@@ -108,7 +153,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_get_doc_ids(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_ids
+        """
         def mock_fetchone(self, *args):
+            """stub
+            """
             return {'id': 1, 'source_docid': 2, 'target_docid': 3}
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
@@ -127,7 +176,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_get_doc_text(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_text
+        """
         def mock_fetchone(self, *args):
+            """stub
+            """
             return ('some_text',)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
@@ -144,7 +197,11 @@ class TestNonApiFunctions:
              'called close()\n')
 
     def test_get_settings(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_settings
+        """
         def mock_iter(self):
+            """stub
+            """
             return (x for x in [{'settname': 'sett1', 'settval': 'val1'},
                                 {'settname': 'sett2', 'settval': 'val2'}])
         monkeypatch.setattr(dmlp, 'conn', MockConn())
@@ -156,7 +213,11 @@ class TestNonApiFunctions:
             'called close()\n')
 
     def test_add_doc(self, monkeypatch, capsys):
+        """unittest for docs2pg.add_doc
+        """
         def mock_fetchone(self, *args):
+            """stub
+            """
             return ('some_id',)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ('some_id',))
@@ -168,7 +229,9 @@ class TestNonApiFunctions:
                 'called commit() on connection\n'
                 'called close()\n')
 
-    def test_get_stats(self, monkeypatch, capsys):
+    def test_get_stats(self):
+        """unittest for docs2pg.get_stats
+        """
         mindate = datetime.datetime.min
         assert dmlp._get_stats((1, None, 2, None, 3)) == dmlp.Stats(1, 2, 3)
         assert dmlp._get_stats((1, True, 2, True, 0)) == dmlp.Stats('[deleted]', '[deleted]', mindate)
@@ -178,7 +241,11 @@ class TestNonApiFunctions:
 
 
 class TestTestApi:
+    """unittests for api functions related to testing
+    """
     def test_clear_db(self, monkeypatch, capsys):
+        """unittest for docs2pg.clear_db
+        """
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         dmlp.clear_db()
         assert capsys.readouterr().out == (
@@ -192,7 +259,11 @@ class TestTestApi:
                 'called close()\n')
 
     def test_read_db(self, monkeypatch, capsys):
+        """unittest for docs2pg.read_db
+        """
         def mock_fetchall(self, *args):
+            """stub
+            """
             nonlocal counter
             counter += 1
             if counter == 1:
@@ -207,6 +278,8 @@ class TestTestApi:
                 result = []
             return result
         def mock_iter(self, *args):
+            """stub
+            """
             return (x for x in [{'docname': 'doc1', 'id': 'id1'},
                                 {'docname': 'doc2', 'id': 'id2'}])
         counter = 0
@@ -248,13 +321,17 @@ class TestTestApi:
                 'called close()\n')
 
     def test_list_site_data(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_site_data
+        """
         counter = 0
         def mock_iter(*args):
+            """stub
+            """
             nonlocal counter
             counter += 1
             if counter == 1:
                 return (x for x in [{'id': 2, 'dirname': '/'}, {'id': 3, 'dirname': 'subdir'}])
-            elif counter == 2:
+            if counter == 2:
                 return (x for x in [
                     {'docname': 'doc1', 'dir_id': 2, 'source_docid': 4, 'source_updated': 4,
                         'source_deleted': False, 'target_docid': 5, 'target_updated': 5,
@@ -265,15 +342,15 @@ class TestTestApi:
                     {'docname': 'doc2', 'dir_id': 3, 'source_docid': 6, 'source_updated': 6,
                         'source_deleted': True, 'target_docid': 7, 'target_updated': 7,
                         'target_deleted': True, 'mirror_updated': 8}])
-            elif counter == 3:
+            if counter == 3:
                 return (x for x in [{'id': 4, 'currtext': '/doc1 src text', 'previous': ''},
                                     {'id': 5, 'currtext': '/doc1 dest text', 'previous': 'old txt'},
                                     {'id': 6, 'currtext': 'subdir/doc2 src', 'previous': 'old'},
                                     {'id': 7, 'currtext': 'subdir/doc2 dest', 'previous': ''}])
-            elif counter == 4:
+            if counter == 4:
                 return (x for x in [{'name': 'tpl1', 'text': 'text tpl1'},
                                     {'name': 'tpl2', 'text': 'text tpl2'}])
-
+            return ()
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.list_site_data('testsite')
@@ -282,7 +359,7 @@ class TestTestApi:
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         # import pdb; pdb.set_trace()
-        assert dmlp.list_site_data('sitename') == ({ '_id': 1, 'name': 'sitename',
+        assert dmlp.list_site_data('sitename') == ({'_id': 1, 'name': 'sitename',
             'settings': {'sett1': 'val1', 'sett2': 'val2'},
             'docs': {'/': {'doc0': {},
                            'doc1': {'src': {'docid': 4, 'updated': 4, 'deleted': False},
@@ -296,7 +373,7 @@ class TestTestApi:
             {'_id': ('subdir/doc2', 'dest'), 'current': 'subdir/doc2 dest', 'previous': ''},
             {'_id': ('subdir/doc2', 'src'), 'current': 'subdir/doc2 src', 'previous': 'old'},
             {'_id': ('tpl1',), 'template contents': 'text tpl1'},
-            {'_id': ('tpl2',), 'template contents': 'text tpl2'} ])
+            {'_id': ('tpl2',), 'template contents': 'text tpl2'}])
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, dirname from directories where site_id = %s;`\n'
                 '  with: `1`\n'
@@ -312,10 +389,16 @@ class TestTestApi:
                 'called close()\n')
 
     def test_clear_site_data(self, monkeypatch, capsys):
+        """unittest for docs2pg.clear_site_data
+        """
         def mock_rmtree_err(*args):
+            """stub
+            """
             print('called rmtree()')
             raise FileNotFoundError
         def mock_rmtree_ok(*args):
+            """stub
+            """
             print(f'called rmtree() with arg `{args[0]}`')
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
@@ -336,30 +419,37 @@ class TestTestApi:
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         monkeypatch.setattr(dmlp.shutil, 'rmtree', mock_rmtree_ok)
         dmlp.clear_site_data('site_name')
-        assert capsys.readouterr().out == ''.join((
+        dest = dmlp.WEBROOT / 'site_name'
+        assert capsys.readouterr().out == (
             'execute SQL: `select source_docid, target_docid from doc_stats'
-            ' where dir_id = any(%s);`\n',
-            '  with: `[2, 3]`\n',
-            'execute SQL: `delete from documents where id = any(%s);`\n',
-            '  with: `[4, 7, 5, 8, 6, 9]`\n',
-            'execute SQL: `delete from doc_stats where dir_id = any(%s);`\n',
-            '  with: `[2, 3]`\n',
-            'execute SQL: `delete from templates where site_id = %s;`\n',
-            '  with: `1`\n',
-            'execute SQL: `delete from directories where site_id = %s;`\n',
-            '  with: `1`\n',
-            'execute SQL: `delete from site_settings where site_id = %s;`\n',
-            '  with: `1`\n',
-            'execute SQL: `delete from sites where id = %s;`\n',
-            '  with: `1`\n',
-            'called commit() on connection\n',
+            ' where dir_id = any(%s);`\n'
+            '  with: `[2, 3]`\n'
+            'execute SQL: `delete from documents where id = any(%s);`\n'
+            '  with: `[4, 7, 5, 8, 6, 9]`\n'
+            'execute SQL: `delete from doc_stats where dir_id = any(%s);`\n'
+            '  with: `[2, 3]`\n'
+            'execute SQL: `delete from templates where site_id = %s;`\n'
+            '  with: `1`\n'
+            'execute SQL: `delete from directories where site_id = %s;`\n'
+            '  with: `1`\n'
+            'execute SQL: `delete from site_settings where site_id = %s;`\n'
+            '  with: `1`\n'
+            'execute SQL: `delete from sites where id = %s;`\n'
+            '  with: `1`\n'
+            'called commit() on connection\n'
             # 'called close()\n'
-            'called rmtree() with arg `{}`\n'.format(dmlp.WEBROOT / 'site_name')))
+            f'called rmtree() with arg `{dest}`\n')
 
 
 class TestSiteLevel:
+    """unittests for site level api functions
+    """
     def test_list_sites(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_sites
+        """
         def mock_fetchall(self, *args):
+            """stub
+            """
             return [('site1',), ('site2',)]
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
         # monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
@@ -371,7 +461,11 @@ class TestSiteLevel:
                 'called close()\n')
 
     def test_create_new_site(self, monkeypatch, capsys):
+        """unittest for docs2pg.create_new_site
+        """
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir() for `{self}`')
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 'y')
         monkeypatch.setattr(dmlp.pathlib.Path, 'exists', lambda x: False)
@@ -396,8 +490,12 @@ class TestSiteLevel:
                 'called mkdir() for `/home/albert/projects/rst2html/rst2html-data/site_name`\n')
 
     def test_rename_site(self, monkeypatch, capsys):
+        """unittest for docs2pg.rename_site
+        """
         def mock_rename(self, *args, **kwargs):
-            print(f'called rename() for `{self}` to `{args[0]}`' )
+            """stub
+            """
+            print(f'called rename() for `{self}` to `{args[0]}`')
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.rename_site('site_name', 'newname')
@@ -412,7 +510,9 @@ class TestSiteLevel:
                 'called close()\n'
                 f'called rename() for `{dmlp.WEBROOT}/site_name` to `{dmlp.WEBROOT}/newname`\n')
 
-    def test_read_settings(self, monkeypatch, capsys):
+    def test_read_settings(self, monkeypatch):
+        """unittest for docs2pg.read_settings
+        """
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.read_settings('site_name')
@@ -428,20 +528,25 @@ class TestSiteLevel:
         assert dmlp.read_settings('site_name') == {'test': '&', 'wid': 'x', 'hig': 'y'}
 
     def test_update_settings(self, monkeypatch, capsys):
+        """unittest for docs2pg.update_settings
+        """
         counter = 0
         def mock_get_settings(*args):
+            """stub
+            """
             nonlocal counter
+            print('called get_settings()')
             counter += 1
             if counter == 1:
                 return {'css': ['x', 'y'], 'nam': 'val', 'nam0': 'val0'}
-            elif counter == 2:
-                print('called get_settings()')
+            return {}
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 15)
         monkeypatch.setattr(dmlp, '_get_settings', mock_get_settings)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         dmlp.update_settings('site_name', {'nam': 'newval', 'nam2': 'val2',
                                            'css': ['q', 'r']})
         assert capsys.readouterr().out == (
+                'called get_settings()\n'
                 'execute SQL: `update site_settings set settval = %s'
                 ' where site_id = %s and settname = %s`\n'
                 '  with: `q;r`, `15`, `css`\n'
@@ -458,26 +563,36 @@ class TestSiteLevel:
                 'called close()\n'
                 'called get_settings()\n')
 
-    def test_clear_settings(self, monkeypatch, capsys):
+    def test_clear_settings(self, monkeypatch):
+        """unittest for docs2pg.clear_settings
+        """
         def mock_update_settings(*args):
+            """stub
+            """
             return f'called update_settings with `{args[0]}`, `{args[1]}`'
         monkeypatch.setattr(dmlp, 'update_settings', mock_update_settings)
         assert dmlp.clear_settings('site_name') == ('called update_settings with `site_name`, `{}`')
 
     def test_list_dirs(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_dirs
+        """
         def mock_iter(self, *args):
+            """stub
+            """
             return (x for x in [{'id': 1, 'dirname': '/'},
                                 {'id': 2, 'dirname': 'subdir'}])
         counter = 0
         def mock_iter_2(self, *args):
+            """stub
+            """
             nonlocal counter
             counter += 1
             if counter == 1:
                 return (x for x in [{'id': 1, 'dirname': '/'},
                                     {'id': 2, 'dirname': 'subdir'}])
-            elif counter == 2:
-                return (x for x in [{'dir_id': 1, 'target_docid': 3},
-                                    {'dir_id': 1, 'target_docid': 4}])
+            # elif counter == 2:
+            return (x for x in [{'dir_id': 1, 'target_docid': 3},
+                                {'dir_id': 1, 'target_docid': 4}])
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.list_dirs('site_name')
@@ -503,6 +618,8 @@ class TestSiteLevel:
                 '  with: `[1, 2]`\n')
 
     def test_create_new_dir(self, monkeypatch, capsys):
+        """unittest for docs2pg.create_new_dir
+        """
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.create_new_dir('site_name', 'directory')
@@ -521,28 +638,38 @@ class TestSiteLevel:
                 'called commit() on connection\n'
                 'called close()\n')
 
-    def test_remove_dir(self, monkeypatch, capsys):
+    def test_remove_dir(self):
+        """unittest for docs2pg.remove_dir
+        """
         with pytest.raises(NotImplementedError):
             dmlp.remove_dir('site_name', 'directory')
 
 
 class TestDocLevel:
+    """unittests for document level api functions
+    """
     def test_list_docs(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_docs
+        """
         def mock_dir_id(*args):
+            """stub
+            """
             print(f'called get_dir_id() for `{args[1]}`')
             if return_none:
                 return None
             return 2
         def mock_iter(self, *args):
+            """stub
+            """
             if return_for in ('', 'src'):
                 return (x for x in [{'docname': 'd4', 'source_docid': 4, 'source_deleted': False},
                                     {'docname': 'd5', 'source_docid': 5, 'source_deleted': True}])
-            elif return_for == 'dest':
+            if return_for == 'dest':
                 return (x for x in [{'docname': 'd6', 'target_docid': 6, 'target_deleted': False},
                                     {'docname': 'd7', 'target_docid': 7, 'target_deleted': True}])
-            elif return_for == 'mirror':
-                return (x for x in [{'docname': 'd8', 'mirror_docid': 8, 'mirror_updated': False},
-                                    {'docname': 'd9', 'mirror_docid': 9, 'mirror_updated': True}])
+            # if return_for == 'mirror':
+            return (x for x in [{'docname': 'd8', 'mirror_docid': 8, 'mirror_updated': False},
+                                {'docname': 'd9', 'mirror_docid': 9, 'mirror_updated': True}])
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.list_docs('site_name')
@@ -589,7 +716,11 @@ class TestDocLevel:
         capsys.readouterr()  # flush
 
     def test_list_templates(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_templates
+        """
         def mock_iter(*args):
+            """stub
+            """
             return (x for x in [{'id': 1, 'name': 'tpl1'}, {'id': 2, 'name': 'tpl2'}])
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 99)
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
@@ -602,6 +733,8 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_read_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.read_template
+        """
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 99)
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'text': 'contents'})
         monkeypatch.setattr(dmlp, 'conn', MockConn())
@@ -613,6 +746,8 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_write_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.write_template
+        """
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: 99)
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: None)
         monkeypatch.setattr(dmlp, 'conn', MockConn())
@@ -636,7 +771,11 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_create_new_doc(self, monkeypatch, capsys):
+        """unittest for docs2pg.create_new_doc
+        """
         def mock_dir_id(*args):
+            """stub
+            """
             print(f'called get_dir_id for `{args[1]}`')
             if return_none:
                 return None
@@ -668,7 +807,11 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_get_doc_contents(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_contents
+        """
         def mock_dir_id(*args):
+            """stub
+            """
             print(f'called get_dir_id for `{args[1]}`')
             return 9
         with pytest.raises(AttributeError):
@@ -722,9 +865,15 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_update_rst(self, monkeypatch, capsys):
+        """unittest for docs2pg.update_rst
+        """
         def mock_get_dir_id(*args):
+            """stub
+            """
             print(f'called get_dir_id() for `{args[1]}`')
         def mock_get_dir_id_2(*args):
+            """stub
+            """
             print(f'called get_dir_id() for `{args[1]}`')
             return 99
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
@@ -745,9 +894,9 @@ class TestDocLevel:
         with pytest.raises(FileNotFoundError):
             dmlp.update_rst('site_name', 'doc_name', 'contents', 'dirname')
         assert capsys.readouterr().out == 'called get_dir_id() for `dirname`\n'
-        monkeypatch.setattr(dmlp, '_get_dir_id', lambda x, y: 99 )
-        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3) )
-        monkeypatch.setattr(dmlp, '_get_doc_text', lambda x: 'old text' )
+        monkeypatch.setattr(dmlp, '_get_dir_id', lambda x, y: 99)
+        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3))
+        monkeypatch.setattr(dmlp, '_get_doc_text', lambda x: 'old text')
         monkeypatch.setattr(dmlp, 'conn', MockConn())
         # monkeypatch.setattr(dmlp, 'now', lambda: 'now')
         monkeypatch.setattr(dmlp.datetime, 'datetime', MockDatetime)
@@ -761,7 +910,11 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_revert_rst(self, monkeypatch, capsys):
+        """unittest for docs2pg.revert_rst
+        """
         def mock_get_dir_id(*args):
+            """stub
+            """
             print(f'called get_dir_id() for `{args[1]}`')
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(AttributeError):
@@ -777,7 +930,7 @@ class TestDocLevel:
         monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (None, 2, 3))
         with pytest.raises(FileNotFoundError):
             dmlp.revert_rst('site_name', 'doc_name')
-        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3) )
+        monkeypatch.setattr(dmlp, '_get_doc_ids', lambda x, y: (1, 2, 3))
 
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {'previous': 'oldtext'})
         monkeypatch.setattr(dmlp, 'conn', MockConn())
@@ -794,17 +947,25 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_mark_src_deleted(self, monkeypatch, capsys):
+        """unittest for docs2pg.mark_src_deleted
+        """
         def mock_site_id(*args):
+            """stub
+            """
             if counter == 1:
                 return None
             return 9
         def mock_dir_id(*args):
+            """stub
+            """
             if counter <= 3:
                 print(f'called get_dir_id() for `{args[1]}`')
             if counter == 2:
                 return None
             return 99
         def mock_doc_ids(*args):
+            """stub
+            """
             if counter == 3:
                 return None, 2, 3
             return 1, 2, 3
@@ -840,20 +1001,28 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_update_html(self, monkeypatch, capsys):
+        """unittest for docs2pg.update_html
+        """
         def mock_site_id(*args):
+            """stub
+            """
             if counter == 1:
                 return None
             return 9
         def mock_dir_id(*args):
+            """stub
+            """
             if counter <= 3:
                 print(f'called get_dir_id() for `{args[1]}`')
             if counter == 2:
                 return None
             return 99
         def mock_doc_ids(*args):
+            """stub
+            """
             if counter == 3:
                 return None, 2, 3
-            elif counter == 4:
+            if counter == 4:
                 return 1, 2, None
             return 1, 2, 3
         with pytest.raises(AttributeError):
@@ -903,7 +1072,11 @@ class TestDocLevel:
         assert capsys.readouterr().out == ''
 
     def test_list_deletions_target(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_deletions_target
+        """
         def mock_get_dirlist(*args):
+            """stub
+            """
             print(f'called get_dirlist_for_site() met {args = }')
             if args[1] == '':
                 return [('/', 99)]
@@ -911,6 +1084,8 @@ class TestDocLevel:
                 return [('/', 99), ('subdir', 99)]
             return [('dirname', 99)]
         def mock_list_deletions(*args):
+            """stub
+            """
             print(f'called list_deletions() met {args = }')
             retval = []
             for x, y in args[0]:
@@ -935,7 +1110,11 @@ class TestDocLevel:
                 "called list_deletions() met args = ([('dirname', 99)], 'source')\n")
 
     def test_apply_deletions_target(self, monkeypatch, capsys):
+        """unittest for docs2pg.apply_deletions_target
+        """
         def mock_get_dirlist(*args):
+            """stub
+            """
             print(f'called get_dirlist_for_site() met {args = }')
             if args[1] == '':
                 return [('/', 99)]
@@ -943,6 +1122,8 @@ class TestDocLevel:
                 return [('/', 99), ('subdir', 99)]
             return [('dirname', 99)]
         def mock_apply_deletions(*args):
+            """stub
+            """
             print(f'called apply_deletions() met {args = }')
             retval = []
             for x, y in args[0]:
@@ -983,27 +1164,41 @@ class TestDocLevel:
                 "called close()\n")
 
     def test_update_mirror(self, monkeypatch, capsys):
+        """unittest for docs2pg.update_mirror
+        """
         def mock_site_id(*args):
+            """stub
+            """
             if counter == 1:
                 return None
             return 9
         def mock_dir_id(*args):
+            """stub
+            """
             if counter <= 3:
                 print(f'called get_dir_id() for `{args[1]}`')
             if counter == 2:
                 return None
             return 99
         def mock_doc_ids(*args):
+            """stub
+            """
             if counter == 3:
                 return None, 2, 3
             # elif counter == 4:
             #     return 1, 2, None
             return 1, 2, 3
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir() with arg `{self}`')
         def mock_touch(self, *args):
+            """stub
+            """
             print(f'called touch() with arg `{self}`')
         def mock_save_to(*args):
+            """stub
+            """
             print(f'called save_to() with args `{args[0]}` `{args[1]}`')
         with pytest.raises(AttributeError):
             dmlp.update_mirror('site_name', '', 'contents')
@@ -1069,7 +1264,11 @@ class TestDocLevel:
         assert capsys.readouterr().out == ''
 
     def test_list_deletions_mirror(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_deletions_mirror
+        """
         def mock_get_dirlist(*args):
+            """stub
+            """
             print(f'called get_dirlist_for_site() met {args = }')
             if args[1] == '':
                 return [('/', 99)]
@@ -1077,6 +1276,8 @@ class TestDocLevel:
                 return [('/', 99), ('subdir', 99)]
             return [('dirname', 99)]
         def mock_list_deletions(*args):
+            """stub
+            """
             print(f'called list_deletions() met {args = }')
             retval = []
             for x, y in args[0]:
@@ -1101,7 +1302,11 @@ class TestDocLevel:
                 "called list_deletions() met args = ([('dirname', 99)], 'target')\n")
 
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
+        """unittest for docs2pg.apply_deletions_mirror
+        """
         def mock_get_dirlist(*args):
+            """stub
+            """
             print(f'called get_dirlist_for_site() met {args = }')
             if args[1] == '':
                 return [('/', 99)]
@@ -1109,6 +1314,8 @@ class TestDocLevel:
                 return [('/', 99), ('subdir', 99)]
             return [('dirname', 99)]
         def mock_apply_deletions(*args):
+            """stub
+            """
             print(f'called apply_deletions() met {args = }')
             retval = []
             for x, y in args[0]:
@@ -1118,6 +1325,8 @@ class TestDocLevel:
                     retval.append(f'{x}/doc2')
             return [], retval
         def mock_unlink(self, *args):
+            """stub
+            """
             print(f'called unlink() with argument `{self}`')
         monkeypatch.setattr(dmlp, 'get_dirlist_for_site', mock_get_dirlist)
         monkeypatch.setattr(dmlp, 'apply_deletions', mock_apply_deletions)
@@ -1141,7 +1350,9 @@ class TestDocLevel:
                 f'called unlink() with argument `{destloc}/doc1.html`\n'
                 f'called unlink() with argument `{destloc}/subdir/doc2.html`\n')
 
-    def test_get_dirlist_for_site(self, monkeypatch, capsys):
+    def test_get_dirlist_for_site(self, monkeypatch):
+        """unittest for docs2pg.get_dirlist_for_site
+        """
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError) as excinfo:
             dmlp.get_dirlist_for_site('sitename', '')
@@ -1158,7 +1369,11 @@ class TestDocLevel:
         assert dmlp.get_dirlist_for_site('sitename', 'dirname') == [('dirname', 99)]
 
     def test_list_deletions(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_deletions
+        """
         def mock_iter(*args):
+            """stub
+            """
             return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
                                 {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
         assert dmlp.list_deletions([], 'x') == []
@@ -1175,7 +1390,11 @@ class TestDocLevel:
                 '  with: `2`, `True`\n')
 
     def test_apply_deletions(self, monkeypatch, capsys):
+        """unittest for docs2pg.apply_deletions
+        """
         def mock_iter(*args):
+            """stub
+            """
             return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
                                 {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
@@ -1202,24 +1421,33 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_get_doc_stats(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_stats
+        """
         def mock_site_id(*args):
+            """stub
+            """
             if counter == 1:
                 return None
-            else:
-                return 9
+            return 9
         def mock_dir_id(*args):
+            """stub
+            """
             if counter <= 3:
                 print(f'called get_dir_id() for `{args[1]}`')
             if counter == 2:
                 return None
             return 99
         def mock_doc_ids(*args):
+            """stub
+            """
             if counter == 3:
                 return None, 2, 3
             # elif counter == 4:
             #     return 1, 2, None
             return 1, 2, 3
         def mock_stats(*args):
+            """stub
+            """
             return args[0]
         counter = 1
         monkeypatch.setattr(dmlp, '_get_site_id', mock_site_id)
@@ -1251,31 +1479,34 @@ class TestDocLevel:
                 'called close()\n')
 
     def test_get_all_doc_stats(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_all_doc_stats
+        """
         counter = 0
         def mock_iter(*args):
+            """stub
+            """
             nonlocal counter
             counter += 1
             if counter == 1:
                 return (x for x in [{'dirname': '/'}, {'dirname': 'subdir'}])
-            else:
-                return (x for x in [{'docname': 'x', 'source_updated': 1, 'target_updated': 2,
-                                     'mirror_updated': 3, 'source_deleted': None,
-                                     'target_deleted': None, 'dirname': '/'},
-                                    {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': None,
-                                     'target_deleted': None, 'dirname': '/'},
-                                    {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': 8,
-                                     'target_deleted': None, 'dirname': '/'},
-                                    {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': 8,
-                                     'target_deleted': 9, 'dirname': '/'},
-                                    {'docname': 'a', 'source_updated': 2, 'target_updated': 4,
-                                     'mirror_updated': 5, 'source_deleted': None,
-                                     'target_deleted': None, 'dirname': 'subdir'},
-                                    {'docname': 'b', 'source_updated': 3, 'target_updated': 4,
-                                     'mirror_updated': 6, 'source_deleted': None,
-                                     'target_deleted': None, 'dirname': 'subdir'}])
+            return (x for x in [{'docname': 'x', 'source_updated': 1, 'target_updated': 2,
+                                 'mirror_updated': 3, 'source_deleted': None,
+                                 'target_deleted': None, 'dirname': '/'},
+                                {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
+                                 'mirror_updated': 5, 'source_deleted': None,
+                                 'target_deleted': None, 'dirname': '/'},
+                                {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
+                                 'mirror_updated': 5, 'source_deleted': 8,
+                                 'target_deleted': None, 'dirname': '/'},
+                                {'docname': 'y', 'source_updated': 1, 'target_updated': 4,
+                                 'mirror_updated': 5, 'source_deleted': 8,
+                                 'target_deleted': 9, 'dirname': '/'},
+                                {'docname': 'a', 'source_updated': 2, 'target_updated': 4,
+                                 'mirror_updated': 5, 'source_deleted': None,
+                                 'target_deleted': None, 'dirname': 'subdir'},
+                                {'docname': 'b', 'source_updated': 3, 'target_updated': 4,
+                                 'mirror_updated': 6, 'source_deleted': None,
+                                 'target_deleted': None, 'dirname': 'subdir'}])
         monkeypatch.setattr(dmlp, '_get_site_id', lambda x: None)
         with pytest.raises(FileNotFoundError):
             dmlp.get_all_doc_stats('site_name')
@@ -1288,9 +1519,8 @@ class TestDocLevel:
                        ('y', dmlp.Stats(src=1, dest=4, mirror=5)),
                        ('y', dmlp.Stats(src='[deleted]', dest=4, mirror=5)),
                        ('y', dmlp.Stats(src='[deleted]', dest='[deleted]', mirror=5))]),
-                ('subdir',
-                      [('a', dmlp.Stats(src=2, dest=4, mirror=5)),
-                       ('b', dmlp.Stats(src=3, dest=4, mirror=6))])]
+                ('subdir', [('a', dmlp.Stats(src=2, dest=4, mirror=5)),
+                            ('b', dmlp.Stats(src=3, dest=4, mirror=6))])]
 
         assert capsys.readouterr().out == (
                 'execute SQL: `select dirname from directories where site_id = %s;`\n'

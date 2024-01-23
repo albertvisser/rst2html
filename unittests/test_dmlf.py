@@ -1,14 +1,21 @@
+"""unittests for ./app/docs2fs.py
+"""
 import os
 import pathlib
+import types
 import pytest
 import app.docs2fs as dmlf
 
 
 def mock_copyfile(*args):
+    """stub
+    """
     print(f'called copyfile: from `{args[0]}` to `{args[1]}`')
 
 
 def test_locify():
+    """unittest for docs2fs.locify
+    """
     path = pathlib.Path('test')
     assert dmlf._locify(path) == path / '.source'
     assert dmlf._locify(path, '') == path / '.source'
@@ -20,35 +27,56 @@ def test_locify():
 
 
 class TestNonApiFunctions:
+    """unittests for functions outside of the dml API
+    """
     def test_get_dir_ftype_stats(self, monkeypatch):
+        """unittest for docs2fs.get_dir_ftype_stats
+        """
         def mock_locify(*args):
+            """stub
+            """
             return pathlib.Path('.')
         def mock_is_file(*args):
+            """stub
+            """
             return bool(args[0].suffix)
         def mock_is_dir(*args):
+            """stub
+            """
             return not bool(args[0].suffix)
         def mock_iterdir_src(*args):
+            """stub
+            """
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
                     pathlib.Path('index.rst'), pathlib.Path('test.src'),
                     pathlib.Path('revived.deleted'), pathlib.Path('revived.rst'),
                     pathlib.Path('overview-xxx'), pathlib.Path('search-results-xxx'),
                     pathlib.Path('removed.deleted'))
         def mock_iterdir_dest(*args):
+            """stub
+            """
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'),
                     pathlib.Path('index.html'), pathlib.Path('test.src'),
                     pathlib.Path('revived.deleted'), pathlib.Path('revived.html'),
                     pathlib.Path('removed.deleted'))
         def mock_iterdir_dest_sef(*args):
+            """stub
+            """
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('hello'),
                     pathlib.Path('kitty'))
         def mock_relative_to(*args):
+            """stub
+            """
             return args[0]
         def mock_stat(*args):
-            import types
+            """stub
+            """
             result = types.SimpleNamespace()
             result.st_mtime = 'x'
             return result
         def mock_stat_error(*args):
+            """stub
+            """
             raise FileNotFoundError
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
@@ -79,13 +107,17 @@ class TestNonApiFunctions:
                 [], ['revived', 'removed'])
 
     def test_get_dir_stats(self, monkeypatch):
+        """unittest for docs2fs.get_dir_stats
+        """
         def mock_get_dir_ftype_stats(*args):
+            """stub
+            """
             if args[1] == 'src':
                 return (('name2', 2), ('name1', 1)), ['name3']
-            elif args[1] == 'dest':
+            if args[1] == 'dest':
                 return (('name2', 2), ('name1', 1), ('name3', 1)), ['name4']
-            elif args[1] == 'mirror':
-                return (('name2', 2), ('name1', 1), ('name3', 2), ('name4', 2)), []
+            # if args[1] == 'mirror':
+            return (('name2', 2), ('name1', 1), ('name3', 2), ('name4', 2)), []
         monkeypatch.setattr(dmlf, '_get_dir_ftype_stats', mock_get_dir_ftype_stats)
         time1 = dmlf.datetime.datetime.fromtimestamp(1)
         time2 = dmlf.datetime.datetime.fromtimestamp(2)
@@ -96,7 +128,11 @@ class TestNonApiFunctions:
                                                    ('name4', dmlf.Stats(null, '[deleted]', time2))]
 
     def test_get_dir_stats_for_docitem(self, monkeypatch):
+        """unittest for docs2fs.get_dir_stats_for_docitem
+        """
         def mock_get_dir_ftype_stats(*args):
+            """stub
+            """
             return [('name2', 2), ('name1', 1)], ['name2', 'name3']
         monkeypatch.setattr(dmlf, '_get_dir_ftype_stats', mock_get_dir_ftype_stats)
         time1 = dmlf.datetime.datetime.fromtimestamp(1)
@@ -113,9 +149,15 @@ class TestNonApiFunctions:
                           'src': {'deleted': True}}}
 
     def test_get_sitedoc_data(self, monkeypatch):
+        """unittest for docs2fs.get_sitedoc_data
+        """
         def mock_get_docitem_stats(*args):
+            """stub
+            """
             return 'hello, world!'
         def mock_list_dirs(*args):
+            """stub
+            """
             return 'x', 'y'
         monkeypatch.setattr(dmlf, '_get_dir_stats_for_docitem', mock_get_docitem_stats)
         monkeypatch.setattr(dmlf, 'list_dirs', mock_list_dirs)
@@ -123,65 +165,91 @@ class TestNonApiFunctions:
                                                       'y': 'hello, world!'}
 
     def test_read_data(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.read_data
+        """
         tmpfile = tmp_path / 'dmlftmpfile'
         tmpfile.write_text('regel 1\rregel 2\r\nregel 3\n')
         tmpfileiso = tmp_path / 'dmlftmpfileiso'
         tmpfileiso.write_text('règle 1\rrègle 2\r\nrègle 3\n', encoding='iso-8859-1')
         def mock_relative_to(self, *args):
+            """stub
+            """
             return self
         def mock_open_utf(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
             return open(str(tmpfile))
         def mock_open_utf_err(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
             raise OSError('IO error on utf file')
         def mock_open_iso(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
             return open(str(tmpfileiso))
         def mock_open_iso_err(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
-            #return tmpfileiso.open()
+            # return tmpfileiso.open()
             raise OSError('IO error on iso file')
         def mock_readlines(*args):
+            """stub
+            """
             return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
-        monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to',  mock_relative_to)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to', mock_relative_to)
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
-        monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_utf)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_utf)
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('',
                                                                         'regel 1\nregel 2\nregel 3\n')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname.rst`\n'
         assert dmlf.read_data(pathlib.Path('sitename/docname.html')) == ('',
                                                                         'regel 1\nregel 2\nregel 3\n')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname/index.html`\n'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_utf_err)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_utf_err)
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('IO error on utf file', '')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname.rst`\n'
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
-        monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_iso)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_iso)
         # blijkbaar gaat dit ook mis als hij het iso file gaat proberen te lezen...
         # assert dmlf.read_data(pathlib.Path('sitename/docname.html')) == ('',
         #                                                                 'regel 1\nregel 2\nregel 3\n')
         # assert capsys.readouterr().out == 'called open() for file `sitename/docname.html`\n'
-        monkeypatch.setattr(dmlf.pathlib.Path, 'open',  mock_open_iso_err)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_iso_err)
         assert dmlf.read_data(pathlib.Path('sitename/docname.rst')) == ('IO error on iso file', '')
         assert capsys.readouterr().out == 'called open() for file `sitename/docname.rst`\n'
 
     def test_save_to(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.save_to
+        """
         tmpfilename = str(tmp_path / 'dmlfsaveto')
         def mock_open_err(self, *args, **kwargs):
+            """stub
+            """
             raise OSError
         def mock_open(self, *args, **kwargs):
+            """stub
+            """
             return open(tmpfilename, 'w')
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir for `{self}`')
         def mock_replace(self, *args, **kwargs):
+            """stub
+            """
             print(f'called replace for `{self}` with `{args[0]}`')
         def read_and_remove(filename):
+            """stub
+            """
             with open(filename) as read_file:
                 data = read_file.read()
             os.unlink(filename)
             return data
-        fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname'
+        fulldocname = dmlf.WEBROOT / 'testsite' / 'docname'
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {})
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_err)
@@ -194,13 +262,13 @@ class TestNonApiFunctions:
         assert capsys.readouterr().out == ''
         assert read_and_remove(tmpfilename) == 'data'
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
-        fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname.rst'
+        fulldocname = dmlf.WEBROOT / 'testsite' / 'docname.rst'
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == 'called copyfile: from `{}` to `{}`\n'.format(
             str(fulldocname), str(fulldocname) + '.bak')
         assert read_and_remove(tmpfilename) == 'data'
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
-        fulldocname = dmlf.WEBROOT / 'testsite'/ 'docname.html'
+        fulldocname = dmlf.WEBROOT / 'testsite' / 'docname.html'
         assert dmlf.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == 'called mkdir for `{}`\n'.format(
             str(fulldocname).replace('.html', ''))
@@ -222,25 +290,43 @@ class TestNonApiFunctions:
 
 
 class TestTestApi:
+    """unittests for api functions related to testing
+    """
     def test_clear_db(self):
+        """unittest for docs2fs.clear_db
+        """
         with pytest.raises(NotImplementedError):
             dmlf.clear_db()
 
     def test_read_db(self):
+        """unittest for docs2fs.read_db
+        """
         with pytest.raises(NotImplementedError):
             dmlf.read_db()
 
-    def test_list_site_data(self, monkeypatch, capsys):
+    def test_list_site_data(self, monkeypatch):
+        """unittest for docs2fs.list_site_data
+        """
         def mock_read_settings(*args):
+            """stub
+            """
             return f'called read_settings for `{args[0]}`'
         def mock_get_sitedoc_data(*args):
+            """stub
+            """
             return f'called get_sitedoc_data for `{args[0]}`'
         def mock_list_docs(*args):
-            rest = f'/{args[2]}' if len(args) > 2 else ''
+            """stub
+            """
+            # rest = f'/{args[2]}' if len(args) > 2 else ''  # why if this is not used?
             return ['doc1']
         def mock_list_dirs(*args):
+            """stub
+            """
             return ['dir1']
         def mock_read_data(*args):
+            """stub
+            """
             return '', f'called read_data for {args[0]}'
         # formeel kloppen deze returns maar hou er rekening mee dat dit niks zegt over hoe
         # de gegevens er uit zien
@@ -269,9 +355,15 @@ class TestTestApi:
               'previous': f'called read_data for {siteloc}/.source/doc1.rst.bak'}])
 
     def test_clear_site_data(self, monkeypatch, capsys):
+        """unittest for docs2fs.clear_site_data
+        """
         def mock_rmtree_ok(*args):
+            """stub
+            """
             print(f'called rmtree for `{args[0]}`')
         def mock_rmtree_err(*args):
+            """stub
+            """
             raise FileNotFoundError
         sitename = 'testsite'
         monkeypatch.setattr(dmlf.shutil, 'rmtree', mock_rmtree_ok)
@@ -283,20 +375,38 @@ class TestTestApi:
 
 
 class TestSiteLevel:
+    """unittests for site level api functions
+    """
     def test_list_sites(self, monkeypatch):
+        """unittest for docs2fs.list_sites
+        """
         def mock_iterdir(*args):
+            """stub
+            """
             return [pathlib.Path(x) for x in ('y', 'z')]
         def mock_is_dir_yes(*args):
+            """stub
+            """
             return True
         def mock_is_dir_no(*args):
+            """stub
+            """
             return False
         def mock_exists_yes(*args):
+            """stub
+            """
             return True
         def mock_exists_no(*args):
+            """stub
+            """
             return False
         def mock_is_file_yes(*args):
+            """stub
+            """
             return True
         def mock_is_file_no(*args):
+            """stub
+            """
             return False
         monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', mock_iterdir)
         monkeypatch.setattr(dmlf.pathlib.Path, 'is_dir', mock_is_dir_no)
@@ -315,11 +425,19 @@ class TestSiteLevel:
         assert dmlf.list_sites() == ['y', 'z']
 
     def test_create_new_site(self, monkeypatch, capsys):
+        """unittest for docs2fs.create_new_site
+        """
         def mock_mkdir_err(self, *args, **kwargs):
+            """stub
+            """
             raise FileExistsError
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir for `{self}`')
         def mock_touch(self, *args, **kwargs):
+            """stub
+            """
             print(f'called touch for `{self}`')
         sitename = 'testsite'
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir_err)
@@ -335,18 +453,28 @@ class TestSiteLevel:
                                            f'called touch for `{siteloc}/settings.yml`\n')
 
     def test_rename_site(self):
+        """unittest for docs2fs.rename_site
+        """
         with pytest.raises(NotImplementedError):
             dmlf.rename_site('sitename', 'newname')
 
     def test_read_settings(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.read_settings
+        """
         testsettings = tmp_path / 'dmlfreadsett'
-        testsettings.write_text ('regel 1\rregel 2\r\nregel 3\n')
+        testsettings.write_text('regel 1\rregel 2\r\nregel 3\n')
         def mock_open(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
             return open(str(testsettings))
         def mock_load_config_data(*args):
+            """stub
+            """
             return {'x': 'y'}
         def mock_load_config_data_2(*args):
+            """stub
+            """
             return None
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
         monkeypatch.setattr(dmlf, 'load_config_data', mock_load_config_data)
@@ -360,10 +488,16 @@ class TestSiteLevel:
         assert capsys.readouterr().out == f'called open() for file `{settfile}`\n'
 
     def test_update_settings(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.update_settings
+        """
         def mock_open(self, *args, **kwargs):
+            """stub
+            """
             print(f'called open() for file `{self}`')
             return open(str(tmp_path / 'dmlfupd_sett'), 'w')
         def mock_save_config_data(*args, **kwargs):
+            """stub
+            """
             print('called save_config_data')
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
@@ -381,13 +515,21 @@ class TestSiteLevel:
                                            'called save_config_data\n')
 
     def test_clear_settings(self):
+        """unittest for docs2fs.clear_settings
+        """
         with pytest.raises(NotImplementedError):
             dmlf.clear_settings('sitename')
 
     def test_list_dirs(self, monkeypatch, capsys):
+        """unittest for docs2fs.list_dirs
+        """
         def mock_locify(*args):
+            """stub
+            """
             return args[0] / args[1]
         def mock_iterdir(self, *args):
+            """stub
+            """
             print(f'called iterdir for path `{self}`')
             return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('subdir'))
         sitename = 'testsite'
@@ -415,9 +557,15 @@ class TestSiteLevel:
         assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
 
     def test_create_new_dir(self, monkeypatch, capsys):
+        """unittest for docs2fs.create_new_dir
+        """
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir for `{self}`')
         def mock_touch(self, *args, **kwargs):
+            """stub
+            """
             print(f'called touch for `{self}`')
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlf.pathlib.Path, 'touch', mock_touch)
@@ -429,18 +577,28 @@ class TestSiteLevel:
                                            f"called touch for `{newdir / '.files'}`\n")
 
     def test_remove_dir(self):
+        """unittest for docs2fs.remove_dir
+        """
         with pytest.raises(NotImplementedError):
             dmlf.remove_dir('sitename', 'directory')
 
 
 class TestDocLevel:
-    def test_list_docs(self, monkeypatch, capsys):
+    """unittests for document level api functions
+    """
+    def test_list_docs(self, monkeypatch):
+        """unittest for docs2fs.list_docs
+        """
         def mock_exists_1(*args, **kwargs):
+            """stub
+            """
             self.times_called += 1
             if self.times_called == 1:
                 return True
             return False
         def mock_iterdir(self, *args, **kwargs):
+            """stub
+            """
             return [dmlf.pathlib.Path(x) for x in ['file2', 'file3.rst', 'file5.html', 'file1.rst',
                                                    'file4.html', 'file0.deleted']]
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
@@ -470,8 +628,12 @@ class TestDocLevel:
                                                         'file4', 'file0', 'index']
         assert dmlf.list_docs('testsite', 'src', deleted=True) == ['file0']
 
-    def test_list_templates(self, monkeypatch, capsys):
+    def test_list_templates(self, monkeypatch):
+        """unittest for docs2fs.list_templates
+        """
         def mock_iterdir(self):
+            """stub
+            """
             return (pathlib.Path('x'), pathlib.Path('y.rst'), pathlib.Path('y.html'),
                     pathlib.Path('z.tpl'), pathlib.Path('a.tpl'))
         sitename = 'testsite'
@@ -482,9 +644,13 @@ class TestDocLevel:
         assert dmlf.list_templates(sitename) == ['a.tpl', 'z.tpl']
 
     def test_read_template(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.read_template
+        """
         tmpfile = tmp_path / 'dmlfread_tpl'
         tmpfile.write_text('hello\rhello\r\nhello\n')
         def mock_open(self, *args):
+            """stub
+            """
             print(f'called open() for `{self}`')
             return open(str(tmpfile))
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open)
@@ -493,10 +659,16 @@ class TestDocLevel:
         tplname = dmlf.WEBROOT / sitename / '.templates' / docname
         assert capsys.readouterr().out == f'called open() for `{tplname}`\n'
 
-    def test_write_template(self, monkeypatch, capsys, tmp_path):
+    def test_write_template(self, monkeypatch, tmp_path):
+        """unittest for docs2fs.write_template
+        """
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir() for `{self}`')
         def mock_save_to(filename, data):
+            """stub
+            """
             return f'called save_to with args `{filename}`, `{data}`'
         monkeypatch.setattr(dmlf.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(dmlf, 'save_to', mock_save_to)
@@ -506,7 +678,11 @@ class TestDocLevel:
                                                                     f" `{fullname}`, `data`")
 
     def test_create_new_doc(self, monkeypatch, capsys):
+        """unittest for docs2fs.create_new_doc
+        """
         def mock_touch(self, *args, **kwargs):
+            """stub
+            """
             print(f'called touch() for `{self}`')
         with pytest.raises(AttributeError):
             dmlf.create_new_doc('sitename', '')
@@ -525,10 +701,16 @@ class TestDocLevel:
         dmlf.create_new_doc('sitename', 'docname', 'directory')
         assert capsys.readouterr().out == f'called touch() for `{path}`\n'
 
-    def test_get_doc_contents(self, monkeypatch, capsys):
+    def test_get_doc_contents(self, monkeypatch):
+        """unittest for docs2fs.get_doc_contents
+        """
         def mock_read_data(*args):
+            """stub
+            """
             return '', f'read data from `{args[0]}`'
         def mock_read_data_mld(*args):
+            """stub
+            """
             return 'read data failed', ''
         with pytest.raises(AttributeError):
             dmlf.get_doc_contents('sitename', '')
@@ -556,11 +738,19 @@ class TestDocLevel:
                 f'read data from `{path}`')
 
     def test_update_rst(self, monkeypatch, capsys):
+        """unittest for docs2fs.update_rst
+        """
         def mock_list_docs_none(*args):
+            """stub
+            """
             return []
         def mock_list_docs(*args):
+            """stub
+            """
             return ['doc_name']
         def mock_save_to(*args):
+            """stub
+            """
             print(f'call save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_rst('sitename', '', '')
@@ -579,13 +769,23 @@ class TestDocLevel:
         assert capsys.readouterr().out == f'call save_to(): save `contents` in `{path}`\n'
 
     def test_revert_rst(self, monkeypatch, capsys):
+        """unittest for docs2fs.revert_rst
+        """
         def mock_list_docs_none(*args):
+            """stub
+            """
             return []
         def mock_list_docs(*args):
+            """stub
+            """
             return ['doc_name']
         def mock_rename(self, *args):
+            """stub
+            """
             print(f'call rename() to replace `{args[0]}` with `{self}`')
         def mock_rename_err(self, *args):
+            """stub
+            """
             raise FileNotFoundError
         with pytest.raises(AttributeError):
             dmlf.revert_rst('sitename', '')
@@ -605,11 +805,19 @@ class TestDocLevel:
         assert capsys.readouterr().out == f'call rename() to replace `{path}` with `{path}.bak`\n'
 
     def test_mark_src_deleted(self, monkeypatch, capsys):
+        """unittest for docs2fs.mark_src_deleted
+        """
         def mock_list_docs_none(*args):
+            """stub
+            """
             return []
         def mock_list_docs(*args):
+            """stub
+            """
             return ['doc_name']
         def mock_rename(self, *args):
+            """stub
+            """
             print(f'call rename(): from `{self}` to `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.mark_src_deleted('sitename', '')
@@ -628,13 +836,23 @@ class TestDocLevel:
         assert capsys.readouterr().out == f'call rename(): from `{path}` to `{path_n}`\n'
 
     def test_update_html(self, monkeypatch, capsys):
+        """unittest for docs2fs.update_html
+        """
         def mock_list_docs_none(*args):
+            """stub
+            """
             return []
         def mock_list_docs(*args):
+            """stub
+            """
             return ['doc_name']
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir() for `{self}`')
         def mock_save_to(*args):
+            """stub
+            """
             print(f'call save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_html('sitename', '', '')
@@ -658,13 +876,19 @@ class TestDocLevel:
                                                    f'call save_to(): save `contents` in `{path}`\n'))
 
     def test_list_deletions_target(self, monkeypatch, capsys):
+        """unittest for docs2fs.list_deletions_target
+        """
         def mock_build_dirlist(*args):
+            """stub
+            """
             if args[1] == '':
                 return ['/']
-            elif args[1] == '*':
+            if args[1] == '*':
                 return ['/', 'subdir']
             return [args[1]]
         def mock_glob(self, *args):
+            """stub
+            """
             name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
@@ -680,21 +904,33 @@ class TestDocLevel:
         assert capsys.readouterr().out == "called path.glob() for *.deleted in .source/dirname\n"
 
     def test_apply_deletions_target(self, monkeypatch, capsys):
+        """unittest for docs2fs.apply_deletions_target
+        """
         def mock_build_dirlist(*args):
+            """stub
+            """
             if args[1] == '':
                 return ['/']
-            elif args[1] == '*':
+            if args[1] == '*':
                 return ['/', 'subdir']
             return [args[1]]
         def mock_glob(self, *args, **kwargs):
+            """stub
+            """
             name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
             print(f'deleted file `{self}`')
         def mock_rename(self, *args, **kwargs):
+            """stub
+            """
             print(f'renamed file `{self}`')
         def mock_touch(self, *args, **kwargs):
+            """stub
+            """
             print(f'created file `{self}`')
         monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
@@ -742,9 +978,15 @@ class TestDocLevel:
                                            f'created file `{locsub}/file2.deleted`\n')
 
     def test_update_mirror(self, monkeypatch, capsys):
+        """unittest for docs2fs.update_mirror
+        """
         def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
             print(f'called mkdir() for `{self}`')
         def mock_save_to(*args):
+            """stub
+            """
             print(f'called save_to(): save `{args[1]}` in `{args[0]}`')
         with pytest.raises(AttributeError):
             dmlf.update_mirror('sitename', '', 'data')
@@ -767,13 +1009,19 @@ class TestDocLevel:
                                                    f'called save_to(): save `data` in `{loc}`\n'))
 
     def test_list_deletions_mirror(self, monkeypatch, capsys):
+        """unittest for docs2fs.list_deletions_mirror
+        """
         def mock_build_dirlist(*args):
+            """stub
+            """
             if args[1] == '':
                 return ['/']
-            elif args[1] == '*':
+            if args[1] == '*':
                 return ['/', 'subdir']
             return [args[1]]
         def mock_glob(self, *args):
+            """stub
+            """
             name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
@@ -789,17 +1037,25 @@ class TestDocLevel:
         assert capsys.readouterr().out == "called path.glob() for *.deleted in .target/dirname\n"
 
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
+        """unittest for docs2fs.apply_deletions_mirror
+        """
         def mock_build_dirlist(*args):
+            """stub
+            """
             if args[1] == '':
                 return ['/']
-            elif args[1] == '*':
+            if args[1] == '*':
                 return ['/', 'subdir']
             return [args[1]]
         def mock_glob(self, *args, **kwargs):
+            """stub
+            """
             name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
             print('called path.glob() for', args[0], 'in', name)
             return [self / 'file1.deleted', self / 'file2.deleted']
         def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
             print(f'deleted file `{self}`')
         monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
@@ -844,8 +1100,12 @@ class TestDocLevel:
                                            f'deleted file `{loc}/file1.deleted`\n'
                                            f'deleted file `{loc}/file2.deleted`\n')
 
-    def test_build_dirlist(self, monkeypatch, capsys):
+    def test_build_dirlist(self, monkeypatch):
+        """unittest for docs2fs.build_dirlist
+        """
         def mock_list_dirs(*args):
+            """stub
+            """
             return ['subdir1', 'subdir2']
         monkeypatch.setattr(dmlf, 'list_dirs', mock_list_dirs)
         assert dmlf.build_dirlist('sitename', '') == ['/']
@@ -853,12 +1113,17 @@ class TestDocLevel:
         assert dmlf.build_dirlist('sitename', 'dirname') == ['dirname']
 
     def test_remove_doc(self):
+        """unittest for docs2fs.remove_doc
+        """
         with pytest.raises(NotImplementedError):
             dmlf.remove_doc('sitename', 'docname')
 
-    def test_get_doc_stats(self, monkeypatch, capsys):
+    def test_get_doc_stats(self, monkeypatch):
+        """unittest for docs2fs.get_doc_stats
+        """
         def mock_stat(self, *args, **kwargs):
-            import types
+            """stub
+            """
             result = types.SimpleNamespace()
             result.st_mtime = 1
             return result
@@ -876,9 +1141,15 @@ class TestDocLevel:
                 dmlf.datetime.datetime.fromtimestamp(1))
 
     def test_get_all_doc_stats(self, monkeypatch):
+        """unittest for docs2fs.get_all_doc_stats
+        """
         def mock_get_dir_stats(*args):
+            """stub
+            """
             return 'hello, world!'
         def mock_list_dirs(*args):
+            """stub
+            """
             return 'x', 'y'
         monkeypatch.setattr(dmlf, '_get_dir_stats', mock_get_dir_stats)
         monkeypatch.setattr(dmlf, 'list_dirs', mock_list_dirs)
