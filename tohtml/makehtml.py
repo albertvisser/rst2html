@@ -4,11 +4,11 @@ PyQt5 versie
 """
 import os
 import sys
-import PyQt5.QtWidgets as qtw
-import PyQt5.QtGui as gui
-import PyQt5.QtCore as core
+import PyQt6.QtWidgets as qtw
+import PyQt6.QtGui as gui
+import PyQt6.QtCore as core
 # import PyQt5.QtWebKitWidgets as webkit
-import PyQt5.QtWebEngineWidgets as webeng
+import PyQt6.QtWebEngineWidgets as webeng
 from docutils.core import publish_string
 import markdown
 HERE = os.path.dirname(os.path.dirname(__file__))
@@ -53,8 +53,20 @@ class MainFrame(qtw.QMainWindow):
         failed = self.refresh_display()
         if failed:
             sys.exit()
+        self.setup_actions()
         self.show()
-        sys.exit(self.app.exec_())
+        sys.exit(self.app.exec())
+
+    def setup_actions(self):
+        """setup action for quitting the app and refreshing the screen"""
+        quitaction = gui.QAction('Quit', self)
+        quitaction.setShortcuts(['Ctrl+Q', 'Escape'])
+        quitaction.triggered.connect(self.close)
+        self.addAction(quitaction)
+        refresh_action = gui.QAction('Refresh', self)
+        refresh_action.setShortcut('F5')
+        refresh_action.triggered.connect(self.refresh_display)
+        self.addAction(refresh_action)
 
     def refresh_display(self):
         """(re)show the converted input"""
@@ -63,7 +75,7 @@ class MainFrame(qtw.QMainWindow):
             failed = True
             qtw.QMessageBox.critical(self, f'{self.mode}view', f'File {self.input} does not exist')
             return failed
-        self.app.setOverrideCursor(gui.QCursor(core.Qt.WaitCursor))
+        self.app.setOverrideCursor(gui.QCursor(core.Qt.CursorShape.WaitCursor))
         try:
             f_in = open(self.input)
         except UnicodeDecodeError:
@@ -73,11 +85,3 @@ class MainFrame(qtw.QMainWindow):
         self.html.setHtml(zetom[self.mode](data))
         self.app.restoreOverrideCursor()
         return failed
-
-    def keyPressEvent(self, event):
-        """reimplementation of event handler"""
-        if event.key() == core.Qt.Key_Escape:
-            self.close()
-        elif event.key() == core.Qt.Key_F5:
-            self.refresh_display()
-        super().keyPressEvent(event)
