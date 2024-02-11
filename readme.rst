@@ -54,7 +54,7 @@ To make the styling of the converted text work you may also need to change the s
 
 The below instruction is for codemirror version 5; I recently noticed that for version 6 it's a little more complicated and I haven't tried it out yet:
 
-Extract codemirror.zip nto the "static" directory - this creates a subdirectory codemirror-<versie>. You need to remove the version number to make it work.
+Extract codemirror.zip nto the "static" directory - this creates a subdirectory codemirror-<version>. You need to remove the version number to make it work.
 
 The actual highlighting is done by a couple of file named `<mode>editor.js`.
 
@@ -65,7 +65,7 @@ Requirements
 - Docutils for the restructured text stuff
 - CherryPy for the web application
 - yaml for the config parsing stuff
-- CodeMirror(.js) for the syntax highlighting (you can do without it I think)
+- CodeMirror(5) for the syntax highlighting (you can do without it I think)
 - MongoDB/Pymongo if you choose that backend for your data storage
 - PostgreSQL/Psycopg2 if you choose that backend for your data storage
 - PyQt(5) for the viewer apps
