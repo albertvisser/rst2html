@@ -9,6 +9,6 @@ from .makehtml import MainFrame
 def main(input):
     """start the GUI for markdown"""
     if not input:
-        print("usage: python3() htmlfrommd.py <filename>")
+        print("usage: python(3) htmlfrommd.py <filename>")
     else:
         MainFrame(None, input, 'md')

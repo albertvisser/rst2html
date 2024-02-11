@@ -83,7 +83,7 @@ class MainFrame(qtw.QMainWindow):
             except UnicodeDecodeError:
                 f_in = open(self.input, encoding='latin-1')
             with f_in:
-                data = ''.join([list(f_in)])
+                data = ''.join(list(f_in))
             self.html.setHtml(zetom[self.mode](data))
             self.app.restoreOverrideCursor()
         return failed
