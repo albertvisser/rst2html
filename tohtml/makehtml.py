@@ -7,22 +7,25 @@ import sys
 import PyQt6.QtWidgets as qtw
 import PyQt6.QtGui as gui
 import PyQt6.QtCore as core
-# import PyQt5.QtWebKitWidgets as webkit
 import PyQt6.QtWebEngineWidgets as webeng
 from docutils.core import publish_string
 import markdown
 HERE = os.path.dirname(os.path.dirname(__file__))
+
 
 def zetom_rest(data):
     """rst naar html omzetten en resultaat teruggeven"""
     overrides = {
         "embed_stylesheet": True,
         # "stylesheet_path": '/usr/share/docutils/writers/html4css1/html4css1.css',
-        "stylesheet_path": os.path.join(HERE, 'static', 'html4css1.css'),
+        # "stylesheet_path": os.path.join(HERE, 'static', 'html4css1.css'),
+        # "stylesheet_path": '',
+        # "stylesheet": [os.path.join(HERE, 'static', 'minimal.css'),
+        #                os.path.join(HERE, 'static', 'html4css1.css')],
         "report_level": 3}
     return str(publish_string(source=data,
                               destination_path="/tmp/omgezet.html",
-                              writer_name='html',
+                              writer_name='html5',
                               settings_overrides=overrides), encoding='utf-8')
 
 
@@ -45,7 +48,6 @@ class MainFrame(qtw.QMainWindow):
         self.mode = mode
         super().__init__()
         self.resize(1000, 600)
-        # self.html = webkit.QWebView(self)
         self.html = webeng.QWebEngineView(self)
         self.setCentralWidget(self.html)
         title = f'{input} via htmlfrom{mode}.py'
@@ -74,14 +76,14 @@ class MainFrame(qtw.QMainWindow):
         if not os.path.exists(self.input):
             failed = True
             qtw.QMessageBox.critical(self, f'{self.mode}view', f'File {self.input} does not exist')
-            return failed
-        self.app.setOverrideCursor(gui.QCursor(core.Qt.CursorShape.WaitCursor))
-        try:
-            f_in = open(self.input)
-        except UnicodeDecodeError:
-            f_in = open(self.input, encoding='latin-1')
-        with f_in:
-            data = ''.join([x for x in f_in])
-        self.html.setHtml(zetom[self.mode](data))
-        self.app.restoreOverrideCursor()
+        else:
+            self.app.setOverrideCursor(gui.QCursor(core.Qt.CursorShape.WaitCursor))
+            try:
+                f_in = open(self.input)
+            except UnicodeDecodeError:
+                f_in = open(self.input, encoding='latin-1')
+            with f_in:
+                data = ''.join([list(f_in)])
+            self.html.setHtml(zetom[self.mode](data))
+            self.app.restoreOverrideCursor()
         return failed
