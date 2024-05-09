@@ -54,7 +54,7 @@ To make the styling of the converted text work you may also need to change the s
 
 The below instruction is for codemirror version 5; I recently noticed that for version 6 it's a little more complicated and I haven't tried it out yet:
 
-Extract codemirror.zip nto the "static" directory - this creates a subdirectory codemirror-<version>. You need to remove the version number to make it work.
+Extract codemirror.zip into the "static" directory - this creates a subdirectory codemirror-<version>. You need to remove the version number to make it work.
 
 The actual highlighting is done by a couple of file named `<mode>editor.js`.
 
