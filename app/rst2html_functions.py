@@ -1323,10 +1323,9 @@ class R2hState:
             return LANG
         return self.conf["lang"]
 
-    def get_conf(self, settings):
+    def get_conf(self, sitename):
         """retrieve site config and set some variables
         """
-        # settings is hier de site naam
         mld = ''
         if self.newconf:
             self.conf = DFLT_CONF
@@ -1334,14 +1333,14 @@ class R2hState:
             self.subdirs = []
             self.loaded = CONF
         else:
-            mld, conf = read_conf(settings)
+            mld, conf = read_conf(sitename)
             if mld == '':
                 self.conf = conf
                 self.current = ""
-                self.subdirs = list_subdirs(settings, 'src')
+                self.subdirs = list_subdirs(sitename, 'src')
                 self.loaded = CONF
             else:
-                mld = get_text(mld, self.get_lang()).format(settings)
+                mld = get_text(mld, self.get_lang()).format(sitename)
         return mld
 
     def index(self):
