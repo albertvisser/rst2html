@@ -70,7 +70,7 @@ CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
 DFLT_CONF = {'wid': 100, 'hig': 32, 'url': '', 'css': [], 'writer': 'html5'}
 FULL_CONF = {'lang': 'en', 'starthead': '', 'endhead': '', 'seflinks': 0, 'highlight': 0,
-             'do-not-generate': []}
+             'image': '', 'blurb': '', 'menu': '', 'do-not-generate': []}
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
@@ -162,7 +162,6 @@ def rst2html(data, css):
     #                       settings_overrides=overrides)
     newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
                                  writer_name='html5', settings_overrides=overrides),
-                                 # writer_name='html', settings_overrides=overrides),
                   encoding='utf-8')
     newdata = post_process_title(newdata)
     return newdata
@@ -1499,8 +1498,8 @@ class R2hState:
         mld, rstdata = compare_source(self.sitename, self.current, rstfile)
         if not mld:
             self.loaded = DIFF
-            mld = get_text('diff_loaded' if rstdata else 'no_diff_data', self.get_lang()).format(
-                    rstfile)
+            mld = get_text('diff_loaded' if rstdata else 'no_diff_data',
+                           self.get_lang()).format(rstfile)
         return mld, rstdata
 
     def revert(self, rstfile, rstdata):

@@ -75,13 +75,30 @@ def test_myinclude(monkeypatch):
     assert testsubj.run() == []
 
 
-def test_myheader(monkeypatch):
+def test_myheader(monkeypatch, capsys, tmp_path):
     """unittest for rst2html_directives.MyHeader
     """
+    def mock_read(sitename):
+        print(f"called dml.read_settings with arg '{sitename}'")
+        if sitename == 'magiokis':
+            return {'image': '/zing.gif', 'blurb': 'Magiokis Productions Proudly Presents!',
+                    'menu': 'hoofdmenu.rst'}
+        raise FileNotFoundError
+
     def mock_build_menu(*args):
         """stub
         """
+        print("called build_menu with args", args)
         return 'menu_text'
+    monkeypatch.setattr(rhdir, 'DFLT', 'magiokis')
+    monkeypatch.setattr(rhdir.dml, 'read_settings', mock_read)
+    monkeypatch.setattr(rhdir, 'WEBROOT', tmp_path)
+    (tmp_path / 'magiokis' / '.source').mkdir(parents=True)
+    (tmp_path / 'magiokis' / '.source' / 'hoofdmenu.rst').write_text('- menu link 1\n'
+                                                                     '- menu link 2\n')
+    (tmp_path / 'helloworld' / '.source').mkdir(parents=True)
+    (tmp_path / 'helloworld' / '.source' / 'menufile.rst').write_text('- menu link X\n'
+                                                                      '- menu link Y\n')
     monkeypatch.setattr(rhdir.MyHeader, '__init__', mock_init)
     monkeypatch.setattr(rhdir, 'build_menu', mock_build_menu)
     testsubj = rhdir.MyHeader()
@@ -94,22 +111,60 @@ def test_myheader(monkeypatch):
                          '<div id="name-and-slogan"><div id="site-slogan">'
                          'Magiokis Productions Proudly Presents!</div></div></header>'
                          '<div id="main"><div id="navigation">menu_text</div></div>'
-                         '<div id="content" class="column"><h1 class="page-title"></h1>')
+                         '<div id="content" class="column">')
+    loc = rhdir.WEBROOT / 'magiokis' / '.source' / 'hoofdmenu.rst'
+    assert capsys.readouterr().out == (
+            "called dml.read_settings with arg 'magiokis'\n"
+            "called build_menu with args (['menu link 1', 'menu link 2'],)\n")
 
-    testsubj.arguments = []
-    testsubj.options = {'title': 'Hello World!',
-                        'href': 'Go-Home!',
-                        'image': 'link-to-image',
-                        'text': 'XXXXX',
-                        'menu': 'menufile.rst',
-                        'site': 'helloworld'}
+    testsubj.options = {'site': 'xxx', 'title': 'Hello World!'}
+    testsubj.content = ['will not be used']
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="/" id="logo" rel="home" title="Home"></header>'
+                         '<div id="content" class="column"><h1 class="page-title">Hello World!</h1>')
+    assert capsys.readouterr().out == "called dml.read_settings with arg 'xxx'\n"
+
+    testsubj.options = {'site': 'xxx', 'href': 'Go-Home!'}
     testsubj.content = []
     data = testsubj.run()[0][0]
-    assert str(data) == ('<header id="header" role="banner"><a href="Go-Home!" id="logo" '
-                         'rel="home" title="Home"><img alt="Home" src="link-to-image"/></a>'
-                         '<div id="name-and-slogan"><div id="site-slogan">XXXXX</div>'
-                         '</div></header><div id="main"><div id="navigation"></div></div><div'
-                         ' id="content" class="column"><h1 class="page-title">Hello World!</h1>')
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="Go-Home!" id="logo" rel="home" title="Home"></header>'
+                         '<div id="content" class="column">')
+    assert capsys.readouterr().out == "called dml.read_settings with arg 'xxx'\n"
+
+    testsubj.options = {'site': 'xxx', 'image': 'link-to-image'}
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="/" id="logo" rel="home" title="Home">'
+                         '<img alt="Home" src="link-to-image"/></a></header>'
+                         '<div id="content" class="column">')
+    assert capsys.readouterr().out == "called dml.read_settings with arg 'xxx'\n"
+
+    testsubj.options = {'site': 'xxx', 'text': 'XXXXX'}
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="/" id="logo" rel="home" title="Home">'
+                         '<div id="name-and-slogan"><div id="site-slogan">XXXXX</div></div>'
+                         '</header><div id="content" class="column">')
+    assert capsys.readouterr().out == "called dml.read_settings with arg 'xxx'\n"
+
+    testsubj.options = {'site': 'xxx', 'menu': 'menufile.rst'}
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="/" id="logo" rel="home" title="Home"></header>'
+                         '<div id="content" class="column">')
+    assert capsys.readouterr().out == "called dml.read_settings with arg 'xxx'\n"
+
+    testsubj.options = {'site': 'helloworld', 'menu': 'menufile.rst'}
+    data = testsubj.run()[0][0]
+    assert str(data) == ('<header id="header" role="banner">'
+                         '<a href="/" id="logo" rel="home" title="Home">'
+                         '</header><div id="main"><div id="navigation">menu_text</div></div>'
+                         '<div id="content" class="column">')
+    assert capsys.readouterr().out == (
+            "called dml.read_settings with arg 'helloworld'\n"
+            "called build_menu with args (['menu link X', 'menu link Y'],)\n")
 
 
 def test_byline(monkeypatch):
@@ -180,7 +235,7 @@ def test_menutext(monkeypatch):
         """stub
         """
         title = kwargs.get('title', '')
-        return '{}<>{}<>'.format(title, ''.join([x for x in args[0]]))
+        return f"{title}<>{''.join(list(args[0]))}<>"
     monkeypatch.setattr(rhdir.MenuText, '__init__', mock_init)
     monkeypatch.setattr(rhdir, 'build_menu', mock_build_menu)
     testsubj = rhdir.MenuText()

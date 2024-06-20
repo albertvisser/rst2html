@@ -534,26 +534,26 @@ class TestConfRelated:
         def mock_load_config_data_hig_fout(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['hig'] = 'hallo'
             return conf
         def mock_load_config_data_lang_fout(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['lang'] = 'du'
             return conf
         def mock_load_config_url_not_http(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['url'] = 'x'
             print(conf)
             return conf
         def mock_load_config_url_other(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['url'] = 'http://x/'
             return conf
         def mock_check_url(*args):
@@ -564,13 +564,13 @@ class TestConfRelated:
         def mock_load_config_css_simple(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['css'] = 'a_string'
             return conf
         def mock_load_config_css_double(*args):
             """stub
             """
-            conf = {x: y for x, y in testee.DFLT_CONF.items()}
+            conf = dict(testee.DFLT_CONF.items())
             conf['url'] = 'http://x'
             conf['css'] = ['url + a_string', 'http://stuff']
             return conf
@@ -618,7 +618,7 @@ class TestConfRelated:
             """stub
             """
             print(f'called check_url with arg `{arg}`')
-            raise testee.urllib.error.HTTPError('x', 'y', 'z', 'a', 'b')
+            raise testee.urllib.error.HTTPError(arg, 'y', 'z', 'a', 'b')
         assert testee.check_changed_settings({'x': 'y', 'a': 'b'}, {'x': 'y', 'a': 'b'}) == (
                 {'x': 'y', 'a': 'b'}, ('conf_no_changes',))
         assert testee.check_changed_settings({'wid': 'x'}, {}) == ({}, ('sett_invalid', 'wid'))
@@ -650,17 +650,31 @@ class TestConfRelated:
         assert capsys.readouterr().out == ''
         assert testee.check_changed_settings({'url': 'x'}, {}) == ({}, ('sett_invalid', 'url'))
         assert capsys.readouterr().out == ''
+
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check_httperror)
-        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({}, ('sett_invalid', 'url'))
+        # deze test geeft de unraisable exception
+        # deze test was uitgeschakeld omdat deze controle niet meer gedaan wordt (nog wel voor https)
+        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({},
+        #                                                                   ('sett_invalid', 'url'))
         # assert capsys.readouterr().out == 'called check_url with arg `http://x`\n'
+
+        # deze test geeft de unraisable exception
         assert testee.check_changed_settings({'url': 'https://x'}, {}) == ({},
                                                                            ('sett_invalid', 'url'))
         assert capsys.readouterr().out == 'called check_url with arg `https://x`\n'
+
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check_urlerror)
-        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({}, ('sett_invalid', 'url'))
+        # deze test gaat onder python 3.12 anders
+        # deze test was uitgeschakeld omdat deze controle niet meer gedaan wordt (nog wel voor https)
+        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({},
+        #                                                                   ('sett_invalid', 'url'))
+        assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({'url': 'http://x'}, ())
         # assert capsys.readouterr().out == 'called check_url with arg `http://x`\n'
+        assert capsys.readouterr().out == ''
+
         assert testee.check_changed_settings({'url': 'https://x'}, {}) == ({},
                                                                            ('sett_invalid', 'url'))
+        # vanaf hier is alles weer gewoon
         assert capsys.readouterr().out == 'called check_url with arg `https://x`\n'
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check)
         assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({'url': 'http://x'}, ())

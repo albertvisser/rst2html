@@ -1,6 +1,6 @@
 """Directives for Magiokis site
 """
-import pathlib
+# import pathlib
 import datetime
 # Import Docutils document tree nodes module.
 from docutils import nodes
@@ -8,7 +8,13 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
-from app_settings import WEBROOT
+from app_settings import DML, DFLT, WEBROOT
+if DML == 'fs':
+    import app.docs2fs as dml
+elif DML == 'mongo':
+    import app.docs2mongo as dml
+elif DML == 'postgres':
+    import app.docs2pg as dml
 
 
 directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
@@ -129,7 +135,7 @@ class RefKey(Directive):
     has_content = False
 
     def run(self):
-        """dit directive is bedoeld om door een apart proces gebruikt te worden
+        """dit directive is een placeholder t.b.v. het bouwen van een reference document
         en doet daarom niets"""
         return []
 
@@ -165,26 +171,38 @@ class MyHeader(Directive):
 
     def run(self):
         "genereer de html"
+        sitename = self.options.get('site', DFLT)
+        try:
+            site_settings = dml.read_settings(sitename)
+        except FileNotFoundError:
+            site_settings = {}
         lines = ['<header id="header" role="banner">']
         href = self.options.get('href', '/')
         lines.append(f'<a href="{href}" id="logo" rel="home" title="Home">')
-        src = self.options.get('image', '/zing.gif')  # '/favicon.ico'
-        lines.extend([f'<img alt="Home" src="{src}"/>', '</a>'])
-        text = self.options.get('text', 'Magiokis Productions Proudly Presents!')
-        lines.extend(['<div id="name-and-slogan">', '<div id="site-slogan">', text, '</div>',
-                      '</div>', '</header>', '<div id="main">', '<div id="navigation">'])
-        menu = self.options.get('menu', '')
+
+        src = self.options.get('image', site_settings.get('image', ''))
+        if src:
+            lines.extend([f'<img alt="Home" src="{src}"/>', '</a>'])
+
+        text = self.options.get('text', site_settings.get('blurb', ''))
+        if text:
+            lines.extend(['<div id="name-and-slogan">', '<div id="site-slogan">', text, '</div>',
+                          '</div>'])
+        lines.append('</header>')
+
+        menu = self.options.get('menu', site_settings.get('menu', ''))
         if menu:
-            menufile = pathlib.Path(menu)
-        else:
-            sitename = self.options.get('site', 'magiokis')
-            menufile = WEBROOT / sitename / '.source' / 'hoofdmenu.rst'
-        if menufile.exists():
-            text = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
-            lines.extend(build_menu(text))
-        lines.extend(['</div>', '</div>', '<div id="content" class="column">'])
+            menufile = WEBROOT / sitename / '.source' / menu
+            if menufile.exists():
+                menutext = [x[2:] for x in menufile.read_text().split('\n') if x.startswith('- ')]
+                lines.extend(['<div id="main">', '<div id="navigation">'])
+                lines.extend(build_menu(menutext))
+                lines.extend(['</div>', '</div>'])
+        lines.extend(['<div id="content" class="column">'])
+
         title = self.options.get('title', '')
-        lines.append(f'<h1 class="page-title">{title}</h1>')
+        if title:
+            lines.append(f'<h1 class="page-title">{title}</h1>')
         text_node = nodes.raw('', ''.join(lines), format='html')
         return [text_node]
 
@@ -201,7 +219,7 @@ class ByLine(Directive):
     required_arguments = 0
     optional_arguments = 1
     final_argument_whitespace = True
-    option_spec = {'author' : directives.unchanged,
+    option_spec = {'author': directives.unchanged,
                    'date': directives.unchanged,
                    'lang': directives.unchanged}
     has_content = False
@@ -285,7 +303,7 @@ class Transcript(Directive):
                  "     if (e.style.visibility == 'hidden') {\n",
                  "       e.style.height = 'auto';\n",
                  "       e.style.visibility = 'visible'; }\n",
-                 "     else {\n       e.style.height = '1px';\n"
+                 "     else {\n       e.style.height = '1px';\n",
                  "       e.style.visibility = 'hidden'; }\n   }</script>\n",
                  '<div class="transcript-border" style="border: solid"> <div id="transcript">',
                  '<a href="javascript:toggle_expander(' "'transcript-content'" ');" ',
