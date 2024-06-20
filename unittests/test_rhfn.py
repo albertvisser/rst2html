@@ -114,23 +114,30 @@ class TestR2HRelated:
     def test_rst2html(self, monkeypatch, capsys):
         """unittest for rst2html_functions.rst2html
         """
+        def mock_read(name):
+            print(f"called dml.read_settings with arg '{name}'")
+            return {'writer': 'yyy'}
         def mock_publish_string(*args, **kwargs):
             """stub
             """
-            print('docutils.publish_string got called')
+            print('called docutils.publish_string with args', args, kwargs)
             return b''
         def mock_post_process_title(*args):
             """stub
             """
-            print('post_process_title got called')
+            print('called post_process_title with args', args)
         invoer = "Hababarulala"
-        with pytest.raises(TypeError):
-            testee.rst2html(invoer)
+        monkeypatch.setattr(testee.dml, 'read_settings', mock_read)
         monkeypatch.setattr(testee, 'publish_string', mock_publish_string)
         monkeypatch.setattr(testee, 'post_process_title', mock_post_process_title)
-        testee.rst2html(invoer, 'test.css')
-        assert capsys.readouterr().out == ('docutils.publish_string got called\n'
-                                           'post_process_title got called\n')
+        testee.rst2html('xxx', invoer, 'test.css')
+        assert capsys.readouterr().out == (
+                "called dml.read_settings with arg 'xxx'\n"
+                "called docutils.publish_string with args () {'source': 'Hababarulala',"
+                " 'destination_path': 'temp/omgezet.html', 'writer_name': 'yyy',"
+                " 'settings_overrides': {'embed_stylesheet': False, 'stylesheet_path': '',"
+                " 'stylesheet': 'test.css', 'report_level': 3}}\n"
+                "called post_process_title with args ('',)\n")
 
     def test_register_directives(self, monkeypatch, capsys):
         """unittest for rst2html_functions.register_directives
@@ -2583,7 +2590,7 @@ class TestR2hState:
         def mock_rst2html(*args):
             """stub
             """
-            return args[0]
+            return args[1]
         def mock_read_conf(*args):
             """stub
             """
@@ -2602,7 +2609,6 @@ class TestR2hState:
         monkeypatch.setattr(testee, 'check_if_rst', mock_check_if_rst)
         testsubj.oldtext = 'text\nmoretext'
         monkeypatch.setattr(testee, 'rst2html', mock_rst2html)
-        # import pdb; pdb.set_trace()
         assert testsubj.convert('rstfile', 'newfile', 'text\r\nmoretext') == (
                 '', 'text\nmoretext', 'newfile')
         assert capsys.readouterr().out == ''

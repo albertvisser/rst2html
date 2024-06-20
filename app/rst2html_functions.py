@@ -149,19 +149,16 @@ def post_process_title(data):
 
 
 # -- rst related --
-def rst2html(data, css):
+def rst2html(sitename, data, css):
     """rst naar html omzetten en resultaat teruggeven
     """
+    conf = dml.read_settings(sitename)
     overrides = {"embed_stylesheet": False,
                  "stylesheet_path": '',
                  "stylesheet": css,
                  "report_level": 3}
-    # return publish_string(source=data,
-    #                       destination_path="temp/omgezet.html",
-    #                       writer_name='html',
-    #                       settings_overrides=overrides)
     newdata = str(publish_string(source=data, destination_path="temp/omgezet.html",
-                                 writer_name='html5', settings_overrides=overrides),
+                                 writer_name=conf['writer'], settings_overrides=overrides),
                   encoding='utf-8')
     newdata = post_process_title(newdata)
     return newdata
@@ -1047,8 +1044,8 @@ class UpdateAll:
 
     def rebuild_html(self, dirname, filename):
         "regenerate target html if needed / possible"
-        htmldata = rst2html(preprocess_includes(self.sitename, dirname, self.rstdata),
-                            self.conf['css'])
+        data = preprocess_includes(self.sitename, dirname, self.rstdata)
+        htmldata = rst2html(self.sitename, data, self.conf['css'])
         if self.show_only:
             # msg = save_html_data(self.sitename, dirname, filename, htmldata, dry_run=True)
             msg = 'regen_target_msg'
@@ -1606,7 +1603,7 @@ class R2hState:
                     mld = save_src_data(self.sitename, self.current, fname, rstdata)
         if mld == "":
             rstdata = preprocess_includes(self.sitename, self.current, rstdata)
-            previewdata = rst2html(rstdata, self.conf['css'])
+            previewdata = rst2html(self.sitename, rstdata, self.conf['css'])
         else:
             mld = get_text(mld, self.get_lang())
             previewdata = fname = ''
@@ -1629,15 +1626,13 @@ class R2hState:
             self.rstfile = fname
             self.htmlfile = path.stem + ".html"
             if rstdata != self.oldtext or is_new_file:
-                mld = save_src_data(self.sitename, self.current, self.rstfile,
-                                    rstdata, is_new_file)
+                mld = save_src_data(self.sitename, self.current, self.rstfile, rstdata, is_new_file)
                 if mld == "":
                     self.oldtext = self.rstdata = rstdata
             if mld == "":
                 rstdata = preprocess_includes(self.sitename, self.current, rstdata)
-                newdata = rst2html(rstdata, self.conf['css'])
-                mld = save_html_data(self.sitename, self.current, self.htmlfile,
-                                     newdata)
+                newdata = rst2html(self.sitename, rstdata, self.conf['css'])
+                mld = save_html_data(self.sitename, self.current, self.htmlfile, newdata)
                 if mld == "":
                     mld = 'rst_2_html'
                 self.newfile = ""
@@ -1799,7 +1794,7 @@ class R2hState:
         if mld:  # if this goes wrong, simply try again assuming it is not new
             mld = save_src_data(self.sitename, dirname, rstfile, rstdata)
         if mld == "":
-            newdata = rst2html(rstdata, self.conf['css'])
+            newdata = rst2html(self.sitename, rstdata, self.conf['css'])
             mld = save_html_data(self.sitename, dirname, htmlfile, newdata)
             if mld == "":
                 mld = save_to_mirror(self.sitename, dirname, htmlfile, self.conf)
