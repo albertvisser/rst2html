@@ -713,7 +713,7 @@ def compare_source(sitename, current, rstfile):
         # diff = difflib.unified_diff(oldsource.split('\n'), newsource.split('\n'),
         diff = difflib.unified_diff([x + '\n' for x in oldsource.split('\n')],
                                     [x + '\n' for x in newsource.split('\n')],
-                                    fromfile='current text', tofile='previous text')
+                                    fromfile='previous text', tofile='current text')
         # diff = difflib.HtmlDiff().make_file(oldsource, newsource)
         mld, rstdata = '', ''.join(list(diff))
     return mld, rstdata
@@ -1003,7 +1003,10 @@ class UpdateAll:
 
             target_needed = mirror_needed = True
             if self.needed_only:
-                if stats.dest >= stats.src:
+                if (stats.src == '[deleted]' or stats.dest == '[deleted]'
+                        or stats.mirror == '[deleted]'):
+                    pass
+                elif stats.dest >= stats.src:
                     target_needed = False
                     if stats.mirror >= stats.dest:
                         mirror_needed = False
