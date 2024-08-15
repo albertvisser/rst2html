@@ -32,10 +32,10 @@ class TestNonApiFunctions:
     def test_get_dir_ftype_stats(self, monkeypatch):
         """unittest for docs2fs.get_dir_ftype_stats
         """
-        def mock_locify(*args):
-            """stub
-            """
-            return pathlib.Path('.')
+        # def mock_locify(*args):
+        #     """stub
+        #     """
+        #     return pathlib.Path('.')
         def mock_is_file(*args):
             """stub
             """
@@ -59,11 +59,11 @@ class TestNonApiFunctions:
                     pathlib.Path('index.html'), pathlib.Path('test.src'),
                     pathlib.Path('revived.deleted'), pathlib.Path('revived.html'),
                     pathlib.Path('removed.deleted'))
-        def mock_iterdir_dest_sef(*args):
-            """stub
-            """
-            return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('hello'),
-                    pathlib.Path('kitty'))
+        # def mock_iterdir_dest_sef(*args):
+        #     """stub
+        #     """
+        #     return (pathlib.Path('.x'), pathlib.Path('css'), pathlib.Path('hello'),
+        #             pathlib.Path('kitty'))
         def mock_relative_to(*args):
             """stub
             """
@@ -196,10 +196,10 @@ class TestNonApiFunctions:
             print(f'called open() for file `{self}`')
             # return tmpfileiso.open()
             raise OSError('IO error on iso file')
-        def mock_readlines(*args):
-            """stub
-            """
-            return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
+        # def mock_readlines(*args):
+        #     """stub
+        #     """
+        #     return ['regel 1\r', 'regel 2\r\n', 'regel 3\n']
         monkeypatch.setattr(dmlf.pathlib.Path, 'relative_to', mock_relative_to)
         monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.pathlib.Path, 'open', mock_open_utf)
@@ -396,10 +396,10 @@ class TestSiteLevel:
             """stub
             """
             return True
-        def mock_exists_no(*args):
-            """stub
-            """
-            return False
+        # def mock_exists_no(*args):
+        #     """stub
+        #     """
+        #     return False
         def mock_is_file_yes(*args):
             """stub
             """
@@ -923,11 +923,11 @@ class TestDocLevel:
         def mock_unlink(self, *args, **kwargs):
             """stub
             """
-            print(f'deleted file `{self}`')
+            print(f'called unlink with args `{self}`', args, kwargs)
         def mock_rename(self, *args, **kwargs):
             """stub
             """
-            print(f'renamed file `{self}`')
+            print(f'called rename with args `{self}`', args, kwargs)
         def mock_touch(self, *args, **kwargs):
             """stub
             """
@@ -941,41 +941,59 @@ class TestDocLevel:
         old = dmlf.WEBROOT / 'sitename' / '.source'
         loc = dmlf.WEBROOT / 'sitename' / '.target'
         assert dmlf.apply_deletions_target('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source\n'
-                                           f'deleted file `{old}/file1.deleted`\n'
-                                           f'deleted file `{old}/file2.deleted`\n'
-                                           f'renamed file `{loc}/file1.html`\n'
-                                           f'renamed file `{loc}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source\n'
+                f"called unlink with args `{old}/file1.deleted` () {{}}\n"
+                f"called unlink with args `{old}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f"called unlink with args `{old}/file2.deleted` () {{}}\n"
+                f"called unlink with args `{old}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                f"called rename with args `{loc}/file1.html` ({loc / 'file1.deleted'!r},) {{}}\n"
+                f"called rename with args `{loc}/file2.html` ({loc / 'file2.deleted'!r},) {{}}\n")
         oldsub = dmlf.WEBROOT / 'sitename' / '.source' / 'subdir'
         locsub = dmlf.WEBROOT / 'sitename' / '.target' / 'subdir'
         assert dmlf.apply_deletions_target('sitename', '*') == ['file1', 'file2', 'subdir/file1',
                                                                 'subdir/file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source\n'
-                                           f'deleted file `{old}/file1.deleted`\n'
-                                           f'deleted file `{old}/file2.deleted`\n'
-                                           'called path.glob() for *.deleted in .source/subdir\n'
-                                           f'deleted file `{oldsub}/file1.deleted`\n'
-                                           f'deleted file `{oldsub}/file2.deleted`\n'
-                                           f'renamed file `{loc}/file1.html`\n'
-                                           f'renamed file `{loc}/file2.html`\n'
-                                           f'renamed file `{locsub}/file1.html`\n'
-                                           f'renamed file `{locsub}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source\n'
+                f'called unlink with args `{old}/file1.deleted` () {{}}\n'
+                f"called unlink with args `{old}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f'called unlink with args `{old}/file2.deleted` () {{}}\n'
+                f"called unlink with args `{old}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                'called path.glob() for *.deleted in .source/subdir\n'
+                f'called unlink with args `{oldsub}/file1.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f'called unlink with args `{oldsub}/file2.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                f"called rename with args `{loc}/file1.html` ({loc / 'file1.deleted'!r},) {{}}\n"
+                f"called rename with args `{loc}/file2.html` ({loc / 'file2.deleted'!r},) {{}}\n"
+                f"called rename with args `{locsub}/file1.html` ({locsub / 'file1.deleted'!r},)"
+                " {}\n"
+                f"called rename with args `{locsub}/file2.html` ({locsub / 'file2.deleted'!r},)"
+                " {}\n")
         oldsub = dmlf.WEBROOT / 'sitename' / '.source' / 'dirname'
         locsub = dmlf.WEBROOT / 'sitename' / '.target' / 'dirname'
         assert dmlf.apply_deletions_target('sitename', 'dirname') == ['dirname/file1',
                                                                       'dirname/file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source/dirname\n'
-                                           f'deleted file `{oldsub}/file1.deleted`\n'
-                                           f'deleted file `{oldsub}/file2.deleted`\n'
-                                           f'renamed file `{locsub}/file1.html`\n'
-                                           f'renamed file `{locsub}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source/dirname\n'
+                f'called unlink with args `{oldsub}/file1.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f'called unlink with args `{oldsub}/file2.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                f"called rename with args `{locsub}/file1.html` ({locsub / 'file1.deleted'!r},)"
+                " {}\n"
+                f"called rename with args `{locsub}/file2.html` ({locsub / 'file2.deleted'!r},)"
+                " {}\n")
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         dmlf.apply_deletions_target('sitename', 'dirname')
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .source/dirname\n'
-                                           f'deleted file `{oldsub}/file1.deleted`\n'
-                                           f'deleted file `{oldsub}/file2.deleted`\n'
-                                           f'created file `{locsub}/file1.deleted`\n'
-                                           f'created file `{locsub}/file2.deleted`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source/dirname\n'
+                f'called unlink with args `{oldsub}/file1.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f'called unlink with args `{oldsub}/file2.deleted` () {{}}\n'
+                f"called unlink with args `{oldsub}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                f'created file `{locsub}/file1.deleted`\n'
+                f'created file `{locsub}/file2.deleted`\n')
 
     def test_update_mirror(self, monkeypatch, capsys):
         """unittest for docs2fs.update_mirror
@@ -1052,53 +1070,102 @@ class TestDocLevel:
             """
             name = str(self.relative_to(dmlf.WEBROOT / 'sitename'))
             print('called path.glob() for', args[0], 'in', name)
-            return [self / 'file1.deleted', self / 'file2.deleted']
+            if dmlf.DELMARK in args[0]:
+                return [self / 'file1.deleted', self / 'file2.deleted']
+            return [self / 'index.html', self / 'index.html.bak']
         def mock_unlink(self, *args, **kwargs):
             """stub
             """
-            print(f'deleted file `{self}`')
+            print(f'deleted file `{self}`', kwargs)
+        def mock_rmdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'deleted directory `{self}`')
         monkeypatch.setattr(dmlf, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': False})
         monkeypatch.setattr(dmlf.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(dmlf.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'rmdir', mock_rmdir)
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(dmlf.pathlib.Path, 'iterdir', lambda x: [])
         src = dmlf.WEBROOT / 'sitename' / '.target'
         dest = dmlf.WEBROOT / 'sitename'
         assert dmlf.apply_deletions_mirror('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target\n'
-                                           f'deleted file `{src}/file1.deleted`\n'
-                                           f'deleted file `{src}/file2.deleted`\n'
-                                           f'deleted file `{dest}/file1.html`\n'
-                                           f'deleted file `{dest}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted file `{src}/file1.deleted` {{}}\n'
+                f"deleted file `{src}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{src}/file2.deleted` {{}}\n'
+                f"deleted file `{src}/file2.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{dest}/file1.html` {{}}\n'
+                f"deleted file `{dest}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{dest}/file2.html` {{}}\n'
+                f"deleted file `{dest}/file2.html.bak` {{'missing_ok': True}}\n")
         srcsub = dmlf.WEBROOT / 'sitename' / '.target' / 'subdir'
         destsub = dmlf.WEBROOT / 'sitename' / 'subdir'
         assert dmlf.apply_deletions_mirror('sitename', '*') == ['file1', 'file2', 'subdir/file1',
                                                                 'subdir/file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target\n'
-                                           f'deleted file `{src}/file1.deleted`\n'
-                                           f'deleted file `{src}/file2.deleted`\n'
-                                           'called path.glob() for *.deleted in .target/subdir\n'
-                                           f'deleted file `{srcsub}/file1.deleted`\n'
-                                           f'deleted file `{srcsub}/file2.deleted`\n'
-                                           f'deleted file `{dest}/file1.html`\n'
-                                           f'deleted file `{dest}/file2.html`\n'
-                                           f'deleted file `{destsub}/file1.html`\n'
-                                           f'deleted file `{destsub}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted file `{src}/file1.deleted` {{}}\n'
+                f"deleted file `{src}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{src}/file2.deleted` {{}}\n'
+                f"deleted file `{src}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for *.deleted in .target/subdir\n'
+                f'deleted file `{srcsub}/file1.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{srcsub}/file2.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file2.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{dest}/file1.html` {{}}\n'
+                f"deleted file `{dest}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{dest}/file2.html` {{}}\n'
+                f"deleted file `{dest}/file2.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{destsub}/file1.html` {{}}\n'
+                f"deleted file `{destsub}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{destsub}/file2.html` {{}}\n'
+                f"deleted file `{destsub}/file2.html.bak` {{'missing_ok': True}}\n")
         srcsub = dmlf.WEBROOT / 'sitename' / '.target' / 'dirname'
         destsub = dmlf.WEBROOT / 'sitename' / 'dirname'
         assert dmlf.apply_deletions_mirror('sitename', 'dirname') == ['dirname/file1',
                                                                       'dirname/file2']
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target/dirname\n'
-                                           f'deleted file `{srcsub}/file1.deleted`\n'
-                                           f'deleted file `{srcsub}/file2.deleted`\n'
-                                           f'deleted file `{destsub}/file1.html`\n'
-                                           f'deleted file `{destsub}/file2.html`\n')
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target/dirname\n'
+                f'deleted file `{srcsub}/file1.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{srcsub}/file2.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file2.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{destsub}/file1.html` {{}}\n'
+                f"deleted file `{destsub}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{destsub}/file2.html` {{}}\n'
+                f"deleted file `{destsub}/file2.html.bak` {{'missing_ok': True}}\n")
 
+        monkeypatch.setattr(dmlf, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(dmlf.pathlib.Path, 'exists', lambda x: False)
         dmlf.apply_deletions_mirror('sitename', 'directory')
         loc = dmlf.WEBROOT / 'sitename' / '.target' / 'directory'
-        assert capsys.readouterr().out == ('called path.glob() for *.deleted in .target/directory\n'
-                                           f'deleted file `{loc}/file1.deleted`\n'
-                                           f'deleted file `{loc}/file2.deleted`\n')
+        dest = dmlf.WEBROOT / 'sitename' / 'directory'
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target/directory\n'
+                f'deleted file `{loc}/file1.deleted` {{}}\n'
+                f"deleted file `{loc}/file1.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/directory/file1\n'
+                f"deleted file `{loc}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{loc}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{loc}/file1`\n"
+                f'deleted file `{loc}/file2.deleted` {{}}\n'
+                f"deleted file `{loc}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/directory/file2\n'
+                f"deleted file `{loc}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{loc}/file2/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{loc}/file2`\n"
+                'called path.glob() for index.html* in directory/file1\n'
+                f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{dest}/file1`\n"
+                'called path.glob() for index.html* in directory/file2\n'
+                f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{dest}/file2`\n")
 
     def test_build_dirlist(self, monkeypatch):
         """unittest for docs2fs.build_dirlist

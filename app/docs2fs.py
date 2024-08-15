@@ -50,7 +50,10 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
             if item.name.startswith('overview-') or item.name.startswith('search-results-'):
                 continue
             if ftype in LOCS[1:] and do_seflinks:
-                # TODO hoe ziet een deleted file er uit in dit geval
+                # seflinks True en False hebben dezelfde markering van een deleted file:
+                # <docname>.deleted
+                # waar seflinks False anders <docname>.html heeft
+                # en seflinks True <docname>/index.html
                 docname = item.stem
                 check_item = ''
                 if item.is_dir() and not item.is_symlink():
@@ -62,10 +65,10 @@ def _get_dir_ftype_stats(sitename, ftype, dirname=''):
             else:
                 if not item.is_file() or item.is_symlink():
                     continue
-                elif item.suffix and item.suffix == DELMARK:
+                if item.suffix and item.suffix == DELMARK:
                     deleted.append(item.stem)
                     continue
-                elif item.suffix and item.suffix != ext:
+                if item.suffix and item.suffix != ext:
                     continue
                 docname = item.relative_to(path).stem
                 check_item = item
@@ -135,8 +138,8 @@ def read_data(fname):   # to be used for actual file system data
     on failure: returns error message and empty string for data
     """
     sitename = fname.relative_to(WEBROOT).parts[0]
-    if (read_settings(sitename).get('seflinks', False) and
-            fname.suffix == '.html' and fname.stem != 'index'):
+    if (read_settings(sitename).get('seflinks', False)
+            and fname.suffix == '.html' and fname.stem != 'index'):
         fname = fname.with_suffix('') / 'index.html'
     #
     mld = data = ''
@@ -164,7 +167,7 @@ def save_to(fullname, data, seflinks=None):  # to be used for actual file system
     if fullname.suffix == '.html' and fullname.stem != 'index':
         if seflinks is None:
             settings = read_settings(sitename)
-            seflinks =  settings.get('seflinks', False)
+            seflinks = settings.get('seflinks', False)
         if seflinks:
             new_fname = fullname.with_suffix('')
             if new_fname.exists() and not new_fname.is_dir():
@@ -510,14 +513,15 @@ def apply_deletions_target(sitename, directory=''):
             else:
                 deleted.append(item.name)
             item.unlink()
+            item.with_suffix('.rst.bak').unlink(missing_ok=True)
     root = WEBROOT / sitename / DEST_LOC
     for item in deleted:
         path = root / item
         to_delete = path.with_suffix(LOC2EXT['dest'])
-        if to_delete.exists():
+        if to_delete.exists():  # als seflinks False
             to_delete.rename(path)
         else:
-            path.touch()
+            path.touch()  # en dan gaat-ie deze uitvoeren
     return sorted([x.replace(DELMARK, '') for x in deleted])
 
 
@@ -574,16 +578,33 @@ def apply_deletions_mirror(sitename, directory=''):
             else:
                 deleted.append(item.name)
             item.unlink()
+            item.with_suffix('.html.bak').unlink(missing_ok=True)
+
+            if read_settings(sitename).get('seflinks', False):
+                delpath = item.with_suffix('')
+                for subitem in delpath.glob('index.html*'):
+                    subitem.unlink(missing_ok=True)
+                if not list(delpath.iterdir()):
+                    delpath.rmdir()
+
     root = WEBROOT / sitename
     for item in deleted:
         path = root / item
         to_delete = path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
             to_delete.unlink()
+            to_delete.with_suffix('.html.bak').unlink(missing_ok=True)
+        else:  # read_settings(sitename).get('seflinks', False)
+            delpath = to_delete.with_suffix('')
+            for subitem in delpath.glob('index.html*'):
+                subitem.unlink(missing_ok=True)
+            if not list(delpath.iterdir()):
+                delpath.rmdir()
     return sorted([x.replace(DELMARK, '') for x in deleted])
 
 
 def build_dirlist(sitename, directory):
+    "build a list of site (sub)directories"
     if directory == '':
         dirlist = ['/']
     elif directory == '*':
