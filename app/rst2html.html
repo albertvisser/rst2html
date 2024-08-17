@@ -12,8 +12,18 @@
       x.style.display = 'none';
     }}
   }}</script>
+  <script>function setEditorWidth(evt) {{
+    let factor = 9;
+    let maxcol = 100;
+    let curwid = window.innerWidth;
+    let maxwid = maxcol * factor;
+    if curwid < maxwid {{
+      let newcol = Math.floor( curwid / factor);
+      document.getElementById('rstdata').cols = newcol;
+    }}
+  }}</script>
 </head>
-<body style="background-color: #C6E2FF; color: #3a5fcd">
+<body style="background-color: #C6E2FF; color: #3a5fcd" onload="setEditorwidth(event)">
   <form method="post">
     <div class="container-full table-full">
       <div class="row-full" style="display: inline; float:left">
