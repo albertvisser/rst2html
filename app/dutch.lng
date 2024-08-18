@@ -63,6 +63,7 @@ t_startbody = genereer standaard begin van de body section
 t_startc = start kolomweergave van x cellen breed (x = 12 of 16)
 t_startcenter = Tijdelijk marges negeren om brede images te tonen
 t_startsidebar = genereer de code om een sidebar te maken
+t_switch = Laad de source opnieuw om het resultaat te zien (bij spellcheck tevens text area activeren)
 t_textheader = genereer begin van de tekst met titel
 t_toggle = klik om te tonen/verbergen
 t_transcript = genereer de transcriptie voor een stripfragment
@@ -122,6 +123,7 @@ c_search_f = Zoek naar:
 c_settings = Settings
 c_showhtml = Geef weer
 c_status = Status
+c_switch = Wissel tussen spellcheck / code highlighting bij view source
 c_text = Tekst
 
 # notifications and such

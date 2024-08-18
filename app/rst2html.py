@@ -25,6 +25,10 @@ scriptdict = {'yaml': ('yaml/yaml',),
                        'htmlmixed/htmlmixed'),
               'py': ('python/python', '../addon/edit/matchbrackets'),
               'rst': ('rst/rst', '../addon/mode/overlay')}
+load_editor = '<script src="/static/{}editor.js"></script>'
+spellbuttontext = ('<br/><button type="button" id="spellbtn" onclick="setspell()" accesskey="x"'
+                   ' title=" {} [X]">enable {} in source</button>'
+                   '<input type="hidden" id="highlighted" name="highlighted" value="{}"/>')
 copybuttontext = """\
         <a href="/copysearch"><button accesskey="c">
                 <span style="text-decoration:underline">C</span>opy to file</button></a>"""
@@ -46,7 +50,8 @@ def apply_lang(lines, state):
         while '_(' in line:
             start, rest = line.split('_(', 1)
             keyword, end = rest.split(')', 1)
-            line = rhfn.get_text(keyword, state.get_lang()).join((start, end))
+            # line = rhfn.get_text(keyword, state.get_lang()).join((start, end))
+            line = f"{start}{rhfn.get_text(keyword, state.get_lang())}{end}"
         output.append(line)
     return '\n'.join(output)
 
@@ -62,14 +67,27 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
     lines = load_template("rst2html.html").split('\n')
     output = apply_lang(lines, state)
     conflist = rhfn.list_confs(settings)
-    format_stuff = ''
+    format_stuff = button_code = load_code = ''
     if state.conf.get('highlight', False):
-        format_stuff = ''.join(codemirror_stuff)
-        if state.loaded:
-            format_stuff += ''.join(scriptspec.format(x) for x in scriptdict[state.loaded])
+        if state.noformat:
+            enable = 'code highlighting'
+            # text = ' (click button and (re)load source)'
+            btnval = 'false'
+            switchtext = ''
+        else:
+            enable = 'spellcheck'
+            # text = ' (click button, (re)load source and activate textarea)'
+            btnval = 'true'
+            format_stuff = ''.join(codemirror_stuff)
+            if state.loaded:
+                format_stuff += ''.join(scriptspec.format(x) for x in scriptdict[state.loaded])
+                load_code = load_editor.format(state.loaded)
+            switchtext = rhfn.get_text('t_switch', state.get_lang())
+        button_code = spellbuttontext.format(switchtext, enable, btnval)
     return output.format(rstnames=all_source, htmlnames=all_html, newname=newfile, message=mld,
                          content=rstdata, cols=state.conf['wid'], rows=state.conf['hig'],
-                         settnames=conflist, content_type=state.loaded, editor_addon=format_stuff)
+                         settnames=conflist, editor_addon=format_stuff,
+                         spellcheck_button=button_code, editor_loader=load_code)
 
 
 def format_progress_list(timelist, writer):
@@ -193,6 +211,7 @@ class Rst2Html:
         """initialize using imported settings; read template; register directives"""
         rhfn.register_directives()
         self.state = rhfn.R2hState()
+        self.state.noformat = False
 
     @cherrypy.expose
     def index(self):
@@ -206,6 +225,7 @@ class Rst2Html:
         """load settings of indicated site
         """
         mld, rstdata, settings, newfile = self.state.loadconf(settings, newfile)
+        self.state.noformat = False
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
@@ -229,6 +249,8 @@ class Rst2Html:
             mld, rstdata = self.state.diffsrc(rstfile)
         else:
             mld, rstdata, htmlfile, newfile = self.state.loadrst(rstfile)
+        if kwargs.get('highlighted', ''):
+            self.state.noformat = kwargs['highlighted'] == 'false'
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
@@ -270,6 +292,7 @@ class Rst2Html:
         """load html file and show code
         """
         mld, rstdata, rstfile, htmlfile = self.state.loadhtml(htmlfile)
+        self.state.noformat = False
         return format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
 
     @cherrypy.expose
@@ -351,8 +374,8 @@ class Rst2Html:
             mld, results = rhfn.get_text('no_search_args', self.state.get_lang()), []
             btntxt = ''
         return format_search(results, self.state.conf['writer']).format(
-                sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
-                message=mld)
+            sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
+            message=mld)
 
     @cherrypy.expose
     def copysearch(self):
@@ -362,8 +385,8 @@ class Rst2Html:
         btntxt = copybuttontext
         search, replace, results = self.search_stuff
         return format_search(results, self.state.conf['writer']).format(
-                sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
-                message=msg)
+            sitename=self.state.settings, extrabutton=btntxt, search=search, replace=replace,
+            message=msg)
 
     @cherrypy.expose
     def check(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
@@ -378,7 +401,7 @@ class Rst2Html:
         """
         self.overviewdata = self.state.overview()
         return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
-                sitename=settings, message='')
+            sitename=settings, message='')
 
     @cherrypy.expose
     def copystand(self):
@@ -386,4 +409,4 @@ class Rst2Html:
         """
         msg = self.state.copystand(self.overviewdata)
         return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
-                sitename=self.state.sitename, message=msg)
+            sitename=self.state.sitename, message=msg)

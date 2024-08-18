@@ -17,13 +17,27 @@
     let maxcol = 100;
     let curwid = window.innerWidth;
     let maxwid = maxcol * factor;
-    if curwid < maxwid {{
+    if (curwid < maxwid) {{
       let newcol = Math.floor( curwid / factor);
       document.getElementById('rstdata').cols = newcol;
     }}
   }}</script>
+  <script>function setspell() {{
+    let statevar = document.getElementById('highlighted');
+    let btn = document.getElementById('spellbtn');
+    if (statevar.value === 'true') {{
+      statevar.value = 'false';
+      btn.innerHTML = 'enable code highlighting in source';
+    }} else {{
+      statevar.value = 'true';
+      btn.innerHTML = 'enable spellcheck in source';
+    }}
+  }}
+  function resetspell() {{
+    document.getElementById('highlighted').value = 'true';
+  }}</script>
 </head>
-<body style="background-color: #C6E2FF; color: #3a5fcd" onload="setEditorwidth(event)">
+<body style="background-color: #C6E2FF; color: #3a5fcd" onload="setEditorWidth(event)">
   <form method="post">
     <div class="container-full table-full">
       <div class="row-full" style="display: inline; float:left">
@@ -31,13 +45,14 @@
           <div class="table-column" style="float:left">
             <a href="/">Home</a>
             <span style="padding-left: 10px"> _(c_settings): </span>
-            <select name="settings" title="_(t_settings) [X]" accesskey="x">
+            <select name="settings" title="_(t_settings) [0]" accesskey="0">
               <option>_(c_newitem)</option>
               {settnames}
             </select>
-            <input type="submit" value="_(c_loadconf)" title="_(t_loadconf) [Y]" accesskey="y"
+            <input type="submit" value="_(c_loadconf)" title="_(t_loadconf) [1]" accesskey="1"
+              onclick="resetspell()"
               formaction="/loadconf/" />
-            <input type="submit" value="_(c_saveconf)" title="_(t_saveconf) [Z]" accesskey="z"
+            <input type="submit" value="_(c_saveconf)" title="_(t_saveconf) [2]" accesskey="2"
              formaction="/saveconf/" />
             <span style="width: 200px">&nbsp;&nbsp;</span>
           </div>
@@ -104,6 +119,7 @@
               {htmlnames}
             </select>
             <input type="submit" value="_(c_loadhtml)" title="_(t_loadhtml) [H]" accesskey="h"
+              onclick="resetspell()"
               formaction="/loadhtml/" />
             <input type="submit" value="_(c_showhtml)" title="_(t_showhtml) [B]" accesskey="b"
               formaction="/showhtml/" />
@@ -137,6 +153,7 @@
         <label for="rstdata" accesskey="e" value=" " />
         <textarea name="rstdata" id="rstdata" cols="{cols}" rows="{rows}" accesskey="w"
           style="display: inline">{content}</textarea>
+	{spellcheck_button}
       </div>
 
       <div class="table-column" style="display: inline; float:left; padding: 5px; ">
@@ -145,8 +162,8 @@
           <div class="row-full" style="float: left">
             <span>_(t_access)</span>&nbsp;<button type="button" onclick="toggle('t_access')">_(t_toggle)</button>
             <div id="t_access" style="display: block">
-              <span>X   _(t_activate) _(c_settings) selector</span><br/>
-              <span>Y/Z _(c_loadconf)/_(c_saveconf) _(c_settings)</span><br/>
+              <span>0   _(t_activate) _(c_settings) selector</span><br/>
+              <span>1/2 _(c_loadconf)/_(c_saveconf) _(c_settings)</span><br/>
               <span>I   _(c_index)</span><br/>
               <span>G   _(c_regen) (_(c_exec))</span><br/>
               <span>Q   _(t_activate) _(c_regen) selector</span><br/>
@@ -168,6 +185,8 @@
               <span>M   _(c_copytoroot)</span><br/>
               <span>P   _(c_pending) (_(c_exec))</span><br/>
               <span>D   _(t_activate) _(c_dactions) selector</span><br/>
+              <span>&nbsp;</span><br/>
+              <span>X   _(c_switch)</span><br/>
 	    </div>
           </div>
           <div class="clear" style="clear: both"></div>
@@ -235,6 +254,6 @@
 
     </div>
   </form>
-  <script src="/static/{content_type}editor.js"></script>
+  {editor_loader}
 </body>
 </html>

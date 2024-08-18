@@ -63,6 +63,7 @@ t_startbody = Generate standard start of the body section
 t_startc = Start row/columns display x cells wide (x = 12 of 16)
 t_startcenter = Temporary suspend margins to display wide image(s)
 t_startsidebar = Generate the code to start a sidebar
+t_switch = Reload source to see the effect (for spellcheck, also activate the text area)
 t_textheader = Generate start of the text with title
 t_toggle = click to show/hide
 t_transcript = Generate the transcription of a picture
@@ -122,6 +123,7 @@ c_search_f = Search for:
 c_settings = Settings
 c_showhtml = Render
 c_status = Status
+c_switch = Toggle spellcheck / code highlighting for view source
 c_text = Text
 
 # notifications and such

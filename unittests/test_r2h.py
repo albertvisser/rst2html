@@ -38,7 +38,7 @@ def test_format_output(monkeypatch):
         """stub
         """
         return ('template text:\n {rstnames} {htmlnames} {newname} {message} {content} {cols} {rows}'
-                ' {settnames} {content_type} {editor_addon}')
+                ' {settnames} {editor_addon} {spellcheck_button} {editor_loader}')
     def mock_apply_lang(*args):
         """stub
         """
@@ -47,12 +47,20 @@ def test_format_output(monkeypatch):
         """stub
         """
         return 'confs'
+    def mock_get_text(*args):
+        """stub
+        """
+        return 'xxxx'
     monkeypatch.setattr(r2h.rhfn, 'list_files', mock_list_files)
+    monkeypatch.setattr(r2h.rhfn, 'get_text', mock_get_text)
     monkeypatch.setattr(r2h, 'load_template', mock_load_template)
     monkeypatch.setattr(r2h, 'apply_lang', mock_apply_lang)
     monkeypatch.setattr(r2h.rhfn, 'list_confs', mock_list_confs)
+    monkeypatch.setattr(r2h, 'load_editor', '{}')
+    monkeypatch.setattr(r2h, 'spellbuttontext', '{} {} {}')
     state = r2h.Rst2Html().state
     state.newfile = True
+    state.noformat = False
     state.loaded = ''
     state.conf = {'wid': 20, 'hig': 10}
     r2h.codemirror_stuff = ['cc', 'cc']
@@ -60,21 +68,30 @@ def test_format_output(monkeypatch):
     r2h.scriptdict = {'rst': ('REsT',), 'conf': ('conf',)}
     assert r2h.format_output('rst', 'html', 'new', 'mld',
                              'data', {1: 2}, state) == ('template text: [] [] new mld data 20 10'
-                                                        ' confs  ')
+                                                        ' confs   ')
 
     state.newfile = False
     state.loaded = 'rst'
     state.conf['highlight'] = True
     assert r2h.format_output('rst', 'html', 'new', 'mld',
-                             'data', {1: 2}, state) == ('template text: src html new mld data'
-                                                        ' 20 10 confs rst ccccREsT')
+                             'data', {1: 2}, state) == ('template text: src html new mld data 20 10'
+                                                        ' confs ccccREsT xxxx spellcheck true rst')
 
     state.newconf = True
     state.loaded = 'conf'
     state.conf['highlight'] = True
     assert r2h.format_output('rst', 'html', 'new', 'mld',
-                             'data', {1: 2}, state) == ('template text: [] [] new mld data'
-                                                        ' 20 10 confs conf ccccconf')
+                             'data', {1: 2}, state) == ('template text: [] [] new mld data 20 10'
+                                                        ' confs ccccconf xxxx spellcheck true conf')
+    state.noformat = True
+    assert r2h.format_output('rst', 'html', 'new', 'mld',
+                             'data', {1: 2}, state) == ('template text: [] [] new mld data 20 10'
+                                                        ' confs   code highlighting false ')
+    state.newconf = False
+    state.loaded = 'rst'
+    assert r2h.format_output('rst', 'html', 'new', 'mld',
+                             'data', {1: 2}, state) == ('template text: src html new mld data 20 10'
+                                                        ' confs   code highlighting false ')
 
 
 def test_format_progress_list():
@@ -132,10 +149,6 @@ def test_resolve_images():
 def test_format_previewdata():
     """unittest for rst2html.format_previewdata
     """
-    def mock_resolve_images(*args):
-        """stub
-        """
-        return args[0]
     program = r2h.Rst2Html()
     r2h.previewbutton = '[{}]'
     assert r2h.format_previewdata(program.state, '<---',
@@ -221,6 +234,7 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.loadconf(rstfile='r', htmlfile='h') == ('format_output for r, h, new, mld,'
                                                                 f' data, sett, {testsubj.state}')
+        assert not testsubj.state.noformat
         assert capsys.readouterr().out == 'called R2hState.loadconf\n'
 
     def test_saveconf(self, monkeypatch, capsys):
@@ -272,6 +286,14 @@ class TestRst2Html:
         assert testsubj.loadrst(settings='s', rstfile='r') == ('format_output for r, html, new,'
                                                                f' mld, data, s, {testsubj.state}')
         assert capsys.readouterr().out == 'called R2hState.loadrst\n'
+        assert testsubj.loadrst(settings='s', rstfile='r', highlighted='false') == (
+                f'format_output for r, html, new, mld, data, s, {testsubj.state}')
+        assert testsubj.state.noformat
+        assert capsys.readouterr().out == 'called R2hState.loadrst\n'
+        assert testsubj.loadrst(settings='s', rstfile='r', highlighted='true') == (
+                f'format_output for r, html, new, mld, data, s, {testsubj.state}')
+        assert capsys.readouterr().out == 'called R2hState.loadrst\n'
+        assert not testsubj.state.noformat
 
     def test_saverst(self, monkeypatch, capsys):
         """unittest for Rst2Html.saverst
@@ -377,6 +399,7 @@ class TestRst2Html:
         monkeypatch.setattr(r2h, 'format_output', mock_format_output)
         assert testsubj.loadhtml(settings='s', newfile='n') == ('format_output for rst, html, n,'
                                                                 f' mld, data, s, {testsubj.state}')
+        assert not testsubj.state.noformat
         assert capsys.readouterr().out == 'called R2hState.loadhtml\n'
 
     def test_showhtml(self, monkeypatch, capsys):
