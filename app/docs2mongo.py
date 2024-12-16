@@ -21,6 +21,7 @@ site_coll = db.site_coll
 #     # Collection.find_one_and_delete = Collection.remove
 #     Collection.delete_many = Collection.remove
 
+
 #
 # dml-specifieke subroutines:
 #
@@ -225,7 +226,7 @@ def list_templates(site_name):
     sitedoc = _get_site_doc(site_name)
     if 'templates' not in sitedoc:
         return []
-    return sorted([x for x in sitedoc['templates']])
+    return sorted(list(sitedoc['templates']))
 
 
 def read_template(site_name, doc_name):
@@ -288,7 +289,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=Fal
         # throws TypeError when doc_name doesn't exist, KeyError on nonexisting docid
     except (TypeError, KeyError) as exc:
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
-        raise FileNotFoundError("no_document".format(doc_name)) from exc
+        raise FileNotFoundError(f"Document '{doc_name}' not found in collection") from exc
     doc_data = site_coll.find({'_id': doc_id})[0]
     if previous:
         return doc_data['previous']
@@ -576,8 +577,8 @@ def list_site_data(site_name):
     for dirname, diritem in sitedoc['docs'].items():
         for docname, docitem in diritem.items():
             for locname, locitem in docitem.items():
-                # if 'docid' in locitem:
                 if 'docid' in locitem and 'deleted' not in locitem:
+                # if 'docid' in locitem and not locitem.get('deleted', False):  -- beter?
                     id_list.append(locitem['docid'])
                     id_dict[locitem['docid']] = (docname, locname, dirname)
     data = []

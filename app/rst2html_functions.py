@@ -14,14 +14,9 @@ import datetime
 import subprocess
 import collections
 
-from app_settings import DFLT, DML, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
+from app_settings import DFLT, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
 writers = BASIC_CSS.keys()
-if DML == 'fs':
-    import app.docs2fs as dml
-elif DML == 'mongo':
-    import app.docs2mongo as dml
-elif DML == 'postgres':
-    import app.docs2pg as dml
+from app.backend import dml
 from app.docs2fs import load_config_data, ParserError, save_config_data
 #
 # docutils stuff (including directives
@@ -137,11 +132,11 @@ def post_process_title(data):
         doit = False
     if doit:
         title, end = rest.split('</h1>', 1)
-        test = data.index('<head>')
-        test2 = data.index('</head>', test)
-        test3 = data.index('<title>', test)
-        if test3 < test2:
-            leng = test3
+        head_start = data.index('<head>')
+        head_end = data.index('</head>', head_start)
+        title_start = data.index('<title>', head_start)
+        if title_start < head_end:
+            leng = title_start
             start = data[:leng]
             _, end = data[leng:].split('</title>')
             data = f'{start}<title>{title}</title>{end}'
@@ -1070,7 +1065,7 @@ def check_for_includes(sitename, rstdata):
     "gebruikte includes afleiden uit source"
     includenames = []
     includes = [x.lstrip().split(None, 1)[0] for x in rstdata.split('.. include::')[1:]]
-    # standard include (only file besed)
+    # standard include (only file based)
     for item in includes:
         path = pathlib.Path(item)
         if path.parent == WEBROOT / sitename / '.source':
@@ -1385,31 +1380,31 @@ class R2hState:
         if new name specified, use that
         """
         command = mld = ""
-        newsett = settings
+        settfile = settings
         if rstdata == "":
             mld = get_text('supply_text', self.get_lang())
         elif self.loaded != CONF:
             mld = get_text('conf_invalid', self.get_lang())
         if mld == '':
-            if newfile and newfile != newsett:
-                newsett = newfile
-            if newsett == get_text('c_newitem', self.get_lang()):
+            if newfile and newfile != settfile:
+                settfile = newfile
+            if settfile == get_text('c_newitem', self.get_lang()):
                 mld = get_text('fname_invalid', self.get_lang())
             elif self.newconf:
-                mld, newurl = new_conf(newsett, rstdata, self.get_lang())
+                mld, newurl = new_conf(settfile, rstdata, self.get_lang())
                 if newurl:
                     rstdata = rstdata.replace("url: ''", f"url: {newurl}")
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if not mld:
             # do_urlcheck = not self.newconf
             # mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
-            mld = save_conf(newsett, rstdata, self.get_lang())
+            mld = save_conf(settfile, rstdata, self.get_lang())
             # if mld == '' and self.newconf:
             #     init_css(newsett)
         if not mld:
             self.newfile = ''
             self.newconf = False
-            self.settings = self.sitename = newsett
+            self.settings = self.sitename = settfile
             mld = self.get_conf(self.settings)
             self.rstdata = rstdata = conf2text(self.conf)
         if not mld:
@@ -1639,10 +1634,10 @@ class R2hState:
                 if mld == "":
                     mld = 'rst_2_html'
                 self.newfile = ""
-        if mld:
-            mld = get_text(mld, self.get_lang())
-            if '{}' in mld:
-                mld = mld.format(self.currentify(self.htmlfile))
+        # if mld:  # niet mogelijk: wordt pal hiervoor ingesteld als-ie nog niet is ingesteld
+        mld = get_text(mld, self.get_lang())
+        if '{}' in mld:
+            mld = mld.format(self.currentify(self.htmlfile))
         return mld, self.rstfile, self.htmlfile, self.newfile
 
     def status(self, rstfile):
@@ -1775,7 +1770,7 @@ class R2hState:
             if results:
                 return messages[mode] + ', '.join(list(results))
         else:
-            return f'{mode = }'
+            return f'{mode=}'
         return "no deletions pending"
 
     def makerefdoc(self):

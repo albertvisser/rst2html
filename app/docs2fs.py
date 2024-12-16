@@ -115,8 +115,8 @@ def _get_dir_stats_for_docitem(site_name, dirname=''):
                 value[ftype] = result_dict[name][ftype]
             elif result_dict[name][ftype].get('deleted', False):
                 value[ftype] = result_dict[name][ftype]
-                if result_dict[name][ftype]['updated'] == datetime.datetime.min:
-                    value[ftype].pop('updated')
+                # if result_dict[name][ftype]['updated'] == datetime.datetime.min:  # altijd waar
+                value[ftype].pop('updated')
         result[name] = value
     ## return sorted((x, y) for x, y in result.items())
 
@@ -594,7 +594,7 @@ def apply_deletions_mirror(sitename, directory=''):
         if to_delete.exists():
             to_delete.unlink()
             to_delete.with_suffix('.html.bak').unlink(missing_ok=True)
-        else:  # read_settings(sitename).get('seflinks', False)
+        else:
             delpath = to_delete.with_suffix('')
             for subitem in delpath.glob('index.html*'):
                 subitem.unlink(missing_ok=True)

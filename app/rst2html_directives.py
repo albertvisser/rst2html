@@ -1,4 +1,4 @@
-"""Directives for Magiokis site
+"""Rst2HTML: Custom directives
 """
 # import pathlib
 import datetime
@@ -8,14 +8,8 @@ from docutils import nodes
 from docutils.parsers.rst import directives
 # Import Directive base class.
 from docutils.parsers.rst import Directive
-from app_settings import DML, DFLT, WEBROOT
-if DML == 'fs':
-    import app.docs2fs as dml
-elif DML == 'mongo':
-    import app.docs2mongo as dml
-elif DML == 'postgres':
-    import app.docs2pg as dml
-
+from app_settings import DFLT, WEBROOT
+from app.backend import dml
 
 directive_selectors = {'bottom': (('div', ".clear"), ('div', "grid_nn"), ('div', "spacer")),
                        'myheader': (('a', "#logo"), ('div', "#name-and-slogan"), ('div',
@@ -444,7 +438,7 @@ class Scene(Directive):
     def run(self):
         "genereer de html"
         lines = ['<div class="scene">']
-        open_claus = open_spraak = found_who = False
+        open_claus = found_who = False
         for line in self.content:
             try:
                 who, what = line.split('::', 1)
@@ -456,27 +450,18 @@ class Scene(Directive):
                     lines.append(f'<div class="actie">{line}</div>')
                 continue
             if open_claus:
-                if open_spraak:
-                    lines.append('</div>')
-                    open_spraak = False
-                lines.append('</div>')
+                lines.append('</div></div>')
                 open_claus = False
             if who:
                 lines.append('<div class="claus">')
                 lines.append(f'<div class="spreker">{who}</div>')
                 lines.append('<div class="spraak">')
                 lines.append(f'<div class="regel">{what}</div>')
-                open_claus = open_spraak = True
+                open_claus = True
             else:
-                # if open_spraak:
-                #     lines.append('</div>')
-                #     open_spraak = False
                 lines.append(f'<div class="actie">{what}</div>')
         if open_claus:
-            if open_spraak:
-                lines.append('</div>')
-                open_spraak = False
-            lines.append('</div>')
+            lines.append('</div></div>')
             open_claus = False
         lines.append('</div>')
         text_node = nodes.raw('', '\n' + '\n'.join(lines), format='html')

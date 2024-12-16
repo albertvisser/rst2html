@@ -12,6 +12,7 @@ from .docs2fs import save_to
 conn = pg.connect(database="rst2html", user=user, password=password)
 TABLES = ('sites', 'site_settings', 'directories', 'doc_stats', 'documents', 'templates')
 
+
 #
 # dml-specifieke subroutines:
 #
@@ -84,7 +85,7 @@ def _get_all_dir_ids(site_id):
     result = None
     cur = conn.cursor()
     cur.execute(f'select id from {TABLES[2]} where site_id = %s;', (site_id,))
-    result = [x for x in cur.fetchall()]
+    result = list(cur.fetchall())
     cur.close()
     if result:
         result = [x[0] for x in result]
@@ -97,7 +98,7 @@ def _get_docs_in_dir(dir_id):
     result = []
     cur = conn.cursor()
     cur.execute(f'select docname from {TABLES[3]} where dir_id = %s;', (dir_id,))
-    result = [x for x in cur.fetchall()]
+    result = list(cur.fetchall())
     cur.close()
     if result:
         result = [x[0] for x in result]
@@ -206,7 +207,7 @@ def read_db():
 
         cur.execute(f'select settname, settval from {TABLES[1]} order by settname'
                     ' where site_id = %s;', (site_id,))
-        sitedict['settings'] = {x: y for x, y in cur.fetchall()}
+        sitedict['settings'] = dict(cur.fetchall())
 
         cur.execute(f'select dirname, id from {TABLES[2]} order by dirname where site_id = %s;',
                     (site_id,))
@@ -314,12 +315,12 @@ def update_settings(site_name, settings_dict):
     oldsett = _get_settings(siteid)
     ## print('oldsett incoming:', oldsett)
     if 'css' in oldsett:
-        oldsett['css'] = ';'.join([x for x in oldsett['css']])
+        oldsett['css'] = ';'.join(list(oldsett['css']))
     ## print('oldsett updated:', oldsett)
-    newsett = {x: y for x, y in settings_dict.items()}
+    newsett = dict(settings_dict)
     ## print('newsett incoming:', newsett)
     if 'css' in newsett:
-        newsett['css'] = ';'.join([x for x in newsett['css']])
+        newsett['css'] = ';'.join(list(newsett['css']))
     ## print('newsett updated:', newsett)
     cur = conn.cursor()
     sel = 'site_id = %s and settname = %s'
@@ -365,7 +366,7 @@ def list_dirs(site_name, doctype=''):
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute(f'select id, dirname from {TABLES[2]} where site_id = %s;', (siteid,))
     dirmap = {row['id']: row['dirname'] for row in cur}
-    dirids = [x for x in dirmap]
+    dirids = list(dirmap)
     if doctype in ('', 'src'):
         pass
     elif doctype == 'dest':
@@ -539,13 +540,13 @@ def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=Fal
     dirid = _get_dir_id(siteid, directory)
     docid, src_id, dest_id = _get_doc_ids(dirid, doc_name)
     if docid is None:
-        raise FileNotFoundError("no_document".format(doc_name))
+        raise FileNotFoundError(f"Document '{doc_name}' not found in collection")
     if doctype in ('', 'src'):
         if src_id is None:
             ## raise FileNotFoundError("Document {} source not found".format(doc_name))
             raise FileNotFoundError("src_file_missing")
         docid = src_id
-    elif doctype == 'dest':
+    else:  # if doctype == 'dest': vooralsnog de enige andere mogelijkheid
         if dest_id is None:
             ## raise FileNotFoundError("Document {} html not found".format(doc_name))
             raise FileNotFoundError("html_file_missing")
@@ -558,7 +559,7 @@ def get_doc_contents(site_name, doc_name, doctype='', directory='', previous=Fal
     if row:
         result = row[column]
     else:
-        result = f'{directory}/{doc_name} has id {docid}, but no {column} contents'
+        result = f"{directory.replace('/', '')}/{doc_name} has id {docid}, but no {column} contents"
     conn.commit()
     cur.close()
     return result
@@ -776,9 +777,11 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     if not path.exists():
         path.mkdir(parents=True)
     path /= doc_name
-    ext = LOC2EXT['dest']
-    if path.suffix != ext:
-        path = path.with_suffix(ext)
+    # doc_name is already truncated to the stem
+    # ext = LOC2EXT['dest']
+    # if path.suffix != ext:
+    #     path = path.with_suffix(ext)
+    path = path.with_suffix(LOC2EXT['dest'])
     sett = read_settings(site_name)
     seflinks = sett.get('seflinks', False)
     if not path.exists() and not seflinks:
@@ -843,7 +846,7 @@ def list_deletions(dirlist, stage):
         cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
         cur.execute(f'select id, docname, target_docid from {TABLES[3]}'
                     f' where dir_id = %s and {stage}_deleted = %s;', (dirid, True))
-        to_be_deleted = [row for row in cur]
+        to_be_deleted = list(cur)
         if directory == '/':
             deletions.extend([row['docname'] for row in to_be_deleted])
         else:
@@ -858,7 +861,7 @@ def apply_deletions(dirlist, stage):
         cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
         cur.execute(f'select id, docname, target_docid from {TABLES[3]}'
                     f' where dir_id = %s and {stage}_deleted = %s;', (dirid, True))
-        to_delete = [row for row in cur]
+        to_delete = list(cur)
         if stage == 'source':
             docids += [(row['target_docid'],) for row in to_delete]
             from_table = TABLES[4]
@@ -944,7 +947,7 @@ def list_site_data(site_name):
     cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
     cur.execute(f'select id, dirname from {TABLES[2]} where site_id = %s;', (siteid,))
     dirmap = {row['id']: row['dirname'] for row in cur}
-    dirids = [x for x in dirmap]
+    dirids = list(dirmap)
     sitedoc['docs'] = {x: {} for x in dirmap.values()}
 
     cur.execute('select docname, source_docid, source_updated, source_deleted, target_docid,'
@@ -983,7 +986,7 @@ def list_site_data(site_name):
         docnames[row['target_docid']] = (docitem, 'dest')
 
     for dir, doc, *items in sorted(docstats):
-        sitedoc['docs'][dir][doc] = {x: y for x, y in items}
+        sitedoc['docs'][dir][doc] = dict(items)
         ## if item[0] != olddir:
             ## if olddir:
                 ## sitedoc['docs'][olddir] = dirdict
@@ -995,7 +998,7 @@ def list_site_data(site_name):
 
     data = []
     cur.execute(f'select id, currtext, previous from {TABLES[4]} where id = any(%s)',
-                ([x for x in docnames],))
+                (list(docnames),))
     for row in cur:
         data.append({'_id': docnames[row['id']], 'current': row['currtext'],
                      'previous': row['previous']})
@@ -1021,8 +1024,8 @@ def clear_site_data(site_name):
         fs_data = False
 
     if db_data:
-        ## if not fs_data
-            ## raise RuntimeError("data inconstent: database without mirror site")
+        # if not fs_data
+        #     raise RuntimeError("data inconstent: database without mirror site")
         dirids = _get_all_dir_ids(siteid)
 
         cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
@@ -1058,7 +1061,7 @@ def clear_site_data(site_name):
         conn.commit()
 
     if fs_data:
-        ## if not db_data
-            ## raise RuntimeError("data inconstent: mirror without database site")
+        # if not db_data
+        #     raise RuntimeError("data inconstent: mirror without database site")
         with contextlib.suppress(FileNotFoundError):
             shutil.rmtree(str(path))

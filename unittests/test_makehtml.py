@@ -89,7 +89,7 @@ class TestMainFrame:
                 "called WebEngineView.__init__()\n"
                 "called MainWidget.setCentralWindow with arg of type"
                 " `<class 'PyQt6.QtWebEngineWidgets.QWebEngineView'>`\n"
-                "called MainWindow.setWindowTitle to `input via htmlfrommode.py`\n"
+                "called MainWindow.setWindowTitle with arg `input via htmlfrommode.py`\n"
                 "called MainFrame.refresh_display\n"
                 "called MainFrame.setup_actions\n"
                 "called MainWindow.show\n"
@@ -104,7 +104,7 @@ class TestMainFrame:
                 "called WebEngineView.__init__()\n"
                 "called MainWidget.setCentralWindow with arg of type"
                 " `<class 'PyQt6.QtWebEngineWidgets.QWebEngineView'>`\n"
-                "called MainWindow.setWindowTitle to `input via htmlfrommode.py`\n"
+                "called MainWindow.setWindowTitle with arg `input via htmlfrommode.py`\n"
                 "called MainFrame.refresh_display\n")
 
     def test_setup_actions(self, monkeypatch, capsys):
@@ -160,9 +160,9 @@ class TestMainFrame:
         failed = testobj.refresh_display()
         assert not failed
         assert capsys.readouterr().out == (
-                "called Cursor with arg CursorShape.WaitCursor\n"
+                "called Cursor.__init__ with arg CursorShape.WaitCursor\n"
                 "called Application.setOverrideCursor with arg of type"
                 " <class 'mockgui.mockqtwidgets.MockCursor'>\n"
                 "called zetom_function with arg something\n"
-                "called WebEngineView.setHtml() with args ('omgezet',)\n"
+                "called WebEngineView.setHtml() with args ('omgezet',) {}\n"
                 "called Application.restoreOverrideCursor\n")
