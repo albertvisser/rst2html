@@ -5,10 +5,9 @@ __pycache__/
 
 # development stuff
 logs/
-*.swp
-*.swo
 .coverage
-mee_bezig.pck
+projdocs*     
+.sessionrc
 
 # on-demand
 app_settings*
