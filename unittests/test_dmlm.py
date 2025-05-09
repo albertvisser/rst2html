@@ -144,7 +144,6 @@ class TestNonApiFunctions:
         """
         monkeypatch.setattr(testee, 'site_coll', MockColl())
         testee._update_doc('docid', 'doc')
-        # assert capsys.readouterr().out == 'called update with args `{}`, `{}`\n'.format(
         assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
                 "{'_id': 'docid'}", "{'$set': 'doc'}")
 
@@ -854,7 +853,6 @@ class TestDocLevel:
         assert testee.list_deletions_mirror('site_name', '*') == []
         assert testee.list_deletions_mirror('site_name', 'dirname') == []
 
-    # 532->534, 534->538
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
         """unittest for docs2mongo.apply_deletions_mirror
         """
@@ -932,6 +930,9 @@ class TestDocLevel:
         monkeypatch.setattr(testee, '_get_stats', mock_get_stats)
         assert testee.get_doc_stats('site_name', 'docname') == 'stats for docname'
         assert testee.get_doc_stats('site_name', 'docname2', 'dirname') == 'stats for docname2'
+        with pytest.raises(FileNotFoundError) as e:
+            testee.get_doc_stats('site_name', 'ducname')
+        assert str(e.value) == 'no_document'
 
     def test_get_all_doc_stats(self, monkeypatch):
         """unittest for docs2mongo.get_all_doc_stats

@@ -616,12 +616,16 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'check_url_old', mock_check_url)
         assert testee.text2conf_old('') == ('sett_invalid: url', {})
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_simple)
-        expected = dict(testee.DFLT_CONF.items()).update({'css': ['https://a_string']})
+        # expected = dict(testee.DFLT_CONF.items()).update({'css': ['https://a_string']})
+        expected = dict(testee.DFLT_CONF.items())
+        expected.update({'css': ['https://a_string']})
         assert testee.text2conf_old('') == ('', expected)
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_double)
         monkeypatch.setattr(testee, 'check_url_old', mock_check_url_ok)
-        expected = dict(testee.DFLT_CONF.items()).update(
-                {'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
+        # expected = dict(testee.DFLT_CONF.items()).update(
+        #         {'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
+        expected = dict(testee.DFLT_CONF.items())
+        expected.update({'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
         assert testee.text2conf_old('') == ('', expected)
 
     def test_check_changed_settings(self, monkeypatch, capsys):
@@ -1507,7 +1511,6 @@ class TestProgressList:
         def mock_get_all_doc_stats(*args):
             """stub
             """
-            nonlocal date_1, date_2, date_3
             return [('testdir2', [('test', (date_3, date_2, date_1)),
                                   ('index', (date_1, date_2, date_3)),
                                   ('removed', ('[deleted]', date_2, date_3)),
@@ -2574,9 +2577,10 @@ class TestR2hState:
         assert testsubj.diffsrc('test') == ('diff_loaded', 'newdata')
         assert testsubj.loaded == testee.DIFF
         assert capsys.readouterr().out == "called compare_source() with args=('site', '', 'test')\n"
-        assert testsubj.diffsrc('-- test --') == ('diff_loaded', 'newdata')
-        assert testsubj.loaded == testee.DIFF
-        assert capsys.readouterr().out == "called compare_source() with args=('site', '', 'test')\n"
+        testsubj.loaded = ''
+        assert testsubj.diffsrc('-- test --') == ('rst_filename_error', '')
+        assert testsubj.loaded == ''
+        assert capsys.readouterr().out == ""
         monkeypatch.setattr(testee, 'compare_source', mock_compare_source_mld)
         testsubj.loaded = ''
         assert testsubj.diffsrc('test') == ('other_msg', 'rstdata')
@@ -2891,6 +2895,13 @@ class TestR2hState:
             """
             return testee.dml.Stats(datetime.datetime.min, datetime.datetime.min,
                                   datetime.datetime.min)
+        def mock_get_doc_stats_4(*args):
+            """stub
+            """
+            raise FileNotFoundError('rst_filename_error')
+        testsubj = testee.R2hState()
+        testsubj.current = ''
+        assert testsubj.status('-- test --') == 'Not executed: not a valid source file name'
         testsubj = testee.R2hState()
         testsubj.current = ''
         monkeypatch.setattr(testee.dml, 'get_doc_stats', mock_get_doc_stats)
@@ -2913,6 +2924,10 @@ class TestR2hState:
         testsubj.current = ''
         monkeypatch.setattr(testee.dml, 'get_doc_stats', mock_get_doc_stats_3)
         assert testsubj.status('file') == 'not possible to get stats'
+        testsubj = testee.R2hState()
+        testsubj.current = ''
+        monkeypatch.setattr(testee.dml, 'get_doc_stats', mock_get_doc_stats_4)
+        assert testsubj.status('file') == 'Not executed: not a valid source file name'
 
     def test_loadhtml(self, monkeypatch):
         """unittest for R2hState.loadhtml

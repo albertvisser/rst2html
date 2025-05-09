@@ -215,7 +215,6 @@ def read_template(site_name, doc_name):
 
 def write_template(site_name, doc_name, data):
     """store the source for a template"""
-    # TODO: backup tekst indien reeds aanwezig
     mld = ''
     siteid = _get_site_id(site_name)
     _put_template(siteid, doc_name, data)

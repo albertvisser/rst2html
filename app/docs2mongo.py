@@ -240,7 +240,6 @@ def read_template(site_name, doc_name):
 def write_template(site_name, doc_name, data):
     """store the source for a template
     """
-    # TODO: backup tekst indien reeds aanwezig
     sitedoc = _get_site_doc(site_name)
     sitedoc.setdefault('templates', {})
     sitedoc['templates'][doc_name] = data
@@ -546,7 +545,10 @@ def get_doc_stats(site_name, docname, dirname=''):
     """get statistics for a document in a site subdirectory"""
     docname = pathlib.Path(docname).stem
     sitedoc = _get_site_doc(site_name)
-    docinfo = sitedoc['docs'][dirname][docname] if dirname else sitedoc['docs']['/'][docname]
+    try:
+        docinfo = sitedoc['docs'][dirname][docname] if dirname else sitedoc['docs']['/'][docname]
+    except KeyError:
+        raise FileNotFoundError('no_document') from None
     return _get_stats(docinfo)
 
 

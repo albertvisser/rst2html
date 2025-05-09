@@ -1488,13 +1488,17 @@ class R2hState:
     def diffsrc(self, rstfile):
         """compare current source with previous version
         """
-        if rstfile.startswith('-- ') and rstfile.endswith(' --'):
-            rstfile = rstfile[3:-3]
-        mld, rstdata = compare_source(self.sitename, self.current, rstfile)
-        if not mld:
+        if rstfile.startswith('-- ') or rstfile.endswith(' --'):
+            mld = 'rst_filename_error'
+            rstdata = ''
+        else:
+            mld, rstdata = compare_source(self.sitename, self.current, rstfile)
+        if mld:
+            mld = get_text(mld, self.get_lang())
+        else:
             self.loaded = DIFF
-            mld = get_text('diff_loaded' if rstdata else 'no_diff_data',
-                           self.get_lang()).format(rstfile)
+            mld = 'diff_loaded' if rstdata else 'no_diff_data'
+            mld = get_text(mld, self.get_lang()).format(rstfile)
         return mld, rstdata
 
     def revert(self, rstfile, rstdata):
@@ -1642,10 +1646,17 @@ class R2hState:
 
     def status(self, rstfile):
         "build message with progress info for single document"
-        result = dml.get_doc_stats(self.sitename, rstfile, self.current)
-        if result.src == datetime.datetime.min:
-            message = get_text('no_stats', self.get_lang())   # 'not possible to get stats'
+        message = ''
+        if rstfile.startswith('-- ') or rstfile.endswith(' --'):
+            message = get_text('rst_filename_error', self.get_lang())
         else:
+            try:
+                result = dml.get_doc_stats(self.sitename, rstfile, self.current)
+            except FileNotFoundError as mld:
+                message = get_text(str(mld), self.get_lang())
+        if not message and result.src == datetime.datetime.min:
+            message = get_text('no_stats', self.get_lang())   # 'not possible to get stats'
+        if not message:
             src = result.src.strftime('%d-%m-%Y %H:%M:%S')
             if result.dest == datetime.datetime.min:
                 dest = 'n/a'
