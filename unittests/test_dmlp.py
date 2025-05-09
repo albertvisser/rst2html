@@ -102,19 +102,21 @@ class TestNonApiFunctions:
         def mock_fetchone_2(self, *args):
             """stub
             """
-            return (99,)
+            return {'id': 99}
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
         assert testee._get_site_id('site_name') == ()
         assert capsys.readouterr().out == (
             'execute SQL: `select id from sites where sitename = %s;`\n'
             '  with: `site_name`\n'
+            'called commit() on connection\n'
             'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
         assert testee._get_site_id('site_name') == 99
         assert capsys.readouterr().out == (
             'execute SQL: `select id from sites where sitename = %s;`\n'
             '  with: `site_name`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_get_dir_id(self, monkeypatch, capsys):
@@ -127,19 +129,21 @@ class TestNonApiFunctions:
         def mock_fetchone_2(self, *args):
             """stub
             """
-            return ('dir_id',)
+            return {'id': 'dir_id'}
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
         assert testee._get_dir_id('site_id', 'dir_id') == ()
         assert capsys.readouterr().out == (
             'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
             '  with: `site_id`, `dir_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
         assert testee._get_dir_id('site_id', 'dir_id') == 'dir_id'
         assert capsys.readouterr().out == (
             'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
             '  with: `site_id`, `dir_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_get_all_dir_ids(self, monkeypatch, capsys):
@@ -152,19 +156,21 @@ class TestNonApiFunctions:
         def mock_fetchall_2(self, *args):
             """stub
             """
-            return [('dirid01',), ('dirid02',)]
+            return [{'id': 'dirid01'}, {'id': 'dirid02'}]
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
         assert testee._get_all_dir_ids('site_id') == []
         assert capsys.readouterr().out == (
             'execute SQL: `select id from directories where site_id = %s;`\n'
             '  with: `site_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
         assert testee._get_all_dir_ids('site_id') == ['dirid01', 'dirid02']
         assert capsys.readouterr().out == (
             'execute SQL: `select id from directories where site_id = %s;`\n'
             '  with: `site_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_get_docs_in_dir(self, monkeypatch, capsys):
@@ -177,19 +183,21 @@ class TestNonApiFunctions:
         def mock_fetchall_2(self, *args):
             """stub
             """
-            return [('docname_01',), ('docname_02',)]
+            return [{'docname': 'docname_01'}, {'docname': 'docname_02'}]
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
         assert testee._get_docs_in_dir('dir_id') == []
         assert capsys.readouterr().out == (
             'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
             '  with: `dir_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
         assert testee._get_docs_in_dir('dir_id') == ['docname_01', 'docname_02']
         assert capsys.readouterr().out == (
             'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
             '  with: `dir_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_get_doc_ids(self, monkeypatch, capsys):
@@ -206,6 +214,7 @@ class TestNonApiFunctions:
             'execute SQL: `select id, source_docid, target_docid from doc_stats'
             ' where dir_id = %s and docname = %s;`\n'
             '  with: `dir_id`, `docname`\n'
+            'called commit() on connection\n'
             'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
         assert testee._get_doc_ids('dir_id', 'docname') == (1, 2, 3)
@@ -213,6 +222,7 @@ class TestNonApiFunctions:
             'execute SQL: `select id, source_docid, target_docid from doc_stats'
             ' where dir_id = %s and docname = %s;`\n'
             '  with: `dir_id`, `docname`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_get_doc_text(self, monkeypatch, capsys):
@@ -221,19 +231,21 @@ class TestNonApiFunctions:
         def mock_fetchone(self, *args):
             """stub
             """
-            return ('some_text',)
+            return {'currtext': 'some_text'}
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
         assert testee._get_doc_text('doc_id') == (None, None, None)
         assert capsys.readouterr().out == (
              'execute SQL: `select currtext from documents where id = %s;`\n'
              '  with: `doc_id`\n'
+             'called commit() on connection\n'
              'called close()\n')
         monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
         assert testee._get_doc_text('doc_id') == 'some_text'
         assert capsys.readouterr().out == (
              'execute SQL: `select currtext from documents where id = %s;`\n'
              '  with: `doc_id`\n'
+             'called commit() on connection\n'
              'called close()\n')
 
     def test_get_settings(self, monkeypatch, capsys):
@@ -250,13 +262,14 @@ class TestNonApiFunctions:
         assert capsys.readouterr().out == (
             'execute SQL: `select settname, settval from site_settings where site_id = %s`\n'
             '  with: `site_id`\n'
+            'called commit() on connection\n'
             'called close()\n')
 
     def test_add_doc(self, monkeypatch, capsys):
         """unittest for docs2pg.add_doc
         """
         monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ('some_id',))
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ({'id': 'some_id'}))
         assert testee._add_doc() == 'some_id'
         assert capsys.readouterr().out == (
                 'execute SQL: `insert into documents (currtext, previous) values (%s, %s)'
@@ -335,23 +348,23 @@ class TestTestApi:
 
         assert capsys.readouterr().out == (
                 'execute SQL: `select sitename, id from sites order by sitename;`\n'
-                'execute SQL: `select settname, settval from site_settings order by settname'
-                ' where site_id = %s;`\n'
+                'execute SQL: `select settname, settval from site_settings'
+                ' where site_id = %s order by settname;`\n'
                 '  with: `1`\n'
-                'execute SQL: `select dirname, id from directories order by dirname'
-                ' where site_id = %s;`\n'
+                'execute SQL: `select dirname, id from directories'
+                ' where site_id = %s order by dirname;`\n'
                 '  with: `1`\n'
-                'execute SQL: `select * from doc_stats order by docname where dir_id = %s;`\n'
+                'execute SQL: `select * from doc_stats where dir_id = %s order by docname;`\n'
                 '  with: `1`\n'
-                'execute SQL: `select settname, settval from site_settings order by settname'
-                ' where site_id = %s;`\n'
+                'execute SQL: `select settname, settval from site_settings'
+                ' where site_id = %s order by settname;`\n'
                 '  with: `2`\n'
-                'execute SQL: `select dirname, id from directories order by dirname'
-                ' where site_id = %s;`\n'
+                'execute SQL: `select dirname, id from directories'
+                ' where site_id = %s order by dirname;`\n'
                 '  with: `2`\n'
-                'execute SQL: `select * from doc_stats order by docname where dir_id = %s;`\n'
+                'execute SQL: `select * from doc_stats where dir_id = %s order by docname;`\n'
                 '  with: `2`\n'
-                'execute SQL: `select * from doc_stats order by docname where dir_id = %s;`\n'
+                'execute SQL: `select * from doc_stats where dir_id = %s order by docname;`\n'
                 '  with: `3`\n'
                 'called commit() on connection\n'
                 'called close()\n')
@@ -413,10 +426,14 @@ class TestTestApi:
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, dirname from directories where site_id = %s;`\n'
                 '  with: `1`\n'
+                'called commit() on connection\n'
+                'called close()\n'
                 'execute SQL: `select docname, source_docid, source_updated, source_deleted,'
                 ' target_docid, target_updated, target_deleted, mirror_updated, dir_id'
                 ' from doc_stats where dir_id = any(%s);`\n'
                 '  with: `[2, 3]`\n'
+                'called commit() on connection\n'
+                'called close()\n'
                 'execute SQL: `select id, currtext, previous from documents where id = any(%s)`\n'
                 '  with: `[4, 5, None, 6, 7]`\n'
                 'execute SQL: `select name, text from templates where site_id = %s;`\n'
@@ -473,7 +490,7 @@ class TestTestApi:
             'execute SQL: `delete from sites where id = %s;`\n'
             '  with: `1`\n'
             'called commit() on connection\n'
-            # 'called close()\n'
+            'called close()\n'
             f'called rmtree() with arg `{dest}`\n')
 
 
@@ -486,7 +503,7 @@ class TestSiteLevel:
         def mock_fetchall(self, *args):
             """stub
             """
-            return [('site1',), ('site2',)]
+            return [{'sitename': 'site1'}, {'sitename': 'site2'}]
         monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
         # monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
         monkeypatch.setattr(testee, 'conn', MockConn())
@@ -512,7 +529,7 @@ class TestSiteLevel:
         with pytest.raises(FileExistsError):
             testee.create_new_site('site_name')
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ('q',))
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ({'id': 'q'}))
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
         testee.create_new_site('site_name')
@@ -540,7 +557,7 @@ class TestSiteLevel:
         monkeypatch.setattr(testee, 'conn', MockConn())
         testee.rename_site('site_name', 'newname')
         assert capsys.readouterr().out == (
-                'execute SQL: `update sites set name = %s where id = %s;`\n'
+                'execute SQL: `update sites set sitename = %s where id = %s;`\n'
                 '  with: `newname`, `y`\n'
                 'called commit() on connection\n'
                 'called close()\n'
@@ -633,7 +650,6 @@ class TestSiteLevel:
         monkeypatch.setattr(testee, 'update_settings', mock_update_settings)
         assert testee.clear_settings('site_name') == ('called update_settings with `site_name`, `{}`')
 
-    # 376->375
     def test_list_dirs(self, monkeypatch, capsys):
         """unittest for docs2pg.list_dirs
         """
@@ -672,7 +688,7 @@ class TestSiteLevel:
         assert testee.list_dirs('site_name') == ['subdir']
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, dirname from directories where site_id = %s;`\n'
-                '  with: `99`\n')
+                '  with: `99`\ncalled commit() on connection\ncalled close()\n')
         monkeypatch.setattr(MockCursor, '__iter__', mock_iter_2)
         monkeypatch.setattr(testee, 'conn', MockConn())
         assert testee.list_dirs('site_name', 'dest') == []
@@ -681,21 +697,21 @@ class TestSiteLevel:
                 '  with: `99`\n'
                 'execute SQL: `select dir_id, target_docid from doc_stats'
                 ' where dir_id = any(%s);`\n'
-                '  with: `[1, 2]`\n')
+                '  with: `[1, 2]`\ncalled commit() on connection\ncalled close()\n')
         assert testee.list_dirs('site_name', 'dest') == ['subdir']
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, dirname from directories where site_id = %s;`\n'
                 '  with: `99`\n'
                 'execute SQL: `select dir_id, target_docid from doc_stats'
                 ' where dir_id = any(%s);`\n'
-                '  with: `[1, 2]`\n')
+                '  with: `[1, 2]`\ncalled commit() on connection\ncalled close()\n')
         assert testee.list_dirs('site_name', 'dest') == []
         assert capsys.readouterr().out == (
                 'execute SQL: `select id, dirname from directories where site_id = %s;`\n'
                 '  with: `99`\n'
                 'execute SQL: `select dir_id, target_docid from doc_stats'
                 ' where dir_id = any(%s);`\n'
-                '  with: `[1, 2]`\n')
+                '  with: `[1, 2]`\ncalled commit() on connection\ncalled close()\n')
 
     def test_create_new_dir(self, monkeypatch, capsys):
         """unittest for docs2pg.create_new_dir
@@ -1484,7 +1500,9 @@ class TestDocLevel:
                 '  with: `1`, `True`\n'
                 'execute SQL: `select id, docname, target_docid from doc_stats'
                 ' where dir_id = %s and stage_deleted = %s;`\n'
-                '  with: `2`, `True`\n')
+                '  with: `2`, `True`\n'
+                "called commit() on connection\n"
+                "called close()\n")
 
     def test_apply_deletions(self, monkeypatch, capsys):
         """unittest for docs2pg.apply_deletions
@@ -1573,6 +1591,7 @@ class TestDocLevel:
                 'execute SQL: `select source_updated, source_deleted, target_updated,'
                 ' target_deleted, mirror_updated from doc_stats where id = %s;`\n'
                 '  with: `1`\n'
+                'called commit() on connection\n'
                 'called close()\n')
 
     def test_get_all_doc_stats(self, monkeypatch, capsys):
