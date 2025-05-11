@@ -270,6 +270,7 @@ class TestR2HRelated:
         expected = 'eerste regel\n\ninclude testsite  jansen\ntweede regel\n'
         assert testee.preprocess_includes('testsite', '', data) == expected
         # '.. incl:: docname' in subdir
+        data = 'eerste regel\n\n.. incl:: jansen\n\ntweede regel\n'
         expected = 'eerste regel\n\ninclude testsite subdir jansen\ntweede regel\n'
         assert testee.preprocess_includes('testsite', 'subdir', data) == expected
         # '.. incl:: subdir/docname' in root
@@ -308,6 +309,10 @@ class TestR2HRelated:
         expected = ('eerste regel\n\n.. error:: Not a valid filename: top/dir/../jansen\n\n'
                     'tweede regel\n')
         assert testee.preprocess_includes('testsite', '', data) == expected
+        # include op laatste regel zonder afsluitende \n
+        data = 'eerste regel\n\n.. incl:: topdir/../jansen'
+        expected = 'eerste regel\n\ninclude testsite topdir jansen'
+        assert testee.preprocess_includes('testsite', 'subdir', data) == expected
 
 
 class TestConfRelated:
@@ -398,27 +403,50 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'add_to_server', mock_add_to_server)
         assert testee.create_server_config('mysite') == 'mysite.example.com'
 
-    # eigenlijk betekent het gegeven dat de volgende drie methoden niet te testen zijn dat deze
-    # thuishoren in een data-benaderingsmodule, dan wel dat het ophalen van gegevens uit een extern
-    # bestand in zo'n module thuishoort waardoor het wel monkeypatchbaar wordt
-    # anderszijds is het voor de eerste routine ook mogelijk de filenamen niet hard te coderen
-    # zodat de inhoud gesimuleerd kan worden
-
-    def test_get_tldname(self):
+    def test_get_tldname(self, monkeypatch, tmp_path):
         """unittest for rst2html_functions.get_tldname
         """
-        # voor bepalen tldname kijken we in eerst /etc/hosts: eerste entry met een punt erin
-        # pas als die niet bestaat kijken we of er iets in /etc/hostname staat (computernaam)
-        # maar dat is niet te testen zonder /etc/hosts aan te passen
-        assert testee.get_tldname() == 'lemoncurry.nl'
+        default = testee.pathlib.Path('/etc/hostname').read_text().strip()
+        mock_hosts = tmp_path / 'etchosts'
+        monkeypatch.setattr(testee, 'ETCHOSTS', mock_hosts)
+        with pytest.raises(FileNotFoundError):  # als dit failt is er iets mis met de instalatie
+            testee.get_tldname()
+        mock_hosts.touch()
+        assert testee.get_tldname() == default + '.nl'
+        mock_hosts.write_text("\ngargl\n127.0.0.1  xxx\n127.0.0.1  yyy\n")
+        assert testee.get_tldname() == 'xxx.nl'
+        mock_hosts.write_text("\ngargl\n127.0.0.1  xxx.com\n127.0.0.1  yyy\n")
+        assert testee.get_tldname() == 'xxx.com'
+        mock_hosts.write_text("\ngargl\n127.0.0.1  gargl.xxx.cc\n127.0.0.1  yyy\n")
+        assert testee.get_tldname() == 'gargl.xxx.cc'
 
-    def _test_add_to_hostsfile(self):  # not really testable (yet)
+    def test_add_to_hostsfile(self, monkeypatch, tmp_path):
         """unittest for rst2html_functions.add_to_hostsfile
         """
+        mock_hosts = tmp_path / 'mischosts'
+        monkeypatch.setattr(testee, 'LOCALHOSTSCOPY', mock_hosts)
+        expected = '127.0.0.1     xxx.yyy.nl\n'
+        testee.add_to_hostsfile('xxx.yyy.nl')
+        assert mock_hosts.read_text() == expected
+        expected += '127.0.0.1     aaa.bbb.nl\n'
+        testee.add_to_hostsfile('aaa.bbb.nl')
+        assert mock_hosts.read_text() == expected
 
-    def _test_add_to_server(self):  # not really testable (yet)
+    def test_add_to_server(self, monkeypatch, tmp_path):
         """unittest for rst2html_functions.add_to_server
         """
+        mock_config = tmp_path / 'flatpages'
+        monkeypatch.setattr(testee, 'SERVERCONFIG', mock_config)
+        expected = ('server {\n    server_name xxx.yyy.nl;\n    root path/to/root;\n'
+                    '    error_log /var/log/nginx/xxx.yyy-error.log error;\n'
+                    '    access_log /var/log/nginx/xxx.yyy-access.log ;\n    }\n')
+        testee.add_to_server('xxx.yyy.nl', 'path/to/root')
+        assert mock_config.read_text() == expected
+        expected += ('server {\n    server_name aaa.bbb.nl;\n    root path/to/root2;\n'
+                     '    error_log /var/log/nginx/aaa.bbb-error.log error;\n'
+                     '    access_log /var/log/nginx/aaa.bbb-access.log ;\n    }\n')
+        testee.add_to_server('aaa.bbb.nl', 'path/to/root2')
+        assert mock_config.read_text() == expected
 
     def test_init_css(self, monkeypatch, capsys):
         """unittest for rst2html_functions.init_css
@@ -533,100 +561,6 @@ class TestConfRelated:
         conf_in = {'test': 'tested', 'url': 'gargl', 'css': ['gargl/snork.css', 'test.css']}
         conf_out = {'test': 'tested', 'url': 'gargl', 'css': ['url + snork.css', 'test.css']}
         assert testee.conf2text(conf_in) == conf_out
-
-    def _test_text2conf_old(self, monkeypatch):
-        """unittest for rst2html_functions.text2conf_old
-        """
-        def mock_get_text(*args):
-            """stub
-            """
-            return args[0] + ': {}'
-        def mock_load_config_data_error(*args):
-            """stub
-            """
-            raise testee.ParserError
-        def mock_load_config_data_empty(*args):
-            """stub
-            """
-            return {}
-        def mock_load_config_data_basic(*args):
-            """stub
-            """
-            return testee.DFLT_CONF
-        def mock_load_config_data_hig_fout(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['hig'] = 'hallo'
-            return conf
-        def mock_load_config_data_lang_fout(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['lang'] = 'du'
-            return conf
-        def mock_load_config_url_not_http(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['url'] = 'x'
-            print(conf)
-            return conf
-        def mock_load_config_url_other(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['url'] = 'http://x/'
-            return conf
-        def mock_check_url(*args):
-            """stub
-            """
-            # raise testee.urllib.error.HTTPError
-            raise testee.urllib.error.URLError('x')
-        def mock_load_config_css_simple(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['css'] = 'a_string'
-            return conf
-        def mock_load_config_css_double(*args):
-            """stub
-            """
-            conf = dict(testee.DFLT_CONF.items())
-            conf['url'] = 'http://x'
-            conf['css'] = ['url + a_string', 'http://stuff']
-            return conf
-        def mock_check_url_ok(*args):
-            """stub
-            """
-        monkeypatch.setattr(testee, 'get_text', mock_get_text)
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_error)
-        assert testee.text2conf_old('') == ('sett_no_good: {}', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_empty)
-        assert testee.text2conf_old('') == ('sett_invalid: wid', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_basic)
-        assert testee.text2conf_old('') == ('', testee.DFLT_CONF)
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_hig_fout)
-        assert testee.text2conf_old('') == ('sett_invalid: hig', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_lang_fout)
-        assert testee.text2conf_old('') == ('sett_invalid: lang', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_url_not_http)
-        assert testee.text2conf_old('') == ('sett_invalid: url', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_url_other)
-        monkeypatch.setattr(testee, 'check_url_old', mock_check_url)
-        assert testee.text2conf_old('') == ('sett_invalid: url', {})
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_simple)
-        # expected = dict(testee.DFLT_CONF.items()).update({'css': ['https://a_string']})
-        expected = dict(testee.DFLT_CONF.items())
-        expected.update({'css': ['https://a_string']})
-        assert testee.text2conf_old('') == ('', expected)
-        monkeypatch.setattr(testee, 'load_config_data', mock_load_config_css_double)
-        monkeypatch.setattr(testee, 'check_url_old', mock_check_url_ok)
-        # expected = dict(testee.DFLT_CONF.items()).update(
-        #         {'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
-        expected = dict(testee.DFLT_CONF.items())
-        expected.update({'url': 'http://x', 'css': ['http://x/a_string', 'http://stuff']})
-        assert testee.text2conf_old('') == ('', expected)
 
     def test_check_changed_settings(self, monkeypatch, capsys):
         """unittest for rst2html_functions.check_changed_settings
@@ -799,60 +733,6 @@ class TestConfRelated:
         monkeypatch.setattr(testee, 'load_config_data', mock_load_config_data_wrong_key)
         # breakpoint()
         assert testee.text2conf('') == (('sett_noexist', 'hello'), {})
-
-    def test_check_url_old(self, monkeypatch):
-        """unittest for rst2html_functions.check_url_old
-        """
-        def mock_urlopen_ok(*args):
-            """stub
-            """
-        def mock_urlopen(*args):
-            """stub
-            """
-            raise testee.urllib.error.URLError('x')
-        monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_urlopen_ok)
-        assert testee.check_url_old('') is None
-        monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_urlopen)
-        with pytest.raises(testee.urllib.error.URLError):
-            testee.check_url_old('http://test/testerdetest')
-
-    def test_save_conf_old(self, monkeypatch, capsys):
-        """unittest for rst2html_functions.save_conf_old
-        """
-        def mock_read_settings_error(*args):
-            """stub
-            """
-            raise FileNotFoundError
-        def mock_read_settings(*args):
-            """stub
-            """
-            return {}
-        def mock_get_text(*args):
-            """stub
-            """
-            return 'no_such_sett for `{}`'
-        def mock_text2conf_error(*args):
-            """stub
-            """
-            return True, {}
-        def mock_text2conf(*args):
-            """stub
-            """
-            return False, {'url': False}
-        def mock_update_settings(*args):
-            """stub
-            """
-            print('called update_settings for', args)
-        monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings_error)
-        monkeypatch.setattr(testee, 'get_text', mock_get_text)
-        assert testee.save_conf_old('testsite', '') == 'no_such_sett for `testsite`'
-        monkeypatch.setattr(testee.dml, 'read_settings', mock_read_settings)
-        monkeypatch.setattr(testee, 'text2conf_old', mock_text2conf_error)
-        assert testee.save_conf_old('testsite', '')
-        monkeypatch.setattr(testee, 'text2conf_old', mock_text2conf)
-        monkeypatch.setattr(testee.dml, 'update_settings', mock_update_settings)
-        assert not testee.save_conf_old('testsite', '')
-        assert capsys.readouterr().out == "called update_settings for ('testsite', {'url': False})\n"
 
     def test_save_conf(self, monkeypatch, capsys):
         """unittest for rst2html_functions.save_conf

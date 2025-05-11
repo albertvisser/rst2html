@@ -69,6 +69,9 @@ FULL_CONF = {'lang': 'en', 'starthead': '', 'endhead': '', 'seflinks': 0, 'highl
 FULL_CONF.update(DFLT_CONF)
 SETT_KEYS = list(sorted(FULL_CONF.keys()))
 SRV_CONFIG = pathlib.Path(LOCAL_SERVER_CONFIG)
+ETCHOSTS = pathlib.Path('/etc/hosts')
+LOCALHOSTSCOPY = SRV_CONFIG / 'misc/hosts'
+SERVERCONFIG = SRV_CONFIG / 'nginx/flatpages'
 # constants for loaded data
 RST, HTML, CONF, DIFF = 'rst', 'html', 'yaml', 'diff'
 #
@@ -311,7 +314,8 @@ def get_tldname():
     """look in /etc/hosts or /etc/hostname to determine the top level domain to use
     """
     basename = tldname = ''
-    with open('/etc/hosts') as hostsfile:
+    # with open('/etc/hosts') as hostsfile:
+    with ETCHOSTS.open() as hostsfile:
         for line in hostsfile:
             if not line.strip().startswith('127.0.0.1'):
                 continue
@@ -333,7 +337,7 @@ def add_to_hostsfile(url):
 
     update a local version and upload via a script
     """
-    with (SRV_CONFIG / 'misc/hosts').open('a') as hostsfile:
+    with LOCALHOSTSCOPY.open('a') as hostsfile:
         print(f'127.0.0.1     {url}', file=hostsfile)
     # hierna `fabsrv modconf -n hosts` uitvoeren, NB heeft sudo nodig
     # als dat niet kan sudo cp ~/nginx-config/misc/hosts /etc/hosts
@@ -345,7 +349,7 @@ def add_to_server(url, location):
     update a local version and upload / restart server via a script
     """
     logloc = url.rsplit('.', 1)[0]
-    with (SRV_CONFIG / 'nginx/flatpages').open('a') as config:
+    with SERVERCONFIG.open('a') as config:
         for line in ('server {',
                      f'    server_name {url};',
                      f'    root {location};',
@@ -518,81 +522,6 @@ def ensure_basic_css(sitename, conf):
         if not os.path.exists(dest):
             shutil.copyfile(src, dest)
     return conf
-
-
-def text2conf_old(text, lang=LANG, urlcheck=True):
-    """convert text (from input area) to settings dict and return it
-
-    also check settings for correctness (valid locations)
-    """
-    invalid = get_text('sett_invalid', lang)
-    # pass data through yaml to parse into a dict
-    try:
-        conf = load_config_data(text)   # ik wil die parsererror eigenlijk niet hoeven importeren
-    except ParserError:                 # maar dan moet ik load_config_html anders definiëren
-    # notok, conf = load_config_data(text)
-    # if notok:
-        return get_text('sett_no_good', lang), {}
-
-    for key in DFLT_CONF:  # check if obligatory keys are present
-        if key not in conf:
-            return invalid.format(key), {}
-
-    for key in FULL_CONF:  # check value for each key
-        if key not in conf:
-            continue
-        value = conf[key]
-        if key in ('wid', 'hig'):  # and isinstance(value, int):
-            try:
-                int(value)
-            except ValueError:
-                return invalid.format(key), {}
-        elif key == 'lang' and value not in languages:
-            return invalid.format('lang'), {}
-        elif key == 'url' and value != '' and urlcheck:
-            if not value.startswith('http'):
-                return invalid.format('url'), {}
-            if value.endswith('/'):
-                value = value[:-1]
-            try:
-                check_url_old(value)
-            except (urllib.error.HTTPError, urllib.error.URLError):
-                return invalid.format('url'), {}
-    if isinstance(conf['css'], str):  # als string, dan list van maken met dit als enige element
-        conf['css'] = [conf['css']]
-    for ix, item in enumerate(conf['css']):
-        if item.startswith('url + '):
-            if conf['url']:
-                conf['css'][ix] = item.replace('url + ', conf['url'] + '/')
-        elif not item.startswith('http'):
-            conf['css'][ix] = 'https://' + item
-    return '', conf
-
-
-def check_url_old(value):
-    "recursively try to find the url (we could be in a sub-site"
-    try:
-        urllib.request.urlopen(value)
-    except (urllib.error.HTTPError, urllib.error.URLError):
-        value = value.rsplit('/', 1)[0]
-        if value != 'http:/':
-            check_url_old(value)
-        else:
-            raise
-
-
-def save_conf_old(sitename, text, lang=LANG, urlcheck=True):
-    """save the given settings into the site
-    """
-    conf = {}
-    try:
-        dml.read_settings(sitename)
-    except FileNotFoundError:
-        return get_text('no_such_sett', lang).format(sitename)
-    not_ok, conf = text2conf_old(text, lang, urlcheck)
-    if conf:
-        dml.update_settings(sitename, conf)
-    return not_ok
 
 
 def save_conf(sitename, text, lang=LANG):
@@ -1392,15 +1321,11 @@ class R2hState:
                 mld = get_text('fname_invalid', self.get_lang())
             elif self.newconf:
                 mld, newurl = new_conf(settfile, rstdata, self.get_lang())
-                if newurl:
+                if newurl:  # and not mld:
                     rstdata = rstdata.replace("url: ''", f"url: {newurl}")
                     command = 'fabsrv modconfb -n hosts nginx.modconfb -n flatpages nginx.restart'
         if not mld:
-            # do_urlcheck = not self.newconf
-            # mld = save_conf(newsett, rstdata, self.get_lang(), urlcheck=do_urlcheck)
             mld = save_conf(settfile, rstdata, self.get_lang())
-            # if mld == '' and self.newconf:
-            #     init_css(newsett)
         if not mld:
             self.newfile = ''
             self.newconf = False
