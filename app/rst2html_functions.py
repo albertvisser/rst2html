@@ -859,6 +859,21 @@ def build_progress_list(sitename, files_to_skip):
     return result
 
 
+def reorder_overview(data):
+    "rebuild the overview list to show in date order"
+    # return reversed(sorted(self.overviewdata, key=lambda x: x[3]))
+    result = []
+    docs = [[], [], []]
+    # verzamel per "fase"
+    for item in data:
+        docs[item[2]].append(item)
+    # sorteer per fase (aflopend) en voeg toe aan eindresultaat
+    result += reversed(sorted(docs[0], key=lambda x: x[3].src))
+    result += reversed(sorted(docs[1], key=lambda x: x[3].dest))
+    result += reversed(sorted(docs[2], key=lambda x: x[3].mirror))
+    return result
+
+
 def get_copystand_filepath(sitename):
     "determine filename to use for saving the progress overview data"
     dts = datetime.datetime.today().strftime('%Y%m%d%H%M%S')

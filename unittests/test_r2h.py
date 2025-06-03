@@ -107,15 +107,18 @@ def test_format_progress_list():
     data_stuff, rest = rest.split('{% endfor %}', 1)
     tfoot, rest = rest.split('{% else %}', 1)
     no_data, end = rest.split('{% endif %}', 1)
-    assert testee.format_progress_list([], 'html5') == begin + no_data + end
+    assert testee.format_progress_list([], 'html5') == (
+            begin.replace('{out}','date').replace('{oldout}', 'name') + no_data + end)
     dates = datetime.datetime.min, datetime.datetime.max, datetime.datetime.max
     data = [('q', 'r', 2, dates)]
     middle = data_stuff.replace('{row.0}', 'q/r').replace('{row.1}', 'n/a').replace('{row.2}',
             '31-12-9999 23:59:59').replace('{row.3}', '<strong>31-12-9999 23:59:59</strong>')
-    assert testee.format_progress_list(data, 'html5') == begin + thead + middle + tfoot + end
+    assert testee.format_progress_list(data, 'html5', 'date') == (
+            begin.replace('{out}','name').replace('{oldout}', 'date') + thead + middle + tfoot + end)
     begin = begin.replace('main', 'div class="document"')
     end = end.replace('main', 'div')
-    assert testee.format_progress_list(data, 'html4') == begin + thead + middle + tfoot + end
+    assert testee.format_progress_list(data, 'html4', 'name') == (
+            begin.replace('{out}','date').replace('{oldout}', 'name') + thead + middle + tfoot + end)
 
 
 def test_resolve_images():
@@ -592,37 +595,78 @@ class TestRst2Html:
                               rstdata='data') == ('format_output for r, h, n, mld, data, s,'
                                                   f' {testsubj.state}')
 
-    def test_overview(self, monkeypatch):
+    def test_overview(self, monkeypatch, capsys):
         """unittest for Rst2Html.overview
         """
         def mock_overview(*args):
             """stub
             """
-            return 'overview data {sitename} {message}'
-        def mock_format_progress_list(*args):
+            print('called R2hState.overview with args', args)
+            return 'overview data'
+        def mock_reorder(*args):
             """stub
             """
+            print('called reorder_overview with args', args)
+            return "reordered data"
+        def mock_format_progress_list(*args, **kwargs):
+            """stub
+            """
+            print('called format_progress_list with args', args, kwargs)
             return args[0]
         testsubj = testee.Rst2Html()
         monkeypatch.setattr(testsubj.state, 'overview', mock_overview)
         monkeypatch.setattr(testee, 'format_progress_list', mock_format_progress_list)
-        assert testsubj.overview(settings='s') == 'overview data s '
-        assert testsubj.overviewdata == 'overview data {sitename} {message}'
+        monkeypatch.setattr(testee.rhfn, 'reorder_overview', mock_reorder)
+        assert testsubj.overview(settings='s') == 'overview data'
+        assert testsubj.overviewdata == 'overview data'
+        assert testsubj.reordered == []
+        assert capsys.readouterr().out == ("called R2hState.overview with args ()\n"
+                                           "called format_progress_list with args"
+                                           " ('overview data', 'html5') {'order': 'name'}\n")
+        assert testsubj.overview(settings='s', order='date') == 'reordered data'
+        assert testsubj.overviewdata == 'overview data'
+        assert testsubj.reordered == 'reordered data'
+        assert capsys.readouterr().out == ("called reorder_overview with args ('overview data',)\n"
+                                           "called format_progress_list with args"
+                                           " ('reordered data', 'html5') {'order': 'date'}\n")
+        assert testsubj.overview(settings='s', order='name') == 'overview data'
+        assert testsubj.overviewdata == 'overview data'
+        assert testsubj.reordered == 'reordered data'
+        assert capsys.readouterr().out == ("called format_progress_list with args"
+                                           " ('overview data', 'html5') {'order': 'name'}\n")
+        assert testsubj.overview(settings='s', order='date') == 'reordered data'
+        assert testsubj.overviewdata == 'overview data'
+        assert testsubj.reordered == 'reordered data'
+        assert capsys.readouterr().out == ("called format_progress_list with args"
+                                           " ('reordered data', 'html5') {'order': 'date'}\n")
 
-    def test_copystand(self, monkeypatch):
+    # 424-426
+    def test_copystand(self, monkeypatch, capsys):
         """unittest for Rst2Html.copystand
         """
         def mock_copystand(*args):
             """stub
             """
+            print('called r2hState.copystand with args', args)
             return 'msg'
-        def mock_format_progress_list(*args):
+        def mock_format_progress_list(*args, **kwargs):
             """stub
             """
+            print('called format_progress_list with args', args, kwargs)
             return args[0]
         testsubj = testee.Rst2Html()
         testsubj.state.sitename = 'testsite'
-        testsubj.overviewdata = 'copystand data {sitename} {message}'
+        testsubj.overviewdata = 'overview data {sitename} {message}'
+        testsubj.reordered = 'reordered data {sitename} {message}'
         monkeypatch.setattr(testsubj.state, 'copystand', mock_copystand)
         monkeypatch.setattr(testee, 'format_progress_list', mock_format_progress_list)
-        assert testsubj.copystand() == 'copystand data testsite msg'
+        assert testsubj.copystand('name') == 'overview data testsite msg'
+        assert capsys.readouterr().out == (
+                "called r2hState.copystand with args ('overview data {sitename} {message}',)\n"
+                "called format_progress_list with args"
+                " ('overview data {sitename} {message}', 'html5') {'order': 'name'}\n")
+        assert testsubj.copystand('date') == 'reordered data testsite msg'
+        assert capsys.readouterr().out == (
+                "called r2hState.copystand with args ('reordered data {sitename} {message}',)\n"
+                "called format_progress_list with args"
+                " ('reordered data {sitename} {message}', 'html5') {'order': 'date'}\n")

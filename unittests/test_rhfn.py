@@ -7,6 +7,7 @@ worden in de eerder geschreven mock methoden
 """
 # import pathlib
 import datetime
+import types
 import pytest
 
 import app.rst2html_functions as testee
@@ -1411,6 +1412,23 @@ class TestProgressList:
                 ('testdir2', 'removed', 0, ('[deleted]', date_2, date_3)),
                 ('testdir2', 'test', 0, (date_3, date_2, date_1)),
                 ('testdir2', 'twice_removed', 1, ('', '[deleted]', date_3))]
+
+    def test_reorder_overview(self, monkeypatch, capsys):
+        """unittest for rst2html.reorder_overview
+        """
+        data = [('dirname1', 'docname1', 0, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname1', 'docname2', 1, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname1', 'docname3', 2, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname2', 'docname1', 0, types.SimpleNamespace(src=1, dest=1, mirror=1)),
+                ('dirname2', 'docname2', 1, types.SimpleNamespace(src=1, dest=1, mirror=1)),
+                ('dirname2', 'docname3', 2, types.SimpleNamespace(src=1, dest=1, mirror=1))]
+        assert testee.reorder_overview(data) == [
+                ('dirname1', 'docname1', 0, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname2', 'docname1', 0, types.SimpleNamespace(src=1, dest=1, mirror=1)),
+                ('dirname1', 'docname2', 1, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname2', 'docname2', 1, types.SimpleNamespace(src=1, dest=1, mirror=1)),
+                ('dirname1', 'docname3', 2, types.SimpleNamespace(src=2, dest=2, mirror=2)),
+                ('dirname2', 'docname3', 2, types.SimpleNamespace(src=1, dest=1, mirror=1))]
 
     def test_get_copystand_filepath(self, monkeypatch, capsys):
         """unittest for rst2html_functions.get_copystand_filepath

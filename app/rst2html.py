@@ -90,16 +90,18 @@ def format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, state):
                          spellcheck_button=button_code, editor_loader=load_code)
 
 
-def format_progress_list(timelist, writer):
+def format_progress_list(timelist, writer, order='name'):
     """output the site inventory to html, accentuating the most recently updated
     items
 
-    parts of this logic belong in the template, but since I'm not using a
-    template engine I'm implementing it here
+    parts of this logic belong in the template, but since I'm not using a template engine
+    I'm implementing it here
     """
     output = load_template('stand.html')
     if writer == 'html4':
         output = output.replace('<main', '<div class="document"').replace('</main', '</div')
+    neworder = 'date' if order == 'name' else 'name'
+    output = output.replace('{out}', neworder).replace('{oldout}', order)
     first_part, rest = output.split('{% if data %}')
     data_part, last_part = rest.split('{% endif %}')
     repeat_part, no_data = data_part.split('{% else %}')
@@ -399,14 +401,27 @@ class Rst2Html:
     def overview(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """output the site inventory to html, accentuating the most recently updated items
         """
-        self.overviewdata = self.state.overview()
-        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
+        out = kwargs.get('order', '')
+        if not out:  # eerste aanroep
+            self.overviewdata = self.state.overview()
+            data = self.overviewdata
+            self.reordered = []
+            out = 'name'
+        elif out == 'date':
+            if not self.reordered:
+                self.reordered = rhfn.reorder_overview(self.overviewdata)
+            data = self.reordered
+        else:  # out == 'name'
+            data = self.overviewdata
+        # out = 'name' if out == 'date' else 'date'
+        return format_progress_list(data, self.state.conf['writer'], order=out).format(
             sitename=settings, message='')
 
     @cherrypy.expose
-    def copystand(self):
+    def copystand(self, order):
         """copy the overview to a file
         """
-        msg = self.state.copystand(self.overviewdata)
-        return format_progress_list(self.overviewdata, self.state.conf['writer']).format(
+        data = self.reordered if order == 'date' else self.overviewdata
+        msg = self.state.copystand(data)
+        return format_progress_list(data, self.state.conf['writer'], order=order).format(
             sitename=self.state.sitename, message=msg)
