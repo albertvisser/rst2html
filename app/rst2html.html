@@ -25,13 +25,17 @@
   <script>function setspell() {{
     let statevar = document.getElementById('highlighted');
     let btn = document.getElementById('spellbtn');
+    let msgfld = document.getElementById('msgfld');
     if (statevar.value === 'true') {{
       statevar.value = 'false';
       btn.innerHTML = 'enable code highlighting in source';
+      hlp = ' and activate textarea'
     }} else {{
       statevar.value = 'true';
       btn.innerHTML = 'enable spellcheck in source';
+      hlp = '';
     }}
+    msgfld.innerHTML = '<strong>Reload source'+hlp+' to see the effect</strong>';
   }}
   function resetspell() {{
     document.getElementById('highlighted').value = 'true';
@@ -140,7 +144,7 @@
           </div>
           <div class="clear" style="clear: both"></div>
 
-          <div class="row-full" style="float:left">
+          <div id="msgfld" class="row-full" style="float:left">
             <strong>{message}</strong>
           </div>
           <div class="clear" style="clear: both"></div>
