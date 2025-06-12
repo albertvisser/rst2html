@@ -554,10 +554,9 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
 def list_deletions_mirror(sitename, directory=''):
     """list pending deletions in target environment"""
     to_delete = []
-    path = WEBROOT / sitename / DEST_LOC
+    root = WEBROOT / sitename / DEST_LOC
     for dirname in build_dirlist(sitename, directory):
-        if dirname != '/':
-            path /= dirname
+        path = root / dirname if dirname != '/' else root
         filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
         if dirname != '/':
             filelist = [f'{dirname}/{x}' for x in filelist]
