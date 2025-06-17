@@ -1584,9 +1584,7 @@ class TestDocLevel:
                                                                'mirror_updated': 3})
         monkeypatch.setattr(testee, 'conn', MockConn())
         monkeypatch.setattr(testee, '_get_stats', mock_stats)
-        assert testee.get_doc_stats('site_name', 'docname') == {'source_updated': 1,
-                                                              'target_updated': 2,
-                                                              'mirror_updated': 3}
+        assert list(testee.get_doc_stats('site_name', 'docname')) == [1, 2, 3]
         assert capsys.readouterr().out == (
                 'execute SQL: `select source_updated, source_deleted, target_updated,'
                 ' target_deleted, mirror_updated from doc_stats where id = %s;`\n'

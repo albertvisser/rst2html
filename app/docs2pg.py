@@ -968,7 +968,7 @@ def _get_datetimestamps(cur, doc_id):
     "get data from database"
     cur.execute('select source_updated, source_deleted, target_updated, target_deleted,'
                 f' mirror_updated from {TABLES[3]} where id = %s;', (doc_id,))
-    return cur.fetchone()
+    return cur.fetchone().values()
 
 
 @with_cursor
