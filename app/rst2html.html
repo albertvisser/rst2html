@@ -44,7 +44,7 @@
 <body style="background-color: #C6E2FF; color: #3a5fcd" onload="setEditorWidth(event)">
   <form method="post">
     <div class="container-full table-full">
-      <div class="row-full" style="display: inline; float:left">
+      <div class="row-full">
         <div class="table-full" style="display: inline">
           <div class="table-column" style="float:left">
             <a href="/">Home</a>
@@ -74,7 +74,7 @@
               <option value="3">_(c_regsubj3)</option>
               <option value="5">_(c_regsubj5)</option>
             </select>
-            <input type="submit" value="_(c_find)" title="_(t_find) [F]" accesskey="f" 
+            <input type="submit" value="_(c_find)" title="_(t_find) [F]" accesskey="f"
               formaction="/find_screen/" />
             <input type="submit" value="_(c_check)" title="_(t_check) [K]" accesskey="k"
               formaction="/check/" />
@@ -151,16 +151,15 @@
 
         </div>
       </div>
-      <div class="clear" style="display: inline; clear: both"></div>
-
-      <div class="table-column" style="display: inline; float:left">
+      <div class="table-full row-full">
+      <div class="table-column" style="display: inline; float: left">
         <label for="rstdata" accesskey="e" value=" " />
         <textarea name="rstdata" id="rstdata" cols="{cols}" rows="{rows}" accesskey="w"
           style="display: inline">{content}</textarea>
 	{spellcheck_button}
       </div>
 
-      <div class="table-column" style="display: inline; float:left; padding: 5px; ">
+      <div class="table-column-m.z.-row-full" style="display: inline; float: left; padding: 5px; ">
         <div class="table-full" style="display: inline">
 
           <div class="row-full" style="float: left">
@@ -255,7 +254,7 @@
         </div>
       </div>
       <div class="clear" style="display: inline; clear: both"></div>
-
+      </div>
     </div>
   </form>
   {editor_loader}
