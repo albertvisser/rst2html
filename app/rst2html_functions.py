@@ -291,8 +291,7 @@ def new_conf(sitename, text, lang=LANG):
     not_ok, conf = text2conf(text, lang)
     if not_ok:
         return ' '.join((get_text('not_created', lang).format(sitename), not_ok)), newurl
-    if not conf['url']:
-        newurl = 'http://' + create_server_config(sitename)
+    newurl = conf.get('url', '') or 'http://' + create_server_config(sitename)
     try:
         dml.create_new_site(sitename)
     except FileExistsError as e:
@@ -476,7 +475,8 @@ def check_changed_settings(conf, oldconf):
                     return {}, (invalid, 'url')
             elif not value.startswith('http://'):
                 return {}, (invalid, 'url')
-            # http:// links controleren we niet, waarschijnlijk lokaal domein en anders jammer dan
+            elif value.removeprefix('http://') not in ETCHOSTS.read_text():
+                return {}, (invalid, 'url')
         elif key in ('seflinks', 'highlight'):
             if value not in (0, 1, '0', '1', 'true', 'false', 'True', 'False'):
                 return {}, (invalid, key)

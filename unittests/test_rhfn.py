@@ -382,7 +382,7 @@ class TestConfRelated:
         monkeypatch.setattr(testee.dml, 'create_new_site', create_site_ok)
         assert testee.new_conf('', '') == ('', 'http://new_site')
         monkeypatch.setattr(testee, 'text2conf', text2conf_ok)
-        assert testee.new_conf('', '') == ('', '')
+        assert testee.new_conf('', '') == ('', 'http://www.example.org')
 
     def test_create_server_config(self, monkeypatch):
         """unittest for rst2html_functions.create_server_config
@@ -613,29 +613,23 @@ class TestConfRelated:
         assert capsys.readouterr().out == ''
 
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check_httperror)
-        # deze test geeft de unraisable exception
-        # deze test was uitgeschakeld omdat deze controle niet meer gedaan wordt (nog wel voor https)
-        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({},
-        #                                                                   ('sett_invalid', 'url'))
-        # assert capsys.readouterr().out == 'called check_url with arg `http://x`\n'
-
-        # deze test geeft de unraisable exception
         assert testee.check_changed_settings({'url': 'https://x'}, {}) == ({},
                                                                            ('sett_invalid', 'url'))
         assert capsys.readouterr().out == 'called check_url with arg `https://x`\n'
 
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check_urlerror)
-        # deze test gaat onder python 3.12 anders
-        # deze test was uitgeschakeld omdat deze controle niet meer gedaan wordt (nog wel voor https)
-        # assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({},
-        #                                                                   ('sett_invalid', 'url'))
-        assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({'url': 'http://x'}, ())
-        # assert capsys.readouterr().out == 'called check_url with arg `http://x`\n'
+        monkeypatch.setattr(testee, 'ETCHOSTS',
+                            types.SimpleNamespace(read_text=lambda *x: 'abc\ndef\n'))
+        assert testee.check_changed_settings({'url': 'http://xyz'}, {}) == ({},
+                                                                           ('sett_invalid', 'url'))
+        assert capsys.readouterr().out == ''
+        monkeypatch.setattr(testee, 'ETCHOSTS',
+                            types.SimpleNamespace(read_text=lambda *x: 'abc\nxyz\n'))
+        assert testee.check_changed_settings({'url': 'http://xyz'}, {}) == ({'url': 'http://xyz'}, ())
         assert capsys.readouterr().out == ''
 
         assert testee.check_changed_settings({'url': 'https://x'}, {}) == ({},
                                                                            ('sett_invalid', 'url'))
-        # vanaf hier is alles weer gewoon
         assert capsys.readouterr().out == 'called check_url with arg `https://x`\n'
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check)
         assert testee.check_changed_settings({'url': 'http://x'}, {}) == ({'url': 'http://x'}, ())
