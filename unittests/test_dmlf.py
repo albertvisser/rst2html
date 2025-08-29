@@ -324,8 +324,8 @@ class TestNonApiFunctions:
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
         fulldocname = testee.WEBROOT / 'testsite' / 'docname.rst'
         assert testee.save_to(fulldocname, 'data') == ''
-        assert capsys.readouterr().out == 'called copyfile: from `{}` to `{}`\n'.format(
-            str(fulldocname), str(fulldocname) + '.bak')
+        assert capsys.readouterr().out == (
+                f'called copyfile: from `{fulldocname}` to `{fulldocname}.bak`\n')
         assert read_and_remove(tmpfilename) == 'data'
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
         fulldocname = testee.WEBROOT / 'testsite' / 'docname.html'
@@ -342,16 +342,37 @@ class TestNonApiFunctions:
         monkeypatch.setattr(testee.pathlib.Path, 'replace', mock_replace)
         assert testee.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == ''.join((
-            'called replace for `{}` with `{}`\n'.format(str(fulldocname).replace('.html', ''),
-                                                         str(fulldocname).replace('.html', '.bak')),
+            'called replace for `{}` with `{}`\n'.format(
+                str(fulldocname).replace('.html', ''), str(fulldocname).replace('.html', '.bak')),
             'called mkdir for `{}`\n'.format(str(fulldocname).replace('.html', '')),
-            'called copyfile: from `{}` to `{}`\n'.format(str(fulldocname).replace('.html',
-                                                                                   '/index.html'),
-                                                          str(fulldocname).replace('.html',
-                                                                                   '/index.html.bak'))
-                                                          ))
+            'called copyfile: from `{}` to `{}`\n'.format(
+                str(fulldocname).replace('.html', '/index.html'),
+                str(fulldocname).replace('.html', '/index.html.bak'))))
         assert read_and_remove(tmpfilename) == 'data'
 
+    def test_rename_mirror_subdir(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.rename_mirror_subdir
+        """
+        def mock_exists(*args):
+            print('called path.exists with args', args)
+            return False
+        def mock_exists_2(*args):
+            print('called path.exists with args', args)
+            return True
+        def mock_rename(*args):
+            print('called path.rename with args', args)
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(pathlib.Path, 'exists', mock_exists)
+        testee.rename_mirror_subdir('testsite', 'old', 'new')
+        assert capsys.readouterr().out == (
+                f"called path.exists with args ({tmp_path / 'testsite' / 'old'!r},)\n")
+        monkeypatch.setattr(pathlib.Path, 'exists', mock_exists_2)
+        testee.rename_mirror_subdir('testsite', 'old', 'new')
+        assert capsys.readouterr().out == (
+                f"called path.exists with args ({tmp_path / 'testsite' / 'old'!r},)\n"
+                f"called path.rename with args ({tmp_path / 'testsite' / 'old'!r},"
+                f" {tmp_path / 'testsite' / 'new'!r})\n")
 
 class TestTestApi:
     """unittests for api functions related to testing
@@ -640,6 +661,34 @@ class TestSiteLevel:
         assert capsys.readouterr().out == (f'called mkdir for `{newdir}`\n'
                                            f"called touch for `{newdir / '.files'}`\n")
 
+    def test_rename_dir(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.rename_dir
+        """
+        def mock_exists(*args):
+            print('called path.exists with args', args)
+            return False
+        def mock_exists_2(*args):
+            print('called path.exists with args', args)
+            return True
+        def mock_rename(*args):
+            print('called path.rename with args', args)
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(pathlib.Path, 'exists', mock_exists)
+        testee.rename_dir('testsite', 'old', 'new')
+        assert capsys.readouterr().out == (
+                f"called path.rename with args ({tmp_path / 'testsite' / '.source' / 'old'!r},"
+                f" {tmp_path / 'testsite' / '.source' / 'new'!r})\n"
+                f"called path.exists with args ({tmp_path / 'testsite' / '.target' / 'old'!r},)\n")
+        monkeypatch.setattr(pathlib.Path, 'exists', mock_exists_2)
+        testee.rename_dir('testsite', 'old', 'new')
+        assert capsys.readouterr().out == (
+                f"called path.rename with args ({tmp_path / 'testsite' / '.source' / 'old'!r},"
+                f" {tmp_path / 'testsite' / '.source' / 'new'!r})\n"
+                f"called path.exists with args ({tmp_path / 'testsite' / '.target' / 'old'!r},)\n"
+                f"called path.rename with args ({tmp_path / 'testsite' / '.target' / 'old'!r},"
+                f" {tmp_path / 'testsite' / '.target' / 'new'!r})\n")
+
     def test_remove_dir(self):
         """unittest for docs2fs.remove_dir
         """
@@ -740,6 +789,18 @@ class TestDocLevel:
         fullname = tmp_path / 'testeewrite' / 'sitename' / '.templates' / 'fnaam'
         assert testee.write_template('sitename', 'fnaam', 'data') == ('called save_to with args'
                                                                     f" `{fullname}`, `data`")
+
+    def test_rename_template(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.rename_template
+        """
+        def mock_rename(*args):
+            print('called path.rename with args', args)
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(pathlib.Path, 'rename', mock_rename)
+        testee.rename_template('testsite', 'old', 'new')
+        assert capsys.readouterr().out == (
+                f"called path.rename with args ({tmp_path / 'testsite' / '.templates' / 'old'!r},"
+                f" {tmp_path / 'testsite' / '.templates' / 'new'!r})\n")
 
     def test_create_new_doc(self, monkeypatch, capsys):
         """unittest for docs2fs.create_new_doc

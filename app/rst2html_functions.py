@@ -17,7 +17,7 @@ import collections
 from app_settings import DFLT, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
 writers = BASIC_CSS.keys()
 from app.backend import dml
-from app.docs2fs import load_config_data, ParserError, save_config_data
+from app.docs2fs import load_config_data, ParserError, save_config_data, rename_mirror_subdir
 #
 # docutils stuff (including directives
 #
@@ -619,6 +619,40 @@ def read_html_data(sitename, current, fname):
         return 'html_name_missing', ''
     except FileNotFoundError:
         return 'html_file_missing', ''
+
+
+def rename_subdir(sitename, sourcename, targetname):
+    """rename a subdirectory
+    """
+    # return 'rename subdirectory is in development'
+    source = sourcename.removesuffix('/')
+    target = targetname.removesuffix('/')
+    dml.rename_dir(sitename, source, target)
+    rename_mirror_subdir(sitename, source, target)
+    # anders dan bij verwijderen gaan hier alle omgevingen in één keer
+    # want dit migreren lijkt me niet zo'n goed idee
+    # hoe gaat dat met verwijzingen?
+    return ""
+
+
+def rename_template(sitename, sourcename, targetname):
+    """rename a document template
+    """
+    # return 'rename template is in development'
+    return dml.rename_template(sitename, sourcename, targetname)
+
+
+def rename_doc(sitename, subdir, sourcename, targetname, contents):
+    """rename a source document
+    """
+    path = pathlib.Path(targetname)
+    if path.suffix != ".rst":
+        targetname = targetname + ".rst"
+    mld = save_src_data(sitename, subdir, targetname, contents, True)
+    mld = mld.replace('src_', 'new_')
+    if mld == '':
+        mld = mark_deleted(sitename, subdir, sourcename)
+    return mld
 
 
 def compare_source(sitename, current, rstfile):
@@ -1398,29 +1432,46 @@ class R2hState:
     def rename(self, rstfile, newfile, rstdata):
         """rename `rstfile` to `newfile` by saving `rstdata` under a new name and deleting `rstfile`
         """
-        # import pdb; pdb.set_trace()
-        if newfile:
-            if newfile.endswith(('/', '.tpl')):
-                mld = 'incorrect_name'
-            else:
-                mld = read_src_data(self.sitename, self.current, newfile)[0]
-                mld = "new_name_taken" if not mld else ''
-        else:
+        is_dir = is_tpl = is_doc = False
+        mld = ''
+        if not rstfile or not newfile:
             mld = "new_name_missing"
+        else:
+            if rstfile.endswith('/'):
+                if not newfile.endswith('/'):
+                    mld = 'subdirectory: must end in /'
+            elif rstfile.removeprefix('-- ').removesuffix(' --').endswith('.tpl'):
+                if not newfile.endswith('.tpl'):
+                    mld = 'template: must end in .tpl'
+            else:
+                if newfile.endswith(('/', '.tpl')):
+                    mld = 'document: must not end in / or .tpl'
+            if mld:
+                mld = f'wrong name for new {mld}'
+        if not mld and newfile:
+            if newfile.endswith('/'):
+                is_dir = True
+                taken = newfile in list_subdirs(self.sitename)
+            elif newfile.endswith('.tpl'):
+                is_tpl = True
+                taken = newfile in dml.list_templates(self.sitename)
+            else:
+                is_doc = True
+                taken = not read_src_data(self.sitename, self.current, newfile)[0]
+            mld = "new_name_taken" if taken else ''
         if mld == '':
-            oldpath = pathlib.Path(rstfile)
-            path = pathlib.Path(newfile)
-            if path.suffix != ".rst":
-                newfile = newfile + ".rst"
-            mld = save_src_data(self.sitename, self.current, newfile, rstdata, True)
-            mld = mld.replace('src_', 'new_')
+            if is_dir:
+                mld = rename_subdir(self.sitename, rstfile, newfile)
+            elif is_tpl:
+                rstfile = rstfile.removeprefix('-- ').removesuffix(' --')
+                mld = rename_template(self.sitename, rstfile, newfile)
+            else:  # is_doc
+                mld = rename_doc(self.sitename, self.current, rstfile, newfile, rstdata)
         if mld == '':
-            mld = mark_deleted(self.sitename, self.current, rstfile)
-        if mld == '':
-            mld = get_text('renamed', self.get_lang()).format(str(oldpath), str(path))
+            mld = get_text('renamed', self.get_lang()).format(rstfile, newfile)
             self.oldtext = self.rstdata = rstdata
-            self.rstfile = newfile
-            self.htmlfile = path.stem + ".html"
+            self.rstfile = str(pathlib.Path(newfile).with_suffix(".rst")) if is_doc else newfile
+            self.htmlfile = pathlib.Path(newfile).stem + ".html" if is_doc else ''
             self.newfile = ""
         mld = format_message(mld, self.get_lang(), newfile)
         return mld, self.rstfile, self.htmlfile, self.newfile, rstdata

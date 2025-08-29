@@ -175,6 +175,18 @@ def create_new_dir(site_name, directory):
     _make_dir(siteid, directory)
 
 
+@with_cursor
+def rename_dir(cur, site_name, oldname, newname):
+    """rename the entry for the given directory name
+    """
+    mld = ''
+    siteid = _get_site_id(site_name)
+    dirid = _get_dir_id(siteid, oldname)
+    cur.execute(f'update {TABLES[2]} set dirname = %s where site_id = %s and id = %s;',
+                (newname, siteid, dirid))
+    return mld
+
+
 def remove_dir(site_name, directory):  # untested - do I need/want this?
     """remove site directory and all documents in it
     """
@@ -218,6 +230,18 @@ def write_template(site_name, doc_name, data):
     mld = ''
     siteid = _get_site_id(site_name)
     _put_template(siteid, doc_name, data)
+    return mld
+
+
+@with_cursor
+def rename_template(cur, site_name, doc_name, new_name):
+    """change the name of a template"""
+    mld = ''
+    siteid = _get_site_id(site_name)
+    cur.execute(f'select id from {TABLES[5]} where site_id = %s and name = %s;', (siteid, doc_name))
+    row = cur.fetchone()
+    cur.execute(f'update {TABLES[5]} set name = %s where site_id = %s and id = %s;',
+                (new_name, siteid, row['id']))
     return mld
 
 
@@ -458,7 +482,7 @@ def apply_deletions_mirror(site_name, directory=''):
     """
     dirlist = get_dirlist_for_site(site_name, directory)
     deleted, deleted_names = apply_deletions(dirlist, 'target')
-    cur = conn.cursor()
+    # cur = conn.cursor()
     deleted = [(x[3],) for x in deleted]
     # regels komen terug als None, 1, True, row['id']
     # effectief gebeurt er niks met source_id
@@ -855,12 +879,14 @@ def _get_doclist(cur, dirid, doctype, deleted):
 
 @with_cursor
 def _get_tpllist(cur, siteid):
+    """returns a list of al templates in the database"""
     cur.execute(f'select id, name from {TABLES[5]} where site_id = %s;', (siteid,))
     return [row['name'] for row in cur]
 
 
 @with_cursor
 def _get_template(cur, siteid, doc_name):
+    """returns the contents of a given template (name)"""
     cur.execute(f'select text from {TABLES[5]} where site_id = %s and name = %s;', (siteid, doc_name))
     row = cur.fetchone()
     return row['text']

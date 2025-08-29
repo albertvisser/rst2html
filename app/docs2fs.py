@@ -188,6 +188,13 @@ def save_to(fullname, data, seflinks=None):  # to be used for actual file system
     return mld
 
 
+def rename_mirror_subdir(sitename, dirname, newname):
+    """Change tha names of the site subdirectory with the given basename
+    """
+    if (WEBROOT / sitename / dirname).exists():
+        (WEBROOT / sitename / dirname).rename(WEBROOT / sitename / newname)
+
+
 #
 # zelfde API als de andere dml-modules:
 #
@@ -296,6 +303,15 @@ def create_new_dir(sitename, dirname):
     (path / '.files').touch()   # mark as site subdirectory
 
 
+def rename_dir(sitename, dirname, newname):
+    """Change tha names of the subdirectories with the given basename
+    """
+    (WEBROOT / sitename / SRC_LOC / dirname).rename(WEBROOT / sitename / SRC_LOC / newname)
+    if (WEBROOT / sitename / DEST_LOC / dirname).exists():
+        (WEBROOT / sitename / DEST_LOC / dirname).rename(WEBROOT / sitename / DEST_LOC / newname)
+    return ''
+
+
 def remove_dir(sitename, directory):
     """remove site directory and all documents in it
     """
@@ -342,6 +358,13 @@ def read_template(sitename, docname):
     with (WEBROOT / sitename / '.templates' / docname).open() as f_in:
         data = ''.join(f_in.readlines()).replace('\r\n', '\n')
     return data
+
+
+def rename_template(sitename, docname, newname):
+    """change tha name of the given template
+    """
+    (WEBROOT / sitename / '.templates' / docname).rename(WEBROOT / sitename / '.templates' / newname)
+    return ''
 
 
 def write_template(sitename, fnaam, data):

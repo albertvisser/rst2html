@@ -939,6 +939,19 @@ class TestSiteRelated:
         monkeypatch.setattr(testee.dml, 'create_new_dir', mock_create_new_dir_failed)
         assert testee.make_new_dir(sitename, filename) == 'dir_name_taken'
 
+    def test_rename_subdir(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.rename_subdir
+        """
+        def mock_rename(*args):
+            print('called dml.rename_dir with args', args)
+        def mock_rename_subdir(*args):
+            print('called rename_mirror_subdir with args', args)
+        monkeypatch.setattr(testee.dml, 'rename_dir', mock_rename)
+        monkeypatch.setattr(testee, 'rename_mirror_subdir', mock_rename_subdir)
+        testee.rename_subdir('testsite', 'old/', 'new/')
+        assert capsys.readouterr().out == (
+                "called dml.rename_dir with args ('testsite', 'old', 'new')\n"
+                "called rename_mirror_subdir with args ('testsite', 'old', 'new')\n")
 
 class TestSourceRelated:
     """unittests for rst2html_functions.SourceRelated
@@ -1065,6 +1078,41 @@ class TestSourceRelated:
         assert testee.save_src_data(self.sitename, 'hello', self.filename + '.rst', '...') == (
             'src_file_missing')
 
+    def test_rename_doc(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.rename_doc
+        """
+        def mock_save_src(*args):
+            print('called save_src_data with args', args)
+            return 'src_file_missing'
+        def mock_save_src_2(*args):
+            print('called save_src_data with args', args)
+            return ''
+        def mock_mark_deleted(*args):
+            print('called mark_deleted with args', args)
+            return 'oepsie'
+        def mock_mark_deleted_2(*args):
+            print('called mark_deleted with args', args)
+            return ''
+        monkeypatch.setattr(testee, 'save_src_data', mock_save_src)
+        assert testee.rename_doc('testsite', '', 'oldfile', 'newfile', '') == 'new_file_missing'
+        assert capsys.readouterr().out == (
+                "called save_src_data with args ('testsite', '', 'newfile.rst', '', True)\n")
+        monkeypatch.setattr(testee, 'save_src_data', mock_save_src_2)
+        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted)
+        assert testee.rename_doc('testsite', '', 'oldfile', 'newfile', '') == 'oepsie'
+        assert capsys.readouterr().out == (
+                "called save_src_data with args ('testsite', '', 'newfile.rst', '', True)\n"
+                "called mark_deleted with args ('testsite', '', 'oldfile')\n")
+        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted_2)
+        assert testee.rename_doc('testsite', '', 'oldfile', 'newfile', 'rstdata') == ''
+        assert capsys.readouterr().out == (
+                "called save_src_data with args ('testsite', '', 'newfile.rst', 'rstdata', True)\n"
+                "called mark_deleted with args ('testsite', '', 'oldfile')\n")
+        assert testee.rename_doc('testsite', '', 'oldfile', 'newfile.rst', 'rstdata') == ''
+        assert capsys.readouterr().out == (
+                "called save_src_data with args ('testsite', '', 'newfile.rst', 'rstdata', True)\n"
+                "called mark_deleted with args ('testsite', '', 'oldfile')\n")
+
     def _test_compare_source(self, monkeypatch):
         """stub
         """
@@ -1161,6 +1209,16 @@ class TestSourceRelated:
         monkeypatch.setattr(testee.dml, 'write_template', mock_write_template)
         testee.save_tpl_data(self.sitename, self.filename, '')
         assert capsys.readouterr().out == 'write_template called\n'
+
+    def test_rename_template(self, monkeypatch, capsys):
+        """unittest for rst2html_functions.rename_template
+        """
+        def mock_rename(*args):
+            print('called dml.rename_template with args', args)
+        monkeypatch.setattr(testee.dml, 'rename_template', mock_rename)
+        testee.rename_template('testsite', 'old.tpl', 'new.tpl')
+        assert capsys.readouterr().out == (
+                "called dml.rename_template with args ('testsite', 'old.tpl', 'new.tpl')\n")
 
     def test_compare_source(self, monkeypatch, capsys):
         """unittest for rst2html_functions.compare_source
@@ -2418,36 +2476,129 @@ class TestR2hState:
     def test_rename(self, monkeypatch, capsys):
         """unittest for R2hState.rename
         """
-        def mock_mark_deleted(*args):
-            """stub
-            """
-            print('called mark_deleted with args', args)
-            return 'oepsie'
+        def mock_read_src(*args):
+            print('called read_src_data with args', args)
+            return '', 'some_text'
+        def mock_read_src_2(*args):
+            print('called read_src_data with args', args)
+            return 'mld', ''
+        def mock_list_subdirs(*args):
+            print('called list_subdirs with args', args)
+            return ['xxx/']
+        def mock_list_templates(*args):
+            print('called dml.list_templates with args', args)
+            return ['xxx.tpl']
+        def mock_rename_dir(*args):
+            print('called rename_subdir with args', args)
+            return 'ging fout'
+        def mock_rename_tpl(*args):
+            print('called rename_template with args', args)
+            return 'ging fout'
+        def mock_rename_doc(*args):
+            print('called rename_doc with args', args)
+            return 'ging fout'
+        def mock_rename_dir_2(*args):
+            print('called rename_subdir with args', args)
+            return ''
+        def mock_rename_tpl_2(*args):
+            print('called rename_template with args', args)
+            return ''
+        def mock_rename_doc_2(*args):
+            print('called rename_doc with args', args)
+            return ''
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
         testsubj = testee.R2hState()
         monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
+        monkeypatch.setattr(testee, 'read_src_data', mock_read_src)
+        monkeypatch.setattr(testee, 'list_subdirs', mock_list_subdirs)
+        monkeypatch.setattr(testee.dml, 'list_templates', mock_list_templates)
+        monkeypatch.setattr(testee, 'rename_subdir', mock_rename_dir)
+        monkeypatch.setattr(testee, 'rename_template', mock_rename_tpl)
+        monkeypatch.setattr(testee, 'rename_doc', mock_rename_doc)
         assert testsubj.rename('', '', '')[0] == 'new_name_missing'
-        assert testsubj.rename('', 'directory/', '')[0] == 'incorrect_name'
-        assert testsubj.rename('', 'text.tpl', '')[0] == 'incorrect_name'
-        monkeypatch.setattr(testee, 'read_src_data', lambda x, y, z: ('', 'some_text'))
-        assert testsubj.rename('', 'newfile', '')[0] == 'new_name_taken'
-        monkeypatch.setattr(testee, 'read_src_data', lambda x, y, z: ('mld', ''))
-        monkeypatch.setattr(testee, 'save_src_data', lambda x, y, z, a, b: 'src_file_missing')
-        assert testsubj.rename('', 'newfile', '')[0] == 'new_file_missing'
-        monkeypatch.setattr(testee, 'save_src_data', lambda x, y, z, a, b: '')
-        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted)
-        assert testsubj.rename('', 'newfile', '')[0] == 'oepsie'
-        assert capsys.readouterr().out == "called mark_deleted with args ('testsite', '', '')\n"
-        monkeypatch.setattr(testee, 'mark_deleted', lambda x, y, z: '')
-        assert testsubj.rename('oldfile', 'newfile', 'rstdata') == ('renamed', 'newfile.rst',
-                                                                    'newfile.html', '', 'rstdata')
-        assert capsys.readouterr().out == ''
-        assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
-        assert testsubj.rename('oldfile', 'newfile.rst', 'rstdata') == ('renamed', 'newfile.rst',
-                                                                        'newfile.html', '', 'rstdata')
-        assert capsys.readouterr().out == ''
-        assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
+        assert testsubj.rename('original', 'directory/', '')[0] == (
+                'wrong name for new document: must not end in / or .tpl')
+        assert testsubj.rename('original', 'text.tpl', '')[0] == (
+                'wrong name for new document: must not end in / or .tpl')
+        assert testsubj.rename('text.tpl', 'directory/', '')[0] == (
+                'wrong name for new template: must end in .tpl')
+        assert testsubj.rename('directory/', 'text.tpl', '')[0] == (
+                'wrong name for new subdirectory: must end in /')
+        assert testsubj.rename('text.tpl', 'newname', '')[0] == (
+                'wrong name for new template: must end in .tpl')
+        assert testsubj.rename('directory/', 'newname', '')[0] == (
+                'wrong name for new subdirectory: must end in /')
+        assert testsubj.rename('oldfile', 'newfile', '')[0] == 'new_name_taken'
+        assert capsys.readouterr().out == (
+                "called read_src_data with args ('testsite', '', 'newfile')\n")
+        assert testsubj.rename('dir/', 'xxx/', '')[0] == 'new_name_taken'
+        assert capsys.readouterr().out == (
+                "called list_subdirs with args ('testsite', '.src')\n")
+        assert testsubj.rename('tpl.tpl', 'xxx.tpl', '')[0] == 'new_name_taken'
+        assert capsys.readouterr().out == (
+                "called dml.list_templates with args ('testsite',)\n")
+        monkeypatch.setattr(testee, 'read_src_data', mock_read_src_2)
+
+        testsubj.rstfile = 'x'
+        testsubj.htmlfile = 'y'
+        testsubj.newfile = 'z'
+        assert testsubj.rename('oldname/', 'newname/', '')[0] == 'ging fout'
+        assert capsys.readouterr().out == (
+                "called list_subdirs with args ('testsite', '.src')\n"
+                "called rename_subdir with args ('testsite', 'oldname/', 'newname/')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('', '')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('x', 'y', 'z')
+
+        monkeypatch.setattr(testee, 'rename_subdir', mock_rename_dir_2)
+        assert testsubj.rename('oldname/', 'newname/', 'rstdata') == (
+                # 'renamed', 'newfile.rst', 'newfile.html', '', 'rstdata')
+                'renamed', 'newname/', '', '', 'rstdata')
+        assert capsys.readouterr().out == (
+                "called list_subdirs with args ('testsite', '.src')\n"
+                "called rename_subdir with args ('testsite', 'oldname/', 'newname/')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('newname/', '', '')
+
+        testsubj.rstfile = 'x'
+        testsubj.htmlfile = 'y'
+        testsubj.newfile = 'z'
+        assert testsubj.rename('old.tpl', 'new.tpl', '')[0] == 'ging fout'
+        assert capsys.readouterr().out == (
+                "called dml.list_templates with args ('testsite',)\n"
+                "called rename_template with args ('testsite', 'old.tpl', 'new.tpl')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('x', 'y', 'z')
+
+        monkeypatch.setattr(testee, 'rename_template', mock_rename_tpl_2)
+        assert testsubj.rename('old.tpl', 'new.tpl', 'rstdata') == ('renamed', 'new.tpl', '',
+                                                                    '', 'rstdata')
+        assert capsys.readouterr().out == (
+                "called dml.list_templates with args ('testsite',)\n"
+                "called rename_template with args ('testsite', 'old.tpl', 'new.tpl')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('new.tpl', '', '')
+
+        testsubj.rstfile = 'x'
+        testsubj.htmlfile = 'y'
+        testsubj.newfile = 'z'
+        assert testsubj.rename('oldfile', 'newfile', '')[0] == 'ging fout'
+        assert capsys.readouterr().out == (
+                "called read_src_data with args ('testsite', '', 'newfile')\n"
+                "called rename_doc with args ('testsite', '', 'oldfile', 'newfile', '')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('x', 'y', 'z')
+
+        monkeypatch.setattr(testee, 'rename_doc', mock_rename_doc_2)
+        assert testsubj.rename('oldfile', 'newfile.rst', 'rstdata') == (
+                'renamed', 'newfile.rst', 'newfile.html', '', 'rstdata')
+        assert capsys.readouterr().out == (
+                "called read_src_data with args ('testsite', '', 'newfile.rst')\n"
+                "called rename_doc with args"
+                " ('testsite', '', 'oldfile', 'newfile.rst', 'rstdata')\n")
+        assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
+        assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('newfile.rst',
+                                                                           'newfile.html', '')
 
     def test_diffsrc(self, monkeypatch, capsys):
         """unittest for R2hState.diffsrc
@@ -2718,6 +2869,7 @@ class TestR2hState:
         monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
         monkeypatch.setattr(testee, 'check_if_rst', mock_check_if_rst_mld)
+        monkeypatch.setattr(testee, 'rst2html', mock_rst2html)
         testsubj.rstfile = 'rst'
         testsubj.htmlfile = 'html'
         testsubj.newfile = 'new'

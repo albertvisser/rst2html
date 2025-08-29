@@ -144,8 +144,10 @@ class TestNonApiFunctions:
         """
         monkeypatch.setattr(testee, 'site_coll', MockColl())
         testee._update_doc('docid', 'doc')
-        assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
-                "{'_id': 'docid'}", "{'$set': 'doc'}")
+        # assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
+        #         "{'_id': 'docid'}", "{'$set': 'doc'}")
+        assert capsys.readouterr().out == (
+                f"called update_one with args `{{'_id': 'docid'}}`, `{{'$set': 'doc'}}`\n")
 
     def test_get_stats(self, monkeypatch):
         """unittest for docs2mongo.get_stats
@@ -395,6 +397,20 @@ class TestSiteLevel:
         assert capsys.readouterr().out == ('called update_site_doc() with args '
                                            "`site_name`, `{'directory': {}}`\n")
 
+    def test_rename_dir(self, monkeypatch, capsys):
+        """unittest for docs2mongo.rename_dir
+        """
+        def mock_update_site_doc(*args):
+            """stub
+            """
+            print(f'called update_site_doc() with args `{args[0]}`, `{args[1]}`')
+        # monkeypatch.setattr(testee, 'site_coll', MockColl())
+        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs': {'old': {'doc': 'data'}}})
+        monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
+        testee.rename_dir('site_name', 'old', 'new')
+        assert capsys.readouterr().out == ("called update_site_doc() with args"
+                                           " `site_name`, `{'new': {'doc': 'data'}}`\n")
+
     def test_remove_dir(self, monkeypatch, capsys):
         """unittest for docs2mongo.remove_dir
         """
@@ -451,6 +467,15 @@ class TestDocLevel:
         assert testee.read_template('site_name', 'doc_name') == ''
         monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'templates': {'doc_name': 'data'}})
         assert testee.read_template('site_name', 'doc_name') == 'data'
+
+    def test_rename_template(self, monkeypatch, capsys):
+        """unittest for docs2mongo.rename_template
+        """
+        monkeypatch.setattr(testee, 'site_coll', MockColl())
+        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'templates': {'doc_name': 'data'}})
+        testee.rename_template('site_name', 'doc_name', 'new_name')
+        assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
+                                           " `{'$set': {'templates': {'new_name': 'data'}}}`\n")
 
     def test_write_template(self, monkeypatch, capsys):
         """unittest for docs2mongo.write_template

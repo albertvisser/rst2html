@@ -734,6 +734,28 @@ class TestSiteLevel:
                 'called commit() on connection\n'
                 'called close()\n')
 
+    def test_rename_dir(self, monkeypatch, capsys):
+        """unittest for docs2pg.rename_dir
+        """
+        def mock_get_siteid(*args):
+            print('called _get_site_id with args', args)
+            return 'site_id'
+        def mock_get_dirid(*args):
+            print('called _get_dir_id with args', args)
+            return 'dir_id'
+        monkeypatch.setattr(testee, '_get_site_id', mock_get_siteid)
+        monkeypatch.setattr(testee, '_get_dir_id', mock_get_dirid)
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        assert testee.rename_dir('testsite', 'olddir', 'newdir') == ''
+        assert capsys.readouterr().out == (
+                "called _get_site_id with args ('testsite',)\n"
+                "called _get_dir_id with args ('site_id', 'olddir')\n"
+                'execute SQL: `update directories set dirname = %s'
+                ' where site_id = %s and id = %s;`\n'
+                "  with: `newdir`, `site_id`, `dir_id`\n"
+                'called commit() on connection\n'
+                'called close()\n')
+
     def test_remove_dir(self):
         """unittest for docs2pg.remove_dir
         """
@@ -838,6 +860,29 @@ class TestDocLevel:
         assert capsys.readouterr().out == (
                 'execute SQL: `select text from templates where site_id = %s and name = %s;`\n'
                 '  with: `99`, `doc_name`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_rename_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.rename_template
+        """
+        def mock_get_siteid(*args):
+            print('called _get_site_id with args', args)
+            return 'site_id'
+        def mock_fetchone(cur, *args):
+            print('called cursor.fetchone')
+            return {'id': 'tpl_id'}
+        monkeypatch.setattr(testee, '_get_site_id', mock_get_siteid)
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        assert testee.rename_template('site_name', 'oldname', 'newname') == ''
+        assert capsys.readouterr().out == (
+                "called _get_site_id with args ('site_name',)\n"
+                'execute SQL: `select id from templates where site_id = %s and name = %s;`\n'
+                '  with: `site_id`, `oldname`\n'
+                "called cursor.fetchone\n"
+                'execute SQL: `update templates set name = %s where site_id = %s and id = %s;`\n'
+                "  with: `newname`, `site_id`, `tpl_id`\n"
                 'called commit() on connection\n'
                 'called close()\n')
 

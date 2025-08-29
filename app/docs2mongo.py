@@ -188,6 +188,16 @@ def create_new_dir(site_name, directory):
     _update_site_doc(site_name, sitedoc['docs'])
 
 
+def rename_dir(site_name, oldname, newname):
+    """copy a directory's contents to a new key and remove the old one
+    """
+    sitedoc = _get_site_doc(site_name)
+    data = sitedoc['docs'].pop(oldname)
+    sitedoc['docs'][newname] = data
+    _update_site_doc(site_name, sitedoc['docs'])
+    return ''
+
+
 def remove_dir(site_name, directory):  # untested - do I need/want this?
     """remove site directory and all documents in it
     """
@@ -244,6 +254,16 @@ def write_template(site_name, doc_name, data):
     sitedoc.setdefault('templates', {})
     sitedoc['templates'][doc_name] = data
     site_coll.update_one({'name': site_name}, {'$set': {'templates': sitedoc['templates']}})
+    return ''
+
+
+def rename_template(sitename, oldname, newname):
+    """rename a template
+    """
+    sitedoc = _get_site_doc(sitename)
+    data = sitedoc['templates'].pop(oldname)
+    sitedoc['templates'][newname] = data
+    site_coll.update_one({'name': sitename}, {'$set': {'templates': sitedoc['templates']}})
     return ''
 
 
