@@ -624,7 +624,6 @@ def read_html_data(sitename, current, fname):
 def rename_subdir(sitename, sourcename, targetname):
     """rename a subdirectory
     """
-    # return 'rename subdirectory is in development'
     source = sourcename.removesuffix('/')
     target = targetname.removesuffix('/')
     dml.rename_dir(sitename, source, target)
@@ -638,7 +637,6 @@ def rename_subdir(sitename, sourcename, targetname):
 def rename_template(sitename, sourcename, targetname):
     """rename a document template
     """
-    # return 'rename template is in development'
     return dml.rename_template(sitename, sourcename, targetname)
 
 
@@ -779,7 +777,7 @@ def revert_src(sitename, current, fname):
 def mark_deleted(sitename, current, fname):
     """te verwijderen tekst als zodanig kenmerken
     """
-    path = pathlib.Path(fname)
+    path = pathlib.Path(fname)   # evt.meegegeven / aan het eind wordt genegeerd
     if path.suffix not in ('', '.rst'):
         return 'rst_filename_error'
     try:
@@ -1514,15 +1512,30 @@ class R2hState:
         return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
 
     def delete(self, rstfile, rstdata):
-        """(re)save rest source
+        """remove an item from view
+
+        a template is immediately deleted, removals of documents and directories need to be
+        migrated, i.e. propagated from source to target and from target to mirror subsequently
         """
+        mld = ''
         if rstfile.startswith('-- ') and rstfile.endswith(' --'):
             rstfile = rstfile[3:-3]
-        if rstfile.endswith(('/', '.tpl')):
-            mld = 'incorrect_name'
-        else:
-            mld = read_src_data(self.sitename, self.current, rstfile)[0]
+            if not rstfile.endswith('.tpl'):
+                mld = 'incorrect_name'
         if mld == '':
+            if rstfile.endswith('/'):
+                # controleer of directory leeg is (backups tellen niet mee)
+                items = dml.list_docs(self.sitename, 'src', rstfile[:-1])
+                uses_sef = self.conf.get('seflinks', False)
+                if uses_sef and rstfile[:-1] + '.rst' in dml.list_docs(self.sitename, 'src', '/'):
+                    items.append('index.rst')
+                mld = f'directory {rstfile} is niet leeg' if items else ''
+            elif rstfile.endswith('.tpl'):
+                # template kan direct verwijderd worden
+                mld = dml.remove_template(self.sitename, rstfile)
+            else:
+                mld = read_src_data(self.sitename, self.current, rstfile)[0]
+        if mld == '' and not rstfile.endswith('.tpl'):
             mld = mark_deleted(self.sitename, self.current, rstfile)
         if mld == "":
             path = pathlib.Path(rstfile)
@@ -1530,7 +1543,8 @@ class R2hState:
             mld = get_text('deleted', self.get_lang()).format(str(path))
             self.oldtext = self.rstdata = rstdata
             self.rstfile = rstfile
-            self.htmlfile = path.stem + ".html"
+            if not rstfile.endswith(('/', '.tpl')):
+                self.htmlfile = path.stem + ".html"
             self.newfile = ""
         mld = format_message(mld, self.get_lang(), rstfile)
         return mld, self.rstfile, self.htmlfile, self.newfile, rstdata
@@ -1782,8 +1796,8 @@ class R2hState:
         """
         if not self.is_css_defined():
             return (get_text('css_not_defined', self.get_lang()), )
-        use_sef = self.conf.get('seflinks', False)
-        rstdata, has_err = TrefwoordenLijst(self.sitename, self.get_lang(), use_sef).build()
+        uses_sef = self.conf.get('seflinks', False)
+        rstdata, has_err = TrefwoordenLijst(self.sitename, self.get_lang(), uses_sef).build()
         if not rstdata:
             return (has_err, )
         dirname, docname = '', 'reflist'

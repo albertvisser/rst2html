@@ -147,7 +147,7 @@ class TestNonApiFunctions:
         # assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
         #         "{'_id': 'docid'}", "{'$set': 'doc'}")
         assert capsys.readouterr().out == (
-                f"called update_one with args `{{'_id': 'docid'}}`, `{{'$set': 'doc'}}`\n")
+                "called update_one with args `{{'_id': 'docid'}}`, `{{'$set': 'doc'}}`\n")
 
     def test_get_stats(self, monkeypatch):
         """unittest for docs2mongo.get_stats
@@ -412,17 +412,8 @@ class TestSiteLevel:
                                            " `site_name`, `{'new': {'doc': 'data'}}`\n")
 
     def test_remove_dir(self, monkeypatch, capsys):
-        """unittest for docs2mongo.remove_dir
+        """unittest for docs2mongo.remove_dir - niet geïmplementeerd dus geen unittest
         """
-        def mock_update_site_doc(*args):
-            """stub
-            """
-            print(f'called update_site_doc() with args `{args[0]}`, `{args[1]}`')
-        # monkeypatch.setattr(testee, 'site_coll', MockColl())
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs': {'directory': {}}})
-        monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
-        testee.remove_dir('site_name', 'directory')
-        assert capsys.readouterr().out == ("called update_site_doc() with args `site_name`, `{}`\n")
 
 
 class TestDocLevel:
@@ -476,6 +467,15 @@ class TestDocLevel:
         testee.rename_template('site_name', 'doc_name', 'new_name')
         assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
                                            " `{'$set': {'templates': {'new_name': 'data'}}}`\n")
+
+    def test_remove_template(self, monkeypatch, capsys):
+        """unittest for docs2mongo.remove_template
+        """
+        monkeypatch.setattr(testee, 'site_coll', MockColl())
+        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'templates': {'doc_name': 'data'}})
+        assert testee.remove_template('site_name', 'doc_name') == ''
+        assert capsys.readouterr().out == ("called update_one with args `{'name': 'site_name'}`,"
+                                           " `{'$set': {'templates': {}}}`\n")
 
     def test_write_template(self, monkeypatch, capsys):
         """unittest for docs2mongo.write_template
@@ -660,12 +660,27 @@ class TestDocLevel:
             {'dirname': {'other_doc': {'src': {}}}}})
         with pytest.raises(FileNotFoundError):
             testee.mark_src_deleted('site_name', 'doc_name', 'dirname')
+
         monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
             {'/': {'doc_name': {'src': {}}}}})
         monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
-        testee.mark_src_deleted('site_name', 'doc_name', directory='')
+        testee.mark_src_deleted('site_name', 'doc_name')
         assert capsys.readouterr().out == ("call update_site_doc with args `site_name`, "
                                            "`{'/': {'doc_name': {'src': {'deleted': True}}}}`\n")
+
+        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
+            {'xxx': {'doc_name': {'src': {}}}}})
+        monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
+        testee.mark_src_deleted('site_name', 'doc_name', directory='xxx')
+        assert capsys.readouterr().out == ("call update_site_doc with args `site_name`, "
+                                           "`{'xxx': {'doc_name': {'src': {'deleted': True}}}}`\n")
+
+        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
+            {'dir_name': {'doc_name': {'src': {}}}}})
+        testee.mark_src_deleted('site_name', 'dir_name')
+        assert capsys.readouterr().out == (
+                "call update_site_doc with args `site_name`, "
+                "`{'dir_name': {'doc_name': {'src': {}}, '': {'src': {'deleted': True}}}}`\n")
 
     def test_update_html(self, monkeypatch, capsys):
         """unittest for docs2mongo.update_html
@@ -725,29 +740,61 @@ class TestDocLevel:
             "called update_site_doc() with args `site_name`, `{'/': {'doc_name':"
             " {'src': {'docid': 'x'}, 'dest': {'docid': 'doc_id', 'updated': 'now'}}}}`\n")
 
-    def test_list_deletions_target(self, monkeypatch):
+    def test_list_deletions_target(self, capsys, monkeypatch):
         """unittest for docs2mongo.list_deletions_target
         """
-        monkeypatch.setattr(testee, 'list_dirs', lambda x, y: ['dirname'])
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
-                   'doc2': {'src': {'deleted': {}}}},
-             'dirname': {'doc3': {'src': {'deleted': True}},
-                         'doc4': {'src': {'deleted': False}}}}})
+        def mock_get_sitedoc(arg):
+            print(f'called get dml._get_site_doc with arg {arg}')
+            return sitedoc
+        def mock_list(*args):
+            print('called get dml.list_dirs with args', args)
+            dirs = list(sitedoc['docs'].keys())
+            dirs.pop(0)
+            return dirs
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
+                                  'doc2': {'src': {'deleted': {}}}},
+                            'dirname': {'doc3': {'src': {'deleted': True}},
+                                        'doc4': {'src': {'deleted': False}}},
+                            'dirname2': {'': {'src': {'deleted': True}}}}}
+        monkeypatch.setattr(testee, '_get_site_doc', mock_get_sitedoc)
+        monkeypatch.setattr(testee, 'list_dirs', mock_list)
         assert testee.list_deletions_target('site_name') == ['doc1']
-        assert testee.list_deletions_target('site_name', '*') == ['doc1', 'dirname/doc3']
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        assert testee.list_deletions_target('site_name', '') == ['doc1']
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        assert testee.list_deletions_target('site_name', '*') == ['doc1', 'dirname/doc3',
+                                                                  'dirname2/']
+        assert capsys.readouterr().out == ("called get dml.list_dirs with args ('site_name',"
+                                           " 'src')\n"
+                                           "called get dml._get_site_doc with arg site_name\n")
         assert testee.list_deletions_target('site_name', 'dirname') == ['dirname/doc3']
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'src': {'docid': 'x'}, 'dest': {}},
-                   'doc2': {'src': {}}},
-             'dirname': {'doc3': {'src': {}}}}})
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        assert testee.list_deletions_target('site_name', 'dirname2') == ['dirname2/']
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x'}, 'dest': {}},
+                                  'doc2': {'src': {}}},
+                            'dirname': {'doc3': {'src': {}}}}}
         assert testee.list_deletions_target('site_name') == []
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
         assert testee.list_deletions_target('site_name', '*') == []
+        assert capsys.readouterr().out == ("called get dml.list_dirs with args ('site_name',"
+                                           " 'src')\n"
+                                           "called get dml._get_site_doc with arg site_name\n")
         assert testee.list_deletions_target('site_name', 'dirname') == []
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
 
+    # 476	toevoeging apply_deletions_target
     def test_apply_deletions_target(self, monkeypatch, capsys):
         """unittest for docs2mongo.apply_deletions_target
         """
+        def mock_get_sitedoc(arg):
+            print(f'called get dml._get_site_doc with arg {arg}')
+            return sitedoc
+        def mock_list(*args):
+            print('called get dml.list_dirs with args', args)
+            dirs = list(sitedoc['docs'].keys())
+            dirs.pop(0)
+            return dirs
         def mock_add_doc(*args):  # als 'dest' nog niet aanwezig
             """stub
             """
@@ -757,43 +804,79 @@ class TestDocLevel:
             """stub
             """
             print(f'called update_site_doc() with args `{args[0]}`, `{args[1]}`')
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
-                   'doc2': {'src': {'deleted': {}}}},
-             'dirname': {'doc3': {'src': {'deleted': True}},
-                         'doc4': {'src': {'deleted': False}}}}})
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
+                                  'doc2': {'src': {'deleted': {}}}},
+                            'dirname': {'doc3': {'src': {'deleted': True}},
+                                        'doc4': {'src': {'deleted': False}}},
+                            'dirname2': {'': {'src': {'deleted': True}}}}}
+        monkeypatch.setattr(testee, '_get_site_doc', mock_get_sitedoc)
+        monkeypatch.setattr(testee, 'list_dirs', mock_list)
         monkeypatch.setattr(testee, '_add_doc', mock_add_doc)
         monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
         assert testee.apply_deletions_target('site_name') == ['doc1']
         assert capsys.readouterr().out == (
+                "called get dml._get_site_doc with arg site_name\n"
                 "called update_site_doc() with args `site_name`, `{'/':"
                 " {'doc1': {'dest': {'deleted': True}},"
                 " 'doc2': {'src': {'deleted': {}}}},"
                 " 'dirname': {'doc3': {'src': {'deleted': True}},"
-                " 'doc4': {'src': {'deleted': False}}}}`\n")
+                " 'doc4': {'src': {'deleted': False}}},"
+                " 'dirname2': {'': {'src': {'deleted': True}}}}`\n")
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
+                                  'doc2': {'src': {'deleted': {}}}},
+                            'dirname': {'doc3': {'src': {'deleted': True}},
+                                        'doc4': {'src': {'deleted': False}}},
+                            'dirname2': {'': {'src': {'deleted': True}}}}}
         assert testee.apply_deletions_target('site_name', 'dirname') == ['dirname/doc3']
         assert capsys.readouterr().out == (
+                "called get dml._get_site_doc with arg site_name\n"
                 "called add_doc() with args `{'current': '', 'previous': ''}`\n"
                 "called update_site_doc() with args `site_name`, `{'/':"
                 " {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},"
                 " 'doc2': {'src': {'deleted': {}}}},"
                 " 'dirname': {'doc3': {'dest': {'docid': 'doc_id', 'deleted': True}},"
-                " 'doc4': {'src': {'deleted': False}}}}`\n")
-        assert testee.apply_deletions_target('site_name', '*') == ['doc1', 'dirname/doc3']
+                " 'doc4': {'src': {'deleted': False}}},"
+                " 'dirname2': {'': {'src': {'deleted': True}}}}`\n")
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
+                                  'doc2': {'src': {'deleted': {}}}},
+                            'dirname': {'doc3': {'src': {'deleted': True}},
+                                        'doc4': {'src': {'deleted': False}}},
+                            'dirname2': {'': {'src': {'deleted': True}}}}}
+        assert testee.apply_deletions_target('site_name', 'dirname2') == ['dirname2/']
         assert capsys.readouterr().out == (
+                "called get dml._get_site_doc with arg site_name\n"
+                "called add_doc() with args `{'current': '', 'previous': ''}`\n"
+                "called update_site_doc() with args `site_name`, `{'/':"
+                " {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},"
+                " 'doc2': {'src': {'deleted': {}}}},"
+                " 'dirname': {'doc3': {'src': {'deleted': True}},"
+                " 'doc4': {'src': {'deleted': False}}},"
+                " 'dirname2': {'': {'dest': {'docid': 'doc_id', 'deleted': True}}}}`\n")
+        sitedoc = {'docs': {'/': {'doc1': {'src': {'docid': 'x', 'deleted': True}, 'dest': {}},
+                                  'doc2': {'src': {'deleted': {}}}},
+                            'dirname': {'doc3': {'src': {'deleted': True}},
+                                        'doc4': {'src': {'deleted': False}}},
+                            'dirname2': {'': {'src': {'deleted': True}}}}}
+        assert testee.apply_deletions_target('site_name', '*') == ['doc1', 'dirname/doc3',
+                                                                   'dirname2/']
+        assert capsys.readouterr().out == (
+                "called get dml.list_dirs with args ('site_name', 'src')\n"
+                "called get dml._get_site_doc with arg site_name\n"
+                "called add_doc() with args `{'current': '', 'previous': ''}`\n"
                 "called add_doc() with args `{'current': '', 'previous': ''}`\n"
                 "called update_site_doc() with args `site_name`, `{'/':"
                 " {'doc1': {'dest': {'deleted': True}},"
                 " 'doc2': {'src': {'deleted': {}}}},"
                 " 'dirname': {'doc3': {'dest': {'docid': 'doc_id', 'deleted': True}},"
-                " 'doc4': {'src': {'deleted': False}}}}`\n")
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'src': {}, 'dest': {}},
-                   'doc2': {'src': {}}},
-             'dirname': {'doc3': {'src': {}}}}})
+                " 'doc4': {'src': {'deleted': False}}},"
+                " 'dirname2': {'': {'dest': {'docid': 'doc_id', 'deleted': True}}}}`\n")
+        sitedoc = {'docs': {'/': {'doc1': {'src': {}, 'dest': {}},
+                                  'doc2': {'src': {}}}, 'dirname': {'doc3': {'src': {}}}}}
         assert testee.apply_deletions_target('site_name', '*') == []
-        assert capsys.readouterr().out == ''
+        assert capsys.readouterr().out == (
+                "called get dml.list_dirs with args ('site_name', 'src')\n"
+                "called get dml._get_site_doc with arg site_name\n")
 
     def test_update_mirror(self, monkeypatch, capsys):
         """unittest for docs2mongo.update_mirror
@@ -857,30 +940,60 @@ class TestDocLevel:
                 f'called touch() for `{testee.WEBROOT}/site_name/dirname/doc_name.html`\n'
                 f'called save_to() for `{testee.WEBROOT}/site_name/dirname/doc_name.html`\n')
 
-    def test_list_deletions_mirror(self, monkeypatch):
+    def test_list_deletions_mirror(self, capsys, monkeypatch):
         """unittest for docs2mongo.list_deletions_mirror
         """
-        monkeypatch.setattr(testee, 'list_dirs', lambda x, y: ['dirname'])
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
-                   'doc2': {'dest': {'deleted': {}}},
-                   'docx': {'src': {'': {}}}},                # nog niet in dest omgeving
-             'dirname': {'doc3': {'dest': {'deleted': True}},
-                         'doc4': {'dest': {'deleted': False}}}}})
+        def mock_get_sitedoc(arg):
+            print(f'called get dml._get_site_doc with arg {arg}')
+            return sitedoc
+        def mock_list(*args):
+            print('called get dml.list_dirs with args', args)
+            dirs = list(sitedoc['docs'].keys())
+            dirs.pop(0)
+            return dirs
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},          # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
+        monkeypatch.setattr(testee, '_get_site_doc', mock_get_sitedoc)
+        monkeypatch.setattr(testee, 'list_dirs', mock_list)
         assert testee.list_deletions_mirror('site_name') == ['doc1']
-        assert testee.list_deletions_mirror('site_name', '*') == ['doc1', 'dirname/doc3']
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        assert testee.list_deletions_mirror('site_name', '*') == ['doc1', 'dirname/doc3',
+                                                                  'dirname2/']
+        assert capsys.readouterr().out == ("called get dml.list_dirs with args ('site_name',"
+                                           " 'dest')\n"
+                                           "called get dml._get_site_doc with arg site_name\n")
         assert testee.list_deletions_mirror('site_name', 'dirname') == ['dirname/doc3']
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
-            {'/': {'doc1': {'dest': {}, 'mirror': {}},
-                   'doc2': {'dest': {}}},
-             'dirname': {'doc3': {'dest': {}}}}})
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        assert testee.list_deletions_mirror('site_name', 'dirname2') == ['dirname2/']
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {}, 'mirror': {}},
+                                  'doc2': {'dest': {}}},
+                            'dirname': {'doc3': {'dest': {}}}}}
         assert testee.list_deletions_mirror('site_name') == []
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
         assert testee.list_deletions_mirror('site_name', '*') == []
+        assert capsys.readouterr().out == ("called get dml.list_dirs with args ('site_name',"
+                                           " 'dest')\n"
+                                           "called get dml._get_site_doc with arg site_name\n")
         assert testee.list_deletions_mirror('site_name', 'dirname') == []
+        assert capsys.readouterr().out == "called get dml._get_site_doc with arg site_name\n"
 
+    # 565	toevoegingen apply_deletions_mirror
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
         """unittest for docs2mongo.apply_deletions_mirror
         """
+        def mock_get_sitedoc(arg):
+            print(f'called get dml._get_site_doc with arg {arg}')
+            return sitedoc
+        def mock_list(*args):
+            print('called get dml.list_dirs with args', args)
+            dirs = list(sitedoc['docs'].keys())
+            dirs.pop(0)
+            return dirs
         def mock_update_site_doc(*args):
             """stub
             """
@@ -890,12 +1003,14 @@ class TestDocLevel:
             """
             print(f'called unlink() for `{self}`')
         # monkeypatch.setattr(testee, '_get_site_doc', lambda x: None)
-        monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs': {
-            '/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
-                  'doc2': {'dest': {'deleted': {}}},
-                  'docx': {'src': {'': {}}}},                # nog niet in dest omgeving
-            'dirname': {'doc3': {'dest': {'deleted': True}},
-                        'doc4': {'dest': {'deleted': False}}}}})
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},    # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
+        monkeypatch.setattr(testee, '_get_site_doc', mock_get_sitedoc)
+        monkeypatch.setattr(testee, 'list_dirs', mock_list)
         monkeypatch.setattr(testee, '_update_site_doc', mock_update_site_doc)
         monkeypatch.setattr(testee.datetime, 'datetime', MockDatetime)
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda *x: True)
@@ -903,29 +1018,70 @@ class TestDocLevel:
         assert testee.apply_deletions_mirror('site_name') == ['doc1']
         loc = testee.WEBROOT / 'site_name'
         assert capsys.readouterr().out == ''.join((
+            "called get dml._get_site_doc with arg site_name\n",
             "call update_site_doc() with args `site_name`,"
             " `{'/': {'doc2': {'dest': {'deleted': {}}}, 'docx': {'src': {'': {}}}},"
             " 'dirname': {'doc3': {'dest': {'deleted': True}},"
-            " 'doc4': {'dest': {'deleted': False}}}}`\n",
+            " 'doc4': {'dest': {'deleted': False}}},",
+            " 'dirname2': {'': {'dest': {'deleted': True}}}}`\n",
             f'called unlink() for `{loc}/doc1.html`\n'))
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},    # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
         assert testee.apply_deletions_mirror('site_name', 'dirname') == ['dirname/doc3']
         assert capsys.readouterr().out == ''.join((
+            "called get dml._get_site_doc with arg site_name\n",
             "call update_site_doc() with args `site_name`,"
             " `{'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},"
             " 'doc2': {'dest': {'deleted': {}}}, 'docx': {'src': {'': {}}}},"
-            " 'dirname': {'doc4': {'dest': {'deleted': False}}}}`\n",
+            " 'dirname': {'doc4': {'dest': {'deleted': False}}},"
+            " 'dirname2': {'': {'dest': {'deleted': True}}}}`\n",
             f'called unlink() for `{loc}/dirname/doc3.html`\n'))
-        assert testee.apply_deletions_mirror('site_name', '*') == ['doc1', 'dirname/doc3']
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},    # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
+        assert testee.apply_deletions_mirror('site_name', 'dirname2') == ['dirname2/']
         assert capsys.readouterr().out == ''.join((
+            "called get dml._get_site_doc with arg site_name\n",
+            "call update_site_doc() with args `site_name`,"
+            " `{'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},"
+            " 'doc2': {'dest': {'deleted': {}}}, 'docx': {'src': {'': {}}}},"
+            " 'dirname': {'doc3': {'dest': {'deleted': True}},"
+            " 'doc4': {'dest': {'deleted': False}}}}`\n",
+            f'called unlink() for `{loc}/dirname2`\n'))
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},    # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
+        assert testee.apply_deletions_mirror('site_name', '*') == ['doc1', 'dirname/doc3',
+                                                                   'dirname2/']
+        assert capsys.readouterr().out == ''.join((
+            "called get dml.list_dirs with args ('site_name', 'dest')\n",
+            "called get dml._get_site_doc with arg site_name\n",
             "call update_site_doc() with args `site_name`, `{'/':"
             " {'doc2': {'dest': {'deleted': {}}}, 'docx': {'src': {'': {}}}},"
             " 'dirname': {'doc4': {'dest': {'deleted': False}}}}`\n",
             f'called unlink() for `{loc}/doc1.html`\n',
-            f'called unlink() for `{loc}/dirname/doc3.html`\n'))
+            f'called unlink() for `{loc}/dirname/doc3.html`\n',
+            f'called unlink() for `{loc}/dirname2`\n'))
         monkeypatch.setattr(testee, '_get_site_doc', lambda x: {'docs':
             {'/': {'doc1': {'dest': {}, 'mirror': {}},
                    'doc2': {'dest': {}}},
              'dirname': {'doc3': {'dest': {'deleted': {}}}}}})
+        sitedoc = {'docs': {'/': {'doc1': {'dest': {'deleted': True}, 'mirror': {}},
+                                  'doc2': {'dest': {'deleted': {}}},
+                                  'docx': {'src': {'': {}}}},    # nog niet in dest omgeving
+                            'dirname': {'doc3': {'dest': {'deleted': True}},
+                                        'doc4': {'dest': {'deleted': False}}},
+                            'dirname2': {'': {'dest': {'deleted': True}}}}}
         assert testee.apply_deletions_mirror('site_name') == []
         assert capsys.readouterr().out == ''
 

@@ -852,6 +852,7 @@ class TestSiteRelated:
         assert testee.list_subdirs(sitename, 'src') == []
         assert capsys.readouterr().out == 'ext arg is src\n'
 
+    # 574, 577, 584, 587->590	list_files
     def test_list_files(self, monkeypatch):
         """unittest for rst2html_functions.list_files
         """
@@ -889,10 +890,13 @@ class TestSiteRelated:
             return []
         sitename = 'testsite'
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_not_found)
+        monkeypatch.setattr(testee.dml, 'list_templates', mock_list_templates)
         with pytest.raises(ValueError) as exc:
             testee.list_files(sitename)
         assert str(exc.value) == 'Site not found'
-        assert testee.list_files(sitename, 'current') == '<option>..</option>'
+        assert testee.list_files(sitename, 'current') == ('<option>-- letter.tpl --</option>'
+                                                          '<option>-- number.tpl --</option>'
+                                                          '<option>..</option>')
         assert testee.list_files(sitename, deleted=True) == []
         monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_wrong_type)
         with pytest.raises(ValueError) as exc:
@@ -952,6 +956,7 @@ class TestSiteRelated:
         assert capsys.readouterr().out == (
                 "called dml.rename_dir with args ('testsite', 'old', 'new')\n"
                 "called rename_mirror_subdir with args ('testsite', 'old', 'new')\n")
+
 
 class TestSourceRelated:
     """unittests for rst2html_functions.SourceRelated
@@ -2534,7 +2539,7 @@ class TestR2hState:
                 "called read_src_data with args ('testsite', '', 'newfile')\n")
         assert testsubj.rename('dir/', 'xxx/', '')[0] == 'new_name_taken'
         assert capsys.readouterr().out == (
-                "called list_subdirs with args ('testsite', '.src')\n")
+                "called list_subdirs with args ('testsite',)\n")
         assert testsubj.rename('tpl.tpl', 'xxx.tpl', '')[0] == 'new_name_taken'
         assert capsys.readouterr().out == (
                 "called dml.list_templates with args ('testsite',)\n")
@@ -2545,7 +2550,7 @@ class TestR2hState:
         testsubj.newfile = 'z'
         assert testsubj.rename('oldname/', 'newname/', '')[0] == 'ging fout'
         assert capsys.readouterr().out == (
-                "called list_subdirs with args ('testsite', '.src')\n"
+                "called list_subdirs with args ('testsite',)\n"
                 "called rename_subdir with args ('testsite', 'oldname/', 'newname/')\n")
         assert (testsubj.oldtext, testsubj.rstdata) == ('', '')
         assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('x', 'y', 'z')
@@ -2555,7 +2560,7 @@ class TestR2hState:
                 # 'renamed', 'newfile.rst', 'newfile.html', '', 'rstdata')
                 'renamed', 'newname/', '', '', 'rstdata')
         assert capsys.readouterr().out == (
-                "called list_subdirs with args ('testsite', '.src')\n"
+                "called list_subdirs with args ('testsite',)\n"
                 "called rename_subdir with args ('testsite', 'oldname/', 'newname/')\n")
         assert (testsubj.oldtext, testsubj.rstdata) == ('rstdata', 'rstdata')
         assert (testsubj.rstfile, testsubj.htmlfile, testsubj.newfile) == ('newname/', '', '')
@@ -2648,33 +2653,97 @@ class TestR2hState:
         assert capsys.readouterr().out == ''
         assert testsubj.oldtext, testsubj.rstdata == ('rstdata', 'rstdata')
 
+    # 1521, 1527-1547	rhfn.delete aanpassingen
     def test_delete(self, monkeypatch, capsys):
         """unittest for R2hState.delete
         """
+        def mock_list_docs(*args):
+            "stub"
+            print("called dml.list_docs with args", args)
+            return ['xxx']
+        def mock_list_docs_2(*args):
+            "stub"
+            print("called dml.list_docs with args", args)
+            return []
+        def mock_list_docs_3(*args):
+            "stub"
+            print("called dml.list_docs with args", args)
+            return ['dirname.rst']
+        def mock_remove_template(*args):
+            "stub"
+            print("called dml.remove_template with args", args)
+            return ''
+        def mock_read_src_data(*args):
+            """stub"""
+            print('called read_src_data with args', args)
+            return 'mld', ''
+        def mock_read_src_data_2(*args):
+            """stub"""
+            print('called read_src_data with args', args)
+            return '', 'some_text'
         def mock_mark_deleted(*args):
-            """stub
-            """
+            """stub"""
             print('called mark_deleted with args', args)
             return 'oepsie'
+        def mock_mark_deleted_2(*args):
+            """stub"""
+            print('called mark_deleted with args', args)
+            return ''
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
+        monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs)
+        monkeypatch.setattr(testee.dml, 'remove_template', mock_remove_template)
+        monkeypatch.setattr(testee, 'read_src_data', mock_read_src_data)
+        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted)
+        # monkeypatch.setattr(testee, 'format_message', mock_format_message)
         testsubj = testee.R2hState()
         monkeypatch.setattr(testee.R2hState, 'get_lang', mock_get_lang)
         monkeypatch.setattr(testee, 'get_text', mock_get_text)
-        assert testsubj.delete('dirname/', '')[0] == 'incorrect_name'
-        assert testsubj.delete('text.tpl', '')[0] == 'incorrect_name'
-        assert testsubj.delete('-- text.tpl --', '')[0] == 'incorrect_name'
-        monkeypatch.setattr(testee, 'read_src_data', lambda x, y, z: ('mld', ''))
-        assert testsubj.delete('', '')[0] == 'mld'
-        monkeypatch.setattr(testee, 'read_src_data', lambda x, y, z: ('', 'some_text'))
-        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted)
-        assert testsubj.delete('', 'olddata')[0] == 'oepsie'
-        assert capsys.readouterr().out == "called mark_deleted with args ('testsite', '', '')\n"
-        monkeypatch.setattr(testee, 'mark_deleted', lambda x, y, z: '')
-        assert testsubj.delete('rstfile', 'rstdata') == ('deleted', 'rstfile', 'rstfile.html', '',
-                                                         '')
+        assert testsubj.delete('-- xxx --', '')[0] == 'incorrect_name'
         assert capsys.readouterr().out == ''
+        assert testsubj.delete('-- yyy/ --', '')[0] == 'incorrect_name'
+        assert capsys.readouterr().out == ''
+        # assert testsubj.delete('text.tpl', '')[0] == 'incorrect_name'
+        assert testsubj.delete('', '')[0] == 'mld'
+        assert capsys.readouterr().out == "called read_src_data with args ('testsite', '', '')\n"
+        monkeypatch.setattr(testee, 'read_src_data', mock_read_src_data_2)
+        assert testsubj.delete('', 'olddata')[0] == 'oepsie'
+        assert capsys.readouterr().out == ("called read_src_data with args ('testsite', '', '')\n"
+                                           "called mark_deleted with args ('testsite', '', '')\n")
+        monkeypatch.setattr(testee, 'mark_deleted', mock_mark_deleted_2)
+        assert testsubj.delete('rstfile', 'rstdata') == (
+                'deleted', 'rstfile', 'rstfile.html', '', '')
+        assert capsys.readouterr().out == (
+                "called read_src_data with args ('testsite', '', 'rstfile')\n"
+                "called mark_deleted with args ('testsite', '', 'rstfile')\n")
         assert testsubj.oldtext == ''
         assert testsubj.rstdata == ''
+
+        assert testsubj.delete('-- test.tpl --', '') == (
+                'deleted', 'test.tpl', 'rstfile.html', '', '')
+        assert capsys.readouterr().out == (
+                "called dml.remove_template with args ('testsite', 'test.tpl')\n")
+        assert testsubj.delete('dirname/', '')[0] == 'directory dirname/ is niet leeg'
+        assert capsys.readouterr().out == (
+                "called dml.list_docs with args ('testsite', 'src', 'dirname')\n")
+        monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_2)
+        assert testsubj.delete('dirname/', '') == (
+                'deleted', 'dirname/', 'rstfile.html', '', '')
+        assert capsys.readouterr().out == (
+                "called dml.list_docs with args ('testsite', 'src', 'dirname')\n"
+                "called mark_deleted with args ('testsite', '', 'dirname/')\n")
+        testsubj.conf = {'seflinks': True}
+        monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_3)
+        assert testsubj.delete('dirname/', '')[0] == 'directory dirname/ is niet leeg'
+        assert capsys.readouterr().out == (
+                "called dml.list_docs with args ('testsite', 'src', 'dirname')\n"
+                "called dml.list_docs with args ('testsite', 'src', '/')\n")
+        monkeypatch.setattr(testee.dml, 'list_docs', mock_list_docs_2)
+        assert testsubj.delete('dirname/', '') == (
+                'deleted', 'dirname/', 'rstfile.html', '', '')
+        assert capsys.readouterr().out == (
+                "called dml.list_docs with args ('testsite', 'src', 'dirname')\n"
+                "called dml.list_docs with args ('testsite', 'src', '/')\n"
+                "called mark_deleted with args ('testsite', '', 'dirname/')\n")
 
     def test_saverst(self, monkeypatch, capsys):
         """unittest for R2hState.saverst

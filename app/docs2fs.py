@@ -290,9 +290,10 @@ def list_dirs(sitename, loc=''):
     path = _locify(test, loc)
     ## return [str(f.relative_to(path)) for f in path.iterdir() if f.is_dir()]
     if loc == 'src' and read_settings(sitename).get('seflinks', False):
-        lines = [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()]
+        lines = [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()
+                 and f.suffix != DELMARK]
     else:
-        lines = [f.stem for f in path.iterdir() if f.is_dir()]
+        lines = [f.stem for f in path.iterdir() if f.is_dir() and f.suffix != DELMARK]
     return lines
 
 
@@ -315,7 +316,10 @@ def rename_dir(sitename, dirname, newname):
 def remove_dir(sitename, directory):
     """remove site directory and all documents in it
     """
-    raise NotImplementedError
+    # dit wordt gedaan met hetzelfde mechanisme als teksten (mark as deleted etc.)
+    path = WEBROOT / sitename / directory
+    path.rename(path.with_suffix(DELMARK))
+    # raise NotImplementedError
 
 
 def list_docs(sitename, loc='', directory='', deleted=False):
@@ -364,6 +368,13 @@ def rename_template(sitename, docname, newname):
     """change tha name of the given template
     """
     (WEBROOT / sitename / '.templates' / docname).rename(WEBROOT / sitename / '.templates' / newname)
+    return ''
+
+
+def remove_template(sitename, docname):
+    """delete the given template
+    """
+    (WEBROOT / sitename / '.templates' / docname).unlink()
     return ''
 
 
@@ -467,7 +478,9 @@ def revert_rst(sitename, doc_name, directory=''):
 
 
 def mark_src_deleted(sitename, doc_name, directory=''):
-    """mark a source document in the given directory as deleted
+    """in the source environment, mark a directory or a document in the given directory as deleted
+
+    doc_name is the name if the item to delete
     """
     if not doc_name:
         raise AttributeError('no_name')

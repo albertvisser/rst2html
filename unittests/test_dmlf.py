@@ -374,6 +374,7 @@ class TestNonApiFunctions:
                 f"called path.rename with args ({tmp_path / 'testsite' / 'old'!r},"
                 f" {tmp_path / 'testsite' / 'new'!r})\n")
 
+
 class TestTestApi:
     """unittests for api functions related to testing
     """
@@ -689,11 +690,20 @@ class TestSiteLevel:
                 f"called path.rename with args ({tmp_path / 'testsite' / '.target' / 'old'!r},"
                 f" {tmp_path / 'testsite' / '.target' / 'new'!r})\n")
 
-    def test_remove_dir(self):
+    def test_remove_dir(self, monkeypatch, capsys, tmp_path):
         """unittest for docs2fs.remove_dir
         """
-        with pytest.raises(NotImplementedError):
-            testee.remove_dir('sitename', 'directory')
+        def mock_rename(*args):
+            print('called path.rename with args', args)
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(testee, 'DELMARK', '.xxx')
+        monkeypatch.setattr(pathlib.Path, 'rename', mock_rename)
+        testee.remove_dir('testsite', 'dirname')
+        assert capsys.readouterr().out == (
+                f"called path.rename with args ({tmp_path / 'testsite' / 'dirname'!r},"
+                f" {tmp_path / 'testsite' / 'dirname.xxx'!r})\n")
+        # with pytest.raises(NotImplementedError):
+        #     testee.remove_dir('sitename', 'directory')
 
 
 class TestDocLevel:
@@ -801,6 +811,17 @@ class TestDocLevel:
         assert capsys.readouterr().out == (
                 f"called path.rename with args ({tmp_path / 'testsite' / '.templates' / 'old'!r},"
                 f" {tmp_path / 'testsite' / '.templates' / 'new'!r})\n")
+
+    def test_remove_template(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.remove_template
+        """
+        def mock_unlink(*args):
+            print('called path.unlink with args', args)
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(pathlib.Path, 'unlink', mock_unlink)
+        assert testee.remove_template('testsite', 'xxx') == ''
+        assert capsys.readouterr().out == (
+            f"called path.unlink with args ({tmp_path / 'testsite' / '.templates' / 'xxx'!r},)\n")
 
     def test_create_new_doc(self, monkeypatch, capsys):
         """unittest for docs2fs.create_new_doc

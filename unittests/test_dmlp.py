@@ -89,206 +89,6 @@ class MockCursor:
         """
 
 
-class TestNonApiFunctions:
-    """unittests for functions outside of the dml API
-    """
-    def test_get_site_id(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_site_id
-        """
-        def mock_fetchone(self, *args):
-            """stub
-            """
-            return ()
-        def mock_fetchone_2(self, *args):
-            """stub
-            """
-            return {'id': 99}
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
-        assert testee._get_site_id('site_name') == ()
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from sites where sitename = %s;`\n'
-            '  with: `site_name`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
-        assert testee._get_site_id('site_name') == 99
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from sites where sitename = %s;`\n'
-            '  with: `site_name`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_get_dir_id(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_dir_id
-        """
-        def mock_fetchone(self, *args):
-            """stub
-            """
-            return ()
-        def mock_fetchone_2(self, *args):
-            """stub
-            """
-            return {'id': 'dir_id'}
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
-        assert testee._get_dir_id('site_id', 'dir_id') == ()
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
-            '  with: `site_id`, `dir_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
-        assert testee._get_dir_id('site_id', 'dir_id') == 'dir_id'
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
-            '  with: `site_id`, `dir_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_get_all_dir_ids(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_all_dir_ids
-        """
-        def mock_fetchall(self, *args):
-            """stub
-            """
-            return []
-        def mock_fetchall_2(self, *args):
-            """stub
-            """
-            return [{'id': 'dirid01'}, {'id': 'dirid02'}]
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
-        assert testee._get_all_dir_ids('site_id') == []
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from directories where site_id = %s;`\n'
-            '  with: `site_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
-        assert testee._get_all_dir_ids('site_id') == ['dirid01', 'dirid02']
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id from directories where site_id = %s;`\n'
-            '  with: `site_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_get_docs_in_dir(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_docs_in_dir
-        """
-        def mock_fetchall(self, *args):
-            """stub
-            """
-            return []
-        def mock_fetchall_2(self, *args):
-            """stub
-            """
-            return [{'docname': 'docname_01'}, {'docname': 'docname_02'}]
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
-        assert testee._get_docs_in_dir('dir_id') == []
-        assert capsys.readouterr().out == (
-            'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
-            '  with: `dir_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
-        assert testee._get_docs_in_dir('dir_id') == ['docname_01', 'docname_02']
-        assert capsys.readouterr().out == (
-            'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
-            '  with: `dir_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_get_doc_ids(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_doc_ids
-        """
-        def mock_fetchone(self, *args):
-            """stub
-            """
-            return {'id': 1, 'source_docid': 2, 'target_docid': 3}
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
-        assert testee._get_doc_ids('dir_id', 'docname') == (None, None, None)
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id, source_docid, target_docid from doc_stats'
-            ' where dir_id = %s and docname = %s;`\n'
-            '  with: `dir_id`, `docname`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
-        assert testee._get_doc_ids('dir_id', 'docname') == (1, 2, 3)
-        assert capsys.readouterr().out == (
-            'execute SQL: `select id, source_docid, target_docid from doc_stats'
-            ' where dir_id = %s and docname = %s;`\n'
-            '  with: `dir_id`, `docname`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_get_doc_text(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_doc_text
-        """
-        def mock_fetchone(self, *args):
-            """stub
-            """
-            return {'currtext': 'some_text'}
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
-        assert testee._get_doc_text('doc_id') == (None, None, None)
-        assert capsys.readouterr().out == (
-             'execute SQL: `select currtext from documents where id = %s;`\n'
-             '  with: `doc_id`\n'
-             'called commit() on connection\n'
-             'called close()\n')
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
-        assert testee._get_doc_text('doc_id') == 'some_text'
-        assert capsys.readouterr().out == (
-             'execute SQL: `select currtext from documents where id = %s;`\n'
-             '  with: `doc_id`\n'
-             'called commit() on connection\n'
-             'called close()\n')
-
-    def test_get_settings(self, monkeypatch, capsys):
-        """unittest for docs2pg.get_settings
-        """
-        def mock_iter(self):
-            """stub
-            """
-            return (x for x in [{'settname': 'sett1', 'settval': 'val1'},
-                                {'settname': 'sett2', 'settval': 'val2'}])
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
-        assert testee._get_settings('site_id') == {'sett1': 'val1', 'sett2': 'val2'}
-        assert capsys.readouterr().out == (
-            'execute SQL: `select settname, settval from site_settings where site_id = %s`\n'
-            '  with: `site_id`\n'
-            'called commit() on connection\n'
-            'called close()\n')
-
-    def test_add_doc(self, monkeypatch, capsys):
-        """unittest for docs2pg.add_doc
-        """
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ({'id': 'some_id'}))
-        assert testee._add_doc() == 'some_id'
-        assert capsys.readouterr().out == (
-                'execute SQL: `insert into documents (currtext, previous) values (%s, %s)'
-                ' returning id`\n'
-                '  with: ``, ``\n'
-                'called commit() on connection\n'
-                'called close()\n')
-
-    def test_get_stats(self):
-        """unittest for docs2pg.get_stats
-        """
-        mindate = datetime.datetime.min
-        assert testee._get_stats((1, None, 2, None, 3)) == testee.Stats(1, 2, 3)
-        assert testee._get_stats((1, True, 2, True, 0)) == testee.Stats('[deleted]', '[deleted]', mindate)
-        assert testee._get_stats((0, None, 0, None, 0)) == testee.Stats(mindate, mindate, mindate)
-        with pytest.raises(ValueError):
-            assert testee._get_stats(()) == testee.Stats('', '', '')
-
-
 class TestTestApi:
     """unittests for api functions related to testing
     """
@@ -863,29 +663,6 @@ class TestDocLevel:
                 'called commit() on connection\n'
                 'called close()\n')
 
-    def test_rename_template(self, monkeypatch, capsys):
-        """unittest for docs2pg.rename_template
-        """
-        def mock_get_siteid(*args):
-            print('called _get_site_id with args', args)
-            return 'site_id'
-        def mock_fetchone(cur, *args):
-            print('called cursor.fetchone')
-            return {'id': 'tpl_id'}
-        monkeypatch.setattr(testee, '_get_site_id', mock_get_siteid)
-        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        assert testee.rename_template('site_name', 'oldname', 'newname') == ''
-        assert capsys.readouterr().out == (
-                "called _get_site_id with args ('site_name',)\n"
-                'execute SQL: `select id from templates where site_id = %s and name = %s;`\n'
-                '  with: `site_id`, `oldname`\n'
-                "called cursor.fetchone\n"
-                'execute SQL: `update templates set name = %s where site_id = %s and id = %s;`\n'
-                "  with: `newname`, `site_id`, `tpl_id`\n"
-                'called commit() on connection\n'
-                'called close()\n')
-
     def test_write_template(self, monkeypatch, capsys):
         """unittest for docs2pg.write_template
         """
@@ -910,6 +687,46 @@ class TestDocLevel:
                 '  with: `data`, `99`, `doc_name`\n'
                 'called commit() on connection\n'
                 'called close()\n')
+
+    def test_rename_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.rename_template
+        """
+        def mock_get_siteid(*args):
+            print('called _get_site_id with args', args)
+            return 'site_id'
+        def mock_get_templateid(*args):
+            print('called _get_template_id with args', args)
+            return 'tpl_id'
+        def mock_rename_template(*args):
+            print('called _do_rename_template with args', args)
+        monkeypatch.setattr(testee, '_get_site_id', mock_get_siteid)
+        monkeypatch.setattr(testee, '_get_template_id', mock_get_templateid)
+        monkeypatch.setattr(testee, '_do_rename_template', mock_rename_template)
+        assert testee.rename_template('site_name', 'oldname', 'newname') == ''
+        assert capsys.readouterr().out == (
+                "called _get_site_id with args ('site_name',)\n"
+                "called _get_template_id with args ('site_id', 'oldname')\n"
+                "called _do_rename_template with args ('site_id', 'tpl_id', 'newname')\n")
+
+    def test_remove_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.remove_template
+        """
+        def mock_get_siteid(*args):
+            print('called _get_site_id with args', args)
+            return 'site_id'
+        def mock_get_templateid(*args):
+            print('called _get_template_id with args', args)
+            return 'tpl_id'
+        def mock_delete_template(*args):
+            print('called _do_delete_template with args', args)
+        monkeypatch.setattr(testee, '_get_site_id', mock_get_siteid)
+        monkeypatch.setattr(testee, '_get_template_id', mock_get_templateid)
+        monkeypatch.setattr(testee, '_do_delete_template', mock_delete_template)
+        assert testee.remove_template('site_name', 'tplname') == ''
+        assert capsys.readouterr().out == (
+                "called _get_site_id with args ('site_name',)\n"
+                "called _get_template_id with args ('site_id', 'tplname')\n"
+                "called _do_delete_template with args ('site_id', 'tpl_id')\n")
 
     def test_create_new_doc(self, monkeypatch, capsys):
         """unittest for docs2pg.create_new_doc
@@ -1099,56 +916,103 @@ class TestDocLevel:
     def test_mark_src_deleted(self, monkeypatch, capsys):
         """unittest for docs2pg.mark_src_deleted
         """
-        def mock_site_id(*args):
-            """stub
-            """
-            if counter == 1:
-                return None
-            return 9
+        def mock_site_id(arg):
+            """stub"""
+            print(f'called _get_site_id with arg {arg}')
+            return None
+        def mock_site_id_2(arg):
+            """stub"""
+            print(f'called _get_site_id with arg {arg}')
+            return 'site_id'
         def mock_dir_id(*args):
-            """stub
-            """
-            if counter <= 3:
-                print(f'called get_dir_id() for `{args[1]}`')
-            if counter == 2:
-                return None
-            return 99
+            """stub"""
+            print('called _get_dir_id with args', args)
+            return None
+        def mock_dir_id_2(*args):
+            """stub"""
+            nonlocal dirid_counter
+            print('called _get_dir_id with args', args)
+            dirid_counter += 1
+            if dirid_counter == 1:
+                return 'dir_id'
+            return None  # entry is een document, geen directory
+        def mock_dir_id_3(*args):
+            """stub"""
+            nonlocal dirid_counter
+            print('called _get_dir_id with args', args)
+            dirid_counter += 1
+            if dirid_counter == 1:
+                return 'root_dir_id'
+            return 'dir_id'
         def mock_doc_ids(*args):
-            """stub
-            """
-            if counter == 3:
-                return None, 2, 3
+            """stub"""
+            print('called _get_doc_ids with args', args)
+            return None, 2, 3
+        def mock_doc_ids_2(*args):
+            """stub"""
+            print('called _get_doc_ids with args', args)
             return 1, 2, 3
+        def mock_mark_doc(doc_id):
+            "stub"
+            print(f"called _mark_doc_deleted with arg {doc_id}")
+        def mock_mark_dir(*args):
+            "stub"
+            print('called _mark_dir_deleted with args', args)
+        monkeypatch.setattr(testee, '_get_site_id', mock_site_id)
+        monkeypatch.setattr(testee, '_get_dir_id', mock_dir_id)
+        monkeypatch.setattr(testee, '_get_doc_ids', mock_doc_ids)
+        monkeypatch.setattr(testee, '_mark_doc_deleted', mock_mark_doc)
+        monkeypatch.setattr(testee, '_mark_dir_deleted', mock_mark_dir)
         with pytest.raises(AttributeError):
             testee.mark_src_deleted('site_name', '')
-        counter = 1
-        monkeypatch.setattr(testee, '_get_site_id', mock_site_id)
-        with pytest.raises(FileNotFoundError):
+        assert capsys.readouterr().out == ""
+        with pytest.raises(FileNotFoundError) as exc:
             testee.mark_src_deleted('site_name', 'doc_name')
-        counter += 1
-        monkeypatch.setattr(testee, '_get_dir_id', mock_dir_id)
-        with pytest.raises(FileNotFoundError):
+        assert str(exc.value) == "no_site"
+        assert capsys.readouterr().out == "called _get_site_id with arg site_name\n"
+        dirid_counter = 0
+        monkeypatch.setattr(testee, '_get_site_id', mock_site_id_2)
+        with pytest.raises(FileNotFoundError) as exc:
             testee.mark_src_deleted('site_name', 'doc_name', 'dirname')
-        assert capsys.readouterr().out == 'called get_dir_id() for `dirname`\n'
-        counter += 1
-        monkeypatch.setattr(testee, '_get_doc_ids', mock_doc_ids)
-        with pytest.raises(FileNotFoundError):
-            testee.mark_src_deleted('site_name', 'doc_name')
-        assert capsys.readouterr().out == 'called get_dir_id() for `/`\n'
-        counter += 1
+        assert str(exc.value) == "no_subdir"
+        assert capsys.readouterr().out == ('called _get_site_id with arg site_name\n'
+                                           "called _get_dir_id with args ('site_id', 'dirname')\n")
 
+        with pytest.raises(FileNotFoundError) as exc:
+            testee.mark_src_deleted('site_name', 'doc_name')
+        assert str(exc.value) == "no_subdir"
+        assert capsys.readouterr().out == ('called _get_site_id with arg site_name\n'
+                                           "called _get_dir_id with args ('site_id', '/')\n")
+
+        monkeypatch.setattr(testee, '_get_dir_id', mock_dir_id_2)
+        dirid_counter = 0
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: (5,))
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        with pytest.raises(FileNotFoundError) as exc:
+            testee.mark_src_deleted('site_name', 'doc_name')
+        assert str(exc.value) == "no_document"
+        assert capsys.readouterr().out == ("called _get_site_id with arg site_name\n"
+                                           "called _get_dir_id with args ('site_id', '/')\n"
+                                           "called _get_dir_id with args ('site_id', 'doc_name')\n"
+                                           "called _get_doc_ids with args (None, 'doc_name')\n")
+        dirid_counter = 0
+        monkeypatch.setattr(testee, '_get_doc_ids', mock_doc_ids_2)
+        testee.mark_src_deleted('site_name', 'doc_name')
+        assert capsys.readouterr().out == ("called _get_site_id with arg site_name\n"
+                                           "called _get_dir_id with args ('site_id', '/')\n"
+                                           "called _get_dir_id with args ('site_id', 'doc_name')\n"
+                                           "called _get_doc_ids with args (None, 'doc_name')\n"
+                                           "called _mark_doc_deleted with arg 1\n")
+        monkeypatch.setattr(testee, '_get_dir_id', mock_dir_id_3)
+        dirid_counter = 0
         monkeypatch.setattr(MockCursor, 'fetchone', lambda x: (5,))
         monkeypatch.setattr(testee, 'conn', MockConn())
         testee.mark_src_deleted('site_name', 'doc_name')
         assert capsys.readouterr().out == (
-                'execute SQL: `select source_docid from doc_stats where id = %s;`\n'
-                '  with: `1`\n'
-                'execute SQL: `delete from documents where id = %s;`\n'
-                '  with: `5`\n'
-                'execute SQL: `update doc_stats set source_deleted = %s where id = %s;`\n'
-                '  with: `True`, `1`\n'
-                'called commit() on connection\n'
-                'called close()\n')
+                "called _get_site_id with arg site_name\n"
+                "called _get_dir_id with args ('site_id', '/')\n"
+                "called _get_dir_id with args ('site_id', 'doc_name')\n"
+                "called _mark_dir_deleted with args ('site_id', 'dir_id')\n")
 
     def test_update_html(self, monkeypatch, capsys):
         """unittest for docs2pg.update_html
@@ -1526,60 +1390,6 @@ class TestDocLevel:
         assert testee.get_dirlist_for_site('sitename', '*') == [('/', 99), ('subdir', 99)]
         assert testee.get_dirlist_for_site('sitename', 'dirname') == [('dirname', 99)]
 
-    def test_list_deletions(self, monkeypatch, capsys):
-        """unittest for docs2pg.list_deletions
-        """
-        def mock_iter(*args):
-            """stub
-            """
-            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
-                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
-        assert testee.list_deletions([], 'x') == []
-        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        assert testee.list_deletions([('/', 1), ('subdir', 2)], 'stage') == sorted(['xxx', 'yyy.html',
-                'subdir/xxx', 'subdir/yyy.html'])
-        assert capsys.readouterr().out == (
-                'execute SQL: `select id, docname, target_docid from doc_stats'
-                ' where dir_id = %s and stage_deleted = %s;`\n'
-                '  with: `1`, `True`\n'
-                'execute SQL: `select id, docname, target_docid from doc_stats'
-                ' where dir_id = %s and stage_deleted = %s;`\n'
-                '  with: `2`, `True`\n'
-                "called commit() on connection\n"
-                "called close()\n")
-
-    def test_apply_deletions(self, monkeypatch, capsys):
-        """unittest for docs2pg.apply_deletions
-        """
-        def mock_iter(*args):
-            """stub
-            """
-            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
-                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
-        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
-        monkeypatch.setattr(testee, 'conn', MockConn())
-        assert testee.apply_deletions([('/', 1)], 'source') == (([(None, 1, True, 1),
-            (None, 1, True, 2)], ['xxx', 'yyy.html']))
-        assert capsys.readouterr().out == (
-                'execute SQL: `select id, docname, target_docid from doc_stats'
-                ' where dir_id = %s and source_deleted = %s;`\n'
-                '  with: `1`, `True`\n'
-                'execute SQL: `delete from documents where id = %s;`\n'
-                '  with: `(11,)`, `(12,)`\n'
-                'called commit() on connection\n'
-                'called close()\n')
-        assert testee.apply_deletions([('subdir', 2)], 'other') == (([(None, 1, True, 1),
-            (None, 1, True, 2)], ['subdir/xxx', 'subdir/yyy.html']))
-        assert capsys.readouterr().out == (
-                'execute SQL: `select id, docname, target_docid from doc_stats'
-                ' where dir_id = %s and other_deleted = %s;`\n'
-                '  with: `2`, `True`\n'
-                'execute SQL: `delete from doc_stats where id = %s;`\n'
-                '  with: `(1,)`, `(2,)`\n'
-                'called commit() on connection\n'
-                'called close()\n')
-
     def test_get_doc_stats(self, monkeypatch, capsys):
         """unittest for docs2pg.get_doc_stats
         """
@@ -1690,3 +1500,425 @@ class TestDocLevel:
                 '  with: `[1, 2, 3]`\n'
                 'called commit() on connection\n'
                 'called close()\n')
+
+
+class TestNonApiFunctions:
+    """unittests for functions outside of the dml API
+    """
+    def test_get_site_id(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_site_id
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return ()
+        def mock_fetchone_2(self, *args):
+            """stub
+            """
+            return {'id': 99}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert testee._get_site_id('site_name') == ()
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from sites where sitename = %s;`\n'
+            '  with: `site_name`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
+        assert testee._get_site_id('site_name') == 99
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from sites where sitename = %s;`\n'
+            '  with: `site_name`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_settings(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_settings
+        """
+        def mock_iter(self):
+            """stub
+            """
+            return (x for x in [{'settname': 'sett1', 'settval': 'val1'},
+                                {'settname': 'sett2', 'settval': 'val2'}])
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        assert testee._get_settings('site_id') == {'sett1': 'val1', 'sett2': 'val2'}
+        assert capsys.readouterr().out == (
+            'execute SQL: `select settname, settval from site_settings where site_id = %s`\n'
+            '  with: `site_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_template_id(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_template_id
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return ()
+        def mock_fetchone_2(self, *args):
+            """stub
+            """
+            return {'id': 'tpl_id'}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert not testee._get_template_id('site_id', 'tplname')
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from templates where site_id = %s and name = %s;`\n'
+            '  with: `site_id`, `tplname`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
+        assert testee._get_template_id('site_id', 'tplname') == 'tpl_id'
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from templates where site_id = %s and name = %s;`\n'
+            '  with: `site_id`, `tplname`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_do_rename_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.do_rename_template)
+        """
+        def mock_fetchone(cur, *args):
+            print('called cursor.fetchone')
+            return {'id': 'tpl_id'}
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        testee._do_rename_template('site_id', 'tpl_id', 'newname')
+        assert capsys.readouterr().out == (
+                'execute SQL: `update templates set name = %s where site_id = %s and id = %s;`\n'
+                "  with: `newname`, `site_id`, `tpl_id`\n"
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_do_delete_template(self, monkeypatch, capsys):
+        """unittest for docs2pg.do_delete_template)
+        """
+        def mock_fetchone(cur, *args):
+            print('called cursor.fetchone')
+            return {'id': 'tpl_id'}
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        testee._do_delete_template('site_id', 'tpl_id')
+        assert capsys.readouterr().out == (
+                'execute SQL: `delete from templates where site_id = %s and id = %s;`\n'
+                "  with: `site_id`, `tpl_id`\n"
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_get_dir_id(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_dir_id
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return ()
+        def mock_fetchone_2(self, *args):
+            """stub
+            """
+            return {'id': 'dir_id'}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert not testee._get_dir_id('site_id', 'dir_id')
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
+            '  with: `site_id`, `dir_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
+        assert testee._get_dir_id('site_id', 'dir_id') == 'dir_id'
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from directories where site_id = %s and dirname = %s;`\n'
+            '  with: `site_id`, `dir_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_dir_name(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_dir_name
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return {}
+        def mock_fetchone_2(self, *args):
+            """stub
+            """
+            return {'dirname': 'xxx'}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert not testee._get_dir_name('site_id', 'dir_id')
+        assert capsys.readouterr().out == (
+                "execute SQL: `select dirname from directories where site_id = %s and id = %s;`\n"
+                "  with: `site_id`, `dir_id`\n"
+                "called commit() on connection\n"
+                "called close()\n")
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone_2)
+        assert testee._get_dir_name('site_id', 'dir_id') == 'xxx'
+        assert capsys.readouterr().out == (
+                "execute SQL: `select dirname from directories where site_id = %s and id = %s;`\n"
+                "  with: `site_id`, `dir_id`\n"
+                "called commit() on connection\n"
+                "called close()\n")
+
+    def test_get_all_dir_ids(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_all_dir_ids
+        """
+        def mock_fetchall(self, *args):
+            """stub
+            """
+            return []
+        def mock_fetchall_2(self, *args):
+            """stub
+            """
+            return [{'id': 'dirid01'}, {'id': 'dirid02'}]
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
+        assert testee._get_all_dir_ids('site_id') == []
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from directories where site_id = %s;`\n'
+            '  with: `site_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
+        assert testee._get_all_dir_ids('site_id') == ['dirid01', 'dirid02']
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id from directories where site_id = %s;`\n'
+            '  with: `site_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_docs_in_dir(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_docs_in_dir
+        """
+        def mock_fetchall(self, *args):
+            """stub
+            """
+            return []
+        def mock_fetchall_2(self, *args):
+            """stub
+            """
+            return [{'docname': 'docname_01'}, {'docname': 'docname_02'}]
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall)
+        assert testee._get_docs_in_dir('dir_id') == []
+        assert capsys.readouterr().out == (
+            'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
+            '  with: `dir_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchall', mock_fetchall_2)
+        assert testee._get_docs_in_dir('dir_id') == ['docname_01', 'docname_02']
+        assert capsys.readouterr().out == (
+            'execute SQL: `select docname from doc_stats where dir_id = %s;`\n'
+            '  with: `dir_id`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_doc_ids(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_ids
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return {'id': 1, 'source_docid': 2, 'target_docid': 3}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
+        assert testee._get_doc_ids('dir_id', 'docname') == (None, None, None)
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id, source_docid, target_docid from doc_stats'
+            ' where dir_id = %s and docname = %s;`\n'
+            '  with: `dir_id`, `docname`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert testee._get_doc_ids('dir_id', 'docname') == (1, 2, 3)
+        assert capsys.readouterr().out == (
+            'execute SQL: `select id, source_docid, target_docid from doc_stats'
+            ' where dir_id = %s and docname = %s;`\n'
+            '  with: `dir_id`, `docname`\n'
+            'called commit() on connection\n'
+            'called close()\n')
+
+    def test_get_doc_text(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_doc_text
+        """
+        def mock_fetchone(self, *args):
+            """stub
+            """
+            return {'currtext': 'some_text'}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: {})
+        assert testee._get_doc_text('doc_id') == (None, None, None)
+        assert capsys.readouterr().out == (
+             'execute SQL: `select currtext from documents where id = %s;`\n'
+             '  with: `doc_id`\n'
+             'called commit() on connection\n'
+             'called close()\n')
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        assert testee._get_doc_text('doc_id') == 'some_text'
+        assert capsys.readouterr().out == (
+             'execute SQL: `select currtext from documents where id = %s;`\n'
+             '  with: `doc_id`\n'
+             'called commit() on connection\n'
+             'called close()\n')
+
+    def test_add_doc(self, monkeypatch, capsys):
+        """unittest for docs2pg.add_doc
+        """
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', lambda x: ({'id': 'some_id'}))
+        assert testee._add_doc() == 'some_id'
+        assert capsys.readouterr().out == (
+                'execute SQL: `insert into documents (currtext, previous) values (%s, %s)'
+                ' returning id`\n'
+                '  with: ``, ``\n'
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_list_deletions(self, monkeypatch, capsys):
+        """unittest for docs2pg.list_deletions
+        """
+        def mock_get_ids(*args):
+            print('called get_deletion_ids with args', args)
+            return [{'docname': 'xxx'}, {'docname': 'yyy'}]
+        def mock_get_names(arg):
+            print(f'called get_deletion_names with arg {arg}')
+            return ['x', 'y', 'z']
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(testee, 'get_deletion_ids', mock_get_ids)
+        monkeypatch.setattr(testee, 'get_deletion_names', mock_get_names)
+
+        assert testee.list_deletions([], 'x') == []
+        assert testee.list_deletions([('/', 1), ('subdir', 2)], 'stage') == sorted(['x', 'y', 'z',
+                'subdir/xxx', 'subdir/yyy'])
+        assert capsys.readouterr().out == (
+                "called get_deletion_ids with args (1, 'stage')\n"
+                "called get_deletion_names with arg [{'docname': 'xxx'}, {'docname': 'yyy'}]\n"
+                "called get_deletion_ids with args (2, 'stage')\n")
+
+    def test_apply_deletions(self, monkeypatch, capsys):
+        """unittest for docs2pg.apply_deletions
+        """
+        def mock_get_ids(*args):
+            print('called get_deletion_ids with args', args)
+            return [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                    {'id': 2, 'docname': 'yyy', 'target_docid': 12}]
+        def mock_get_names(arg):
+            print(f'called get_deletion_names with arg {arg}')
+            return ['x', 'y', 'z']
+        def mock_execute(*args):
+            print('called execute_deletions with args', args)
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(testee, 'get_deletion_ids', mock_get_ids)
+        monkeypatch.setattr(testee, 'get_deletion_names', mock_get_names)
+        monkeypatch.setattr(testee, 'execute_deletions', mock_execute)
+        assert testee.apply_deletions([('/', 1)], 'source') == (([(None, 1, True, 1),
+            (None, 1, True, 2)], ['x', 'y', 'z']))
+        assert capsys.readouterr().out == (
+                "called get_deletion_ids with args (1, 'source')\n"
+                "called get_deletion_names with arg"
+                " [{'id': 1, 'docname': 'xxx', 'target_docid': 11},"
+                " {'id': 2, 'docname': 'yyy', 'target_docid': 12}]\n"
+                "called execute_deletions with args ('source', [(11,), (12,)])\n")
+        assert testee.apply_deletions([('subdir', 2)], 'other') == (([(None, 1, True, 1),
+            (None, 1, True, 2)], ['subdir/xxx', 'subdir/yyy']))
+        assert capsys.readouterr().out == (
+                "called get_deletion_ids with args (2, 'other')\n"
+                "called execute_deletions with args ('other', [(1,), (2,)])\n")
+
+    def test_mark_dir_deleted(self, monkeypatch, capsys):
+        """unittest for docs2pg.mark_dir_deleted
+        """
+        def mock_get_dir(*args):
+            print('called _get_dir_id with args', args)
+            return 'root_id'
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(testee, '_get_dir_id', mock_get_dir)
+        testee._mark_dir_deleted('site_id', 'dir_id')
+        assert capsys.readouterr().out == (
+                "called _get_dir_id with args ('site_id', '/')\n"
+                'execute SQL: `insert into doc_stats (dir_id, docname, source_deleted)'
+                ' values (%s, %s, %s);`\n'
+                '  with: `root_id`, `dir_id`, `True`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_mark_doc_deleted(self, monkeypatch, capsys):
+        """unittest for docs2pg.mark_doc_deleted
+        """
+        def mock_fetchone(self):
+            return {'source_docid': 'rst_id'}
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, 'fetchone', mock_fetchone)
+        testee._mark_doc_deleted('doc_id')
+        assert capsys.readouterr().out == (
+                'execute SQL: `select source_docid from doc_stats where id = %s;`\n'
+                '  with: `doc_id`\n'
+                'execute SQL: `delete from documents where id = %s;`\n'
+                '  with: `rst_id`\n'
+                'execute SQL: `update doc_stats set source_deleted = %s where id = %s;`\n'
+                '  with: `True`, `doc_id`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_get_deletion_ids(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_deletion_ids
+        """
+        def mock_iter(*args):
+            """stub
+            """
+            return (x for x in [{'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}])
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        monkeypatch.setattr(MockCursor, '__iter__', mock_iter)
+        assert testee.get_deletion_ids('dir_id', 'stg') == [
+                {'id': 1, 'docname': 'xxx', 'target_docid': 11},
+                {'id': 2, 'docname': 'yyy.html', 'target_docid': 12}]
+        assert capsys.readouterr().out == (
+                "execute SQL: `select id, docname, target_docid from doc_stats"
+                " where dir_id = %s and stg_deleted = %s;`\n"
+                "  with: `dir_id`, `True`\n"
+                "called commit() on connection\n"
+                "called close()\n")
+
+    def test_get_deletion_names(self, monkeypatch, capsys):
+        """unittest for docs2pg.get_deletion_names
+        """
+        def mock_get_name(arg):
+            print(f"called _get_dir_name with arg {arg}")
+            return 'dirname'
+        monkeypatch.setattr(testee, '_get_dir_name', mock_get_name)
+        curlist = ({'docname': 'xxx.rst'},)
+        assert testee.get_deletion_names(curlist) == ['xxx.rst']
+        assert capsys.readouterr().out == ""
+        curlist = ({'docname': '123'},)
+        assert testee.get_deletion_names(curlist) == ['dirname']
+        assert capsys.readouterr().out == "called _get_dir_name with arg 123\n"
+
+    def test_execute_deletions(self, monkeypatch, capsys):
+        """unittest for docs2pg.execute_deletions
+        """
+        monkeypatch.setattr(testee, 'conn', MockConn())
+        testee.execute_deletions('source', ((11,), (12,)))
+        assert capsys.readouterr().out == (
+                'execute SQL: `delete from documents where id = %s;`\n'
+                '  with: `(11,)`, `(12,)`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+        testee.execute_deletions('xxxx', ((1,), (2,)))
+        assert capsys.readouterr().out == (
+                'execute SQL: `delete from doc_stats where id = %s;`\n'
+                '  with: `(1,)`, `(2,)`\n'
+                'called commit() on connection\n'
+                'called close()\n')
+
+    def test_get_stats(self):
+        """unittest for docs2pg.get_stats
+        """
+        assert testee._get_stats((1, None, 2, None, 3)) == testee.Stats(1, 2, 3)
+        assert testee._get_stats((1, True, 2, True, 0)) == testee.Stats(
+                '[deleted]', '[deleted]', datetime.datetime.min)
+        assert testee._get_stats((0, None, 0, None, 0)) == testee.Stats(
+                datetime.datetime.min, datetime.datetime.min, datetime.datetime.min)
+        with pytest.raises(ValueError):
+            assert testee._get_stats(()) == testee.Stats('', '', '')

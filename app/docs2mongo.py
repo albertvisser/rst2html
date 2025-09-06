@@ -198,12 +198,10 @@ def rename_dir(site_name, oldname, newname):
     return ''
 
 
-def remove_dir(site_name, directory):  # untested - do I need/want this?
+def remove_dir(site_name, directory):
     """remove site directory and all documents in it
     """
-    sitedoc = _get_site_doc(site_name)
-    sitedoc['docs'].pop(directory)
-    _update_site_doc(site_name, sitedoc['docs'])
+    # dit wordt gedaan met hetzelfde mechanisme als teksten (mark as deleted etc.)
 
 
 def list_docs(site_name, doctype='', directory='', deleted=False):
@@ -263,6 +261,15 @@ def rename_template(sitename, oldname, newname):
     sitedoc = _get_site_doc(sitename)
     data = sitedoc['templates'].pop(oldname)
     sitedoc['templates'][newname] = data
+    site_coll.update_one({'name': sitename}, {'$set': {'templates': sitedoc['templates']}})
+    return ''
+
+
+def remove_template(sitename, tplname):
+    """delete a template
+    """
+    sitedoc = _get_site_doc(sitename)
+    sitedoc['templates'].pop(tplname)
     site_coll.update_one({'name': sitename}, {'$set': {'templates': sitedoc['templates']}})
     return ''
 
@@ -376,16 +383,18 @@ def revert_rst(sitename, doc_name, directory=''):
 
 
 def mark_src_deleted(site_name, doc_name, directory=''):
-    """mark a source document in the given directory as deleted
+    """in the source environment, mark a directory or a document in the given directory as deleted
     """
     if not doc_name:
         raise AttributeError('no_name')
     if not directory:
         directory = '/'
-    doc_name = pathlib.Path(doc_name).stem
+    # doc_name = pathlib.Path(doc_name).stem  - niet nodig
     sitedoc = _get_site_doc(site_name)
-    if doc_name not in sitedoc['docs'][directory]:
-        ## raise FileNotFoundError("Document doesn't exist")
+    if doc_name in sitedoc['docs']:
+        sitedoc['docs'][doc_name][''] = {'src': {}}
+        directory, doc_name = doc_name, ''   # directory verwijderen
+    elif doc_name not in sitedoc['docs'][directory]:
         raise FileNotFoundError("no_document")
     sitedoc['docs'][directory][doc_name]['src']['deleted'] = True
     _update_site_doc(site_name, sitedoc['docs'])
@@ -435,7 +444,9 @@ def list_deletions_target(site_name, directory=''):
     for directory in directories:
         for doc_name in sitedoc['docs'][directory]:
             if sitedoc['docs'][directory][doc_name]['src'].get('deleted', False):
-                if directory != '/':
+                if doc_name == '':
+                    doc_name = directory + '/'
+                elif directory != '/':
                     doc_name = f'{directory}/{doc_name}'
                 deletions.append(doc_name)
     return deletions
@@ -462,7 +473,9 @@ def apply_deletions_target(site_name, directory=''):
                     doc_id = _add_doc(htmldoc)
                     sitedoc['docs'][directory][doc_name]['dest'] = {'docid': doc_id}
                 sitedoc['docs'][directory][doc_name]['dest']['deleted'] = True
-                if directory != '/':
+                if doc_name == '':
+                    doc_name = directory + '/'
+                elif directory != '/':
                     doc_name = f'{directory}/{doc_name}'
                 deleted.append(doc_name)
                 changed = True
@@ -519,7 +532,9 @@ def list_deletions_mirror(site_name, directory=''):
     for directory in directories:
         for doc_name in sitedoc['docs'][directory]:
             if sitedoc['docs'][directory][doc_name].get('dest', {}).get('deleted', False):
-                if directory != '/':
+                if doc_name == '':
+                    doc_name = directory + '/'
+                elif directory != '/':
                     doc_name = f'{directory}/{doc_name}'
                 deletions.append(doc_name)
     return deletions
@@ -541,16 +556,22 @@ def apply_deletions_mirror(site_name, directory=''):
     if not deleted:
         return []
     for directory, doc_name in deleted:
-        sitedoc['docs'][directory].pop(doc_name)
+        if not doc_name:
+            sitedoc['docs'].pop(directory)
+        else:
+            sitedoc['docs'][directory].pop(doc_name)
     _update_site_doc(site_name, sitedoc['docs'])
 
     path = WEBROOT / site_name
     deletions = []
     for directory, doc_name in deleted:
-        docpath = path / doc_name if directory == '/' else path / directory / doc_name
-        ext = LOC2EXT['dest']
-        if docpath.suffix != ext:
-            docpath = docpath.with_suffix(ext)
+        if not doc_name:
+            docpath = path / directory
+        else:
+            docpath = path / doc_name if directory == '/' else path / directory / doc_name
+            ext = LOC2EXT['dest']
+            if docpath.suffix != ext:
+                docpath = docpath.with_suffix(ext)
         if docpath.exists():
             docpath.unlink()
         # dir_name = directory.replace('/', '')
