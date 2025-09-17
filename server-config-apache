@@ -1,0 +1,8 @@
+# DISCLAIMER: this is an unmaintained version that worked when I was using Apache on Windows
+# (and probably Lighttpd on Ubuntu) many, many years ago 
+VirtualHost *:80>
+    ServerName <rst2html>.com
+    ErrorLog /var/log/apache2/<rst2html>-error.log
+    CustomLog /var/log/apache2/<rst2html>-access.log common
+    WSGIScriptAlias / <project-root>/wsgi_handler.py
+</VirtualHost>

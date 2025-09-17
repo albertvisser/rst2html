@@ -1,0 +1,8 @@
+server {
+    server_name <rst2html>.com;
+    error_log /var/log/nginx/<rst2html>-error.log error;
+    access_log /var/log/nginx/<rst2html>-access.log ;
+    location / {
+        proxy_pass      http://127.0.0.1:<portno-in-rst2html.conf>;
+        }
+    }
