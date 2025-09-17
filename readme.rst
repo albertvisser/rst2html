@@ -68,4 +68,4 @@ Requirements
 - CodeMirror(5) for the syntax highlighting (you can do without it I think)
 - MongoDB/Pymongo if you choose that backend for your data storage
 - PostgreSQL/Psycopg2 if you choose that backend for your data storage
-- PyQt(5) for the viewer apps
+- PyQt for the viewer apps
