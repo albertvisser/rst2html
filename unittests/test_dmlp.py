@@ -942,8 +942,8 @@ class TestDocLevel:
             print('called _get_dir_id with args', args)
             dirid_counter += 1
             if dirid_counter == 1:
-                return 'root_dir_id'
-            return 'dir_id'
+                return 'dir_id'
+            return 'test_dir_id'
         def mock_doc_ids(*args):
             """stub"""
             print('called _get_doc_ids with args', args)
@@ -994,14 +994,14 @@ class TestDocLevel:
         assert capsys.readouterr().out == ("called _get_site_id with arg site_name\n"
                                            "called _get_dir_id with args ('site_id', '/')\n"
                                            "called _get_dir_id with args ('site_id', 'doc_name')\n"
-                                           "called _get_doc_ids with args (None, 'doc_name')\n")
+                                           "called _get_doc_ids with args ('dir_id', 'doc_name')\n")
         dirid_counter = 0
         monkeypatch.setattr(testee, '_get_doc_ids', mock_doc_ids_2)
         testee.mark_src_deleted('site_name', 'doc_name')
         assert capsys.readouterr().out == ("called _get_site_id with arg site_name\n"
                                            "called _get_dir_id with args ('site_id', '/')\n"
                                            "called _get_dir_id with args ('site_id', 'doc_name')\n"
-                                           "called _get_doc_ids with args (None, 'doc_name')\n"
+                                           "called _get_doc_ids with args ('dir_id', 'doc_name')\n"
                                            "called _mark_doc_deleted with arg 1\n")
         monkeypatch.setattr(testee, '_get_dir_id', mock_dir_id_3)
         dirid_counter = 0

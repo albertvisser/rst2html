@@ -603,8 +603,8 @@ def read_src_data(sitename, current, fname):
         return '', dml.get_doc_contents(sitename, path.stem, 'src', current)
     except AttributeError:
         return 'src_name_missing', ''
-    except FileNotFoundError:
-        return 'src_file_missing', ''
+    except FileNotFoundError as err:
+        return f'{err}'.format(fname), ''
 
 
 def read_html_data(sitename, current, fname):
@@ -783,10 +783,12 @@ def mark_deleted(sitename, current, fname):
     try:
         dml.mark_src_deleted(sitename, path.stem, directory=current)
         return ''
-    except AttributeError:
-        return 'src_name_missing'
-    except FileNotFoundError:
-        return 'src_file_missing'
+    # except AttributeError:
+    #     return 'src_name_missing'
+    # except FileNotFoundError:
+    #     return 'src_file_missing'
+    except (AttributeError, FileNotFoundError) as err:
+        return f'{err}'
 
 
 def save_html_data(sitename, current, fname, data, dry_run=False):

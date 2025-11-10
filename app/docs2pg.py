@@ -377,8 +377,8 @@ def mark_src_deleted(site_name, doc_name, directory=''):
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
         raise FileNotFoundError('no_subdir')
-    dirid = _get_dir_id(siteid, doc_name)
-    if dirid:
+    test_dirid = _get_dir_id(siteid, doc_name)  # is dit een directory?
+    if test_dirid:
         _mark_dir_deleted(siteid, dirid)
     else:
         doc_id = _get_doc_ids(dirid, doc_name)[0]

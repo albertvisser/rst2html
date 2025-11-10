@@ -612,6 +612,7 @@ class TestConfRelated:
         assert testee.check_changed_settings({'url': 'x'}, {}) == ({}, ('sett_invalid', 'url'))
         assert capsys.readouterr().out == ''
 
+        # (alleen) deze geeft een PytestUnraisableExceptionWarning
         monkeypatch.setattr(testee.urllib.request, 'urlopen', mock_check_httperror)
         assert testee.check_changed_settings({'url': 'https://x'}, {}) == ({},
                                                                            ('sett_invalid', 'url'))
@@ -977,7 +978,7 @@ class TestSourceRelated:
         def mock_get_doc_contents_error_2(*args, **kwargs):
             """stub
             """
-            raise FileNotFoundError
+            raise FileNotFoundError('no file')
         assert testee.read_src_data(self.sitename, '', self.filename + '.x') == (
             'rst_filename_error', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents)
@@ -986,7 +987,7 @@ class TestSourceRelated:
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_1)
         assert testee.read_src_data(self.sitename, '', self.filename) == ('src_name_missing', '')
         monkeypatch.setattr(testee.dml, 'get_doc_contents', mock_get_doc_contents_error_2)
-        assert testee.read_src_data(self.sitename, '', self.filename) == ('src_file_missing', '')
+        assert testee.read_src_data(self.sitename, '', self.filename) == ('no file', '')
 
     def test_check_if_rst(self):
         """unittest for rst2html_functions.check_if_rst
@@ -1175,11 +1176,11 @@ class TestSourceRelated:
         def mock_mark_src_deleted_noname(*args, **kwargs):
             """stub
             """
-            raise AttributeError()
+            raise AttributeError('no name')
         def mock_mark_src_deleted_nofile(*args, **kwargs):
             """stub
             """
-            raise FileNotFoundError
+            raise FileNotFoundError('no file')
 
         assert testee.mark_deleted(self.sitename, '', self.filename + '.x') == (
                 'rst_filename_error')
@@ -1187,11 +1188,9 @@ class TestSourceRelated:
         assert testee.mark_deleted(self.sitename, '', self.filename + '.rst') == ''
         assert capsys.readouterr().out == 'args for mark_src_deleted: `testsite` `testname` ``\n'
         monkeypatch.setattr(testee.dml, 'mark_src_deleted', mock_mark_src_deleted_noname)
-        assert testee.mark_deleted(self.sitename, '', self.filename) == (
-                'src_name_missing')
+        assert testee.mark_deleted(self.sitename, '', self.filename) == 'no name'
         monkeypatch.setattr(testee.dml, 'mark_src_deleted', mock_mark_src_deleted_nofile)
-        assert testee.mark_deleted(self.sitename, '', self.filename + '.rst') == (
-                'src_file_missing')
+        assert testee.mark_deleted(self.sitename, '', self.filename + '.rst') == 'no file'
 
     def test_read_tpl_data(self, monkeypatch, capsys):
         """unittest for rst2html_functions.read_tpl_data
