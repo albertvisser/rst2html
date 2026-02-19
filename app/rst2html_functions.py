@@ -1641,7 +1641,10 @@ class R2hState:
             if mld == "":
                 rstdata = preprocess_includes(self.sitename, self.current, rstdata)
                 newdata = rst2html(self.sitename, rstdata, self.conf['css'])
-                mld = save_html_data(self.sitename, self.current, self.htmlfile, newdata)
+                if 'Docutils System Message' in newdata:
+                    mld = 'html_gen_error'
+                if not mld:
+                    mld = save_html_data(self.sitename, self.current, self.htmlfile, newdata)
                 if mld == "":
                     mld = 'rst_2_html'
                 self.newfile = ""

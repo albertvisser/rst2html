@@ -155,6 +155,7 @@ found = found
 found_msg = the following lines / parts were {}:
 html_file_missing = Target file does not exist
 html_filename_error = Not executed: not a valid target file name
+html_gen_error = Error(s) occurred while generating HTML
 html_loaded = Target HTML {} loaded
 html_name_missing = Please enter or select a target (.html) filename
 html_name_wrong = Not executed: can only save HTML under the same name

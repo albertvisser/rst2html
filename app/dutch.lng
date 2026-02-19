@@ -155,6 +155,7 @@ found = gevonden
 found_msg = de onderstaande regels/regeldelen zijn {}:
 html_file_missing = Target file bestaat niet
 html_filename_error = Niet uitgevoerd: fout(en) in naam voor html bestand
+html_gen_error = Fout(en) opgetreden tijdens HTML genereren
 html_loaded = target HTML {} opgehaald
 html_name_missing = bestandnaam voor html opgeven of selecteren s.v.p.
 html_name_wrong = Niet uitgevoerd: kan HTML alleen opslaan onder dezelfde naam

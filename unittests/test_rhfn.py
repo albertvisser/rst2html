@@ -2899,36 +2899,47 @@ class TestR2hState:
         def mock_check_if_rst(*args):
             """stub
             """
+            print('called check_if_rst with args', args)
             return ''
         def mock_check_if_rst_mld(*args):
             """stub
             """
+            print('called check_if_rst with args', args)
             return 'mld from check_if_rst'
         def mock_save_src_data(*args):
             """stub
             """
-            print('save_src_data got args', args)
+            print('called save_src_data with args', args)
             return ''
         def mock_save_src_data_mld(*args):
             """stub
             """
+            print('called save_src_data with args', args)
             return 'mld from save_src_data'
         def mock_rst2html(*args):
             """stub
             """
+            print('called rst2html with args', args)
+            return 'Docutils System Messages:'
+        def mock_rst2html_2(*args):
+            """stub
+            """
+            print('called rst2html with args', args)
             return 'converted txt'
         def mock_save_html_data(*args):
             """stub
             """
-            print('save_html_data got args', args)
+            print('called save_html_data with args', args)
             return ''
         def mock_save_html_data_mld(*args):
             """stub
             """
+            print('called save_html_data with args', args)
             return 'mld from save_html_data for {}'
         def mock_read_conf(*args):
             """stub
             """
+            print('called read_conf with args', args)
             return '', {'lang': testee.LANG}
         monkeypatch.setattr(testee, 'read_conf', mock_read_conf)
         monkeypatch.setattr(testee, 'default_site', mock_default_site)
@@ -2942,51 +2953,84 @@ class TestR2hState:
         testsubj.htmlfile = 'html'
         testsubj.newfile = 'new'
         assert testsubj.saveall('r', 'n', 'txt') == ('css_not_defined', 'rst', 'html', 'new')
+        assert capsys.readouterr().out == ""
         testsubj.conf = {'css': 'x'}
         assert testsubj.saveall('r', 'n', 'txt') == ('mld from check_if_rst', 'rst', 'html', 'new')
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'n.rst')\n")
         monkeypatch.setattr(testee, 'check_if_rst', mock_check_if_rst)
         testsubj.oldtxt = 'txt'
         monkeypatch.setattr(testee, 'save_src_data', mock_save_src_data_mld)
         assert testsubj.saveall('r', 'n', 'txt') == ('mld from save_src_data', 'n.rst', 'n.html',
                                                      'new')
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'n.rst')\n"
+                "called save_src_data with args ('testsite', '', 'n.rst', 'txt', True)\n")
         testsubj.oldtxt = 'converted data'
         assert testsubj.saveall('r', '', 'txt') == ('mld from save_src_data', 'r.rst', 'r.html',
                                                     'new')
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called save_src_data with args ('testsite', '', 'r.rst', 'txt', False)\n")
         monkeypatch.setattr(testee, 'save_src_data', mock_save_src_data)
         monkeypatch.setattr(testee, 'save_html_data', mock_save_html_data_mld)
+        monkeypatch.setattr(testee, 'rst2html', mock_rst2html)
+        assert testsubj.saveall('r', '', 'txt') == ('html_gen_error', 'r.rst', 'r.html', '')
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called save_src_data with args ('testsite', '', 'r.rst', 'txt', False)\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n")
+        monkeypatch.setattr(testee, 'rst2html', mock_rst2html_2)
         assert testsubj.saveall('r', '', 'txt') == ('mld from save_html_data for r.html', 'r.rst',
-
                                                     'r.html', '')
-        assert capsys.readouterr().out == ("save_src_data got args ('testsite', '', 'r.rst', 'txt',"
-                                           " False)\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'r.html', 'converted txt')\n")
         assert testsubj.oldtext == 'txt'
         assert testsubj.rstdata == 'txt'
         monkeypatch.setattr(testee, 'save_html_data', mock_save_html_data)
-        monkeypatch.setattr(testee, 'rst2html', mock_rst2html)
         assert testsubj.saveall('r', '', 'txt') == ('rst_2_html', 'r.rst', 'r.html', '')
-        assert capsys.readouterr().out == ("save_html_data got args ('testsite', '', 'r.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'r.html', 'converted txt')\n")
         assert testsubj.saveall('r.html', '', 'txt') == ('rst_2_html', 'r.rst', 'r.html', '')
-        assert capsys.readouterr().out == ("save_html_data got args ('testsite', '', 'r.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'r.html', 'converted txt')\n")
         assert testsubj.saveall('r.rst', '', 'txt') == ('rst_2_html', 'r.rst', 'r.html', '')
-        assert capsys.readouterr().out == ("save_html_data got args ('testsite', '', 'r.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'r.rst')\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'r.html', 'converted txt')\n")
         assert testsubj.saveall('r', 'n', 'txt') == ('rst_2_html', 'n.rst', 'n.html', '')
-        assert capsys.readouterr().out == ("save_src_data got args ('testsite', '', 'n.rst',"
-                                           " 'txt', True)\n"
-                                           "save_html_data got args ('testsite', '', 'n.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'n.rst')\n"
+                "called save_src_data with args ('testsite', '', 'n.rst', 'txt', True)\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'n.html', 'converted txt')\n")
         assert testsubj.saveall('r', 'n.html', 'txt') == ('rst_2_html', 'n.rst', 'n.html', '')
-        assert capsys.readouterr().out == ("save_src_data got args ('testsite', '', 'n.rst',"
-                                           " 'txt', True)\n"
-                                           "save_html_data got args ('testsite', '', 'n.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'n.rst')\n"
+                "called save_src_data with args ('testsite', '', 'n.rst', 'txt', True)\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'n.html', 'converted txt')\n")
         assert testsubj.saveall('r', 'n.rst', 'txt') == ('rst_2_html', 'n.rst', 'n.html', '')
-        assert capsys.readouterr().out == ("save_src_data got args ('testsite', '', 'n.rst',"
-                                           " 'txt', True)\n"
-                                           "save_html_data got args ('testsite', '', 'n.html',"
-                                           " 'converted txt')\n")
+        assert capsys.readouterr().out == (
+                "called check_if_rst with args ('txt', 'initial', 'n.rst')\n"
+                "called save_src_data with args ('testsite', '', 'n.rst', 'txt', True)\n"
+                "called read_conf with args ('testsite',)\n"
+                "called rst2html with args ('testsite', 'txt', 'x')\n"
+                "called save_html_data with args ('testsite', '', 'n.html', 'converted txt')\n")
 
     def test_status(self, monkeypatch):
         """unittest for R2hState.status
