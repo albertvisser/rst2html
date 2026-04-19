@@ -147,7 +147,7 @@ class TestNonApiFunctions:
         # assert capsys.readouterr().out == 'called update_one with args `{}`, `{}`\n'.format(
         #         "{'_id': 'docid'}", "{'$set': 'doc'}")
         assert capsys.readouterr().out == (
-                "called update_one with args `{{'_id': 'docid'}}`, `{{'$set': 'doc'}}`\n")
+                "called update_one with args `{'_id': 'docid'}`, `{'$set': 'doc'}`\n")
 
     def test_get_stats(self, monkeypatch):
         """unittest for docs2mongo.get_stats

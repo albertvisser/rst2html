@@ -170,8 +170,8 @@ def list_dirs(site_name, doctype=''):
         else:
             if doctype in ('', 'src'):
                 dirlist.append(dirname)
-        if found:
-            continue
+        # if found:
+        #     continue
     return dirlist  # returns all dirs that have documents of the given type
 
 
