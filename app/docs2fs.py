@@ -633,7 +633,7 @@ def apply_deletions_mirror(sitename, directory=''):
             delpath = to_delete.with_suffix('')
             for subitem in delpath.glob('index.html*'):
                 subitem.unlink(missing_ok=True)
-            if not list(delpath.iterdir()):
+            if delpath.exists() and not list(delpath.iterdir()):
                 delpath.rmdir()
     return sorted([x.replace(DELMARK, '') for x in deleted])
 
