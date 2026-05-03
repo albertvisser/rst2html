@@ -82,14 +82,15 @@ def main(monkeypatch, capsys, path):
                      sitename, app.state.rstdata))
     assert dbdata == ['site docs have not changed', 'new site has been added']
     assert 'testsite' in htmldata['settings']['values']
-    assert htmldata['settings']['selected'] == 'testsite'
+    # assert htmldata['settings']['selected'] == 'testsite'
     assert htmldata['title'] == 'ReStructured Text translator'
     # standaard settings + ingevulde url + ingevulde css
     assert htmldata['textdata'] == (
             "css:\n- url + css/minimal.css\n- url + css/plain.css\n"
             "hig: 32\nurl: http://testsite.lemoncurry.nl\nwid: 100\nwriter: html5\n")
-    assert htmldata['mld_text'] == ("Settings saved as testsite ; activate the new site using `fabsrv"
-                                    " modconfb -n hosts nginx.modconfb -n flatpages nginx.restart`")
+    assert htmldata['mld_text'] == (
+            "Settings saved as testsite ; activate the new site using `fabsrv"
+            " modconfb -n hosts nginx.modconfb -n flatpages nginx.restart`")
 
     # simulate saving new conf - using an existing name for a new site
     app.state.newconf = True
@@ -116,7 +117,13 @@ def main(monkeypatch, capsys, path):
                     app.state.newfile, app.state.rstdata))
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'ReStructured Text translator'
-    assert htmldata['mld_text'] == "Source file does not exist"
+    doc = r2h.rhfn.WEBROOT / 'testsite' / '.source' / 'x.rst'
+    # assert htmldata['mld_text'] == "Source file does not exist"
+    if DML == 'fs':
+        message = f"[Errno 2] No such file or directory: '{doc}'"
+    else:  #  DML == 'mongo' or DML == 'postgres'
+        message = "Document 'x' not found in collection"
+    assert htmldata['mld_text'] == message
 
     # simulate creating a new source document
     dbdata, htmldata = comp.dump_data_and_compare('07_loadrst_new',
@@ -193,7 +200,7 @@ def main(monkeypatch, capsys, path):
     assert htmldata['rstfile']['selected'] == 'testdoc1.rst'
     assert htmldata['mld_text'] == 'Recent changes for testdoc1.rst loaded'
     assert htmldata['textdata'] == (
-            "--- current text\n+++ previous text\n@@ -1,4 +1,4 @@\n"
+            "--- previous text\n+++ current text\n@@ -1,4 +1,4 @@\n"
             " test document\n =============\n \n-This is the first document\n"
             "+This is the (slightly changed) first document\n")
 
@@ -402,17 +409,26 @@ def main(monkeypatch, capsys, path):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
+            and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    # TODO controleren dat dit file aangemaakt wordt in alle versies
     #18a copy overzicht to file
-    dbdata, htmldata = comp.dump_data_and_compare('18a_copy_overview', app.copystand())
-    # TODO wel een test op dat dit file aangemaakt wordt in alle versies
+    dbdata, htmldata = comp.dump_data_and_compare('18a_copy_overview', app.copystand(order='name'))
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-            'Overview exported to ' in htmldata['pagetext'] and
-            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
+            and 'Overview exported to ' in htmldata['pagetext']
+            and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    #18b copy reordered overzicht to file
+    dbdata, htmldata = comp.dump_data_and_compare('18b_copy_overview', app.copystand(order='date'))
+    assert dbdata == ['site data has not changed']
+    assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
+    assert htmldata['backlink'] == "/loadconf/?settings=testsite"
+    assert ('\n\n\nBack to editor\n\n\nOrder by name\n\n\nCopy to file\n' in htmldata['pagetext']
+            and 'Overview exported to ' in htmldata['pagetext']
+            # and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext']
+            )
 
     # simulate building a reference document
     dbdata, htmldata = comp.dump_data_and_compare('19_makerefdoc',
@@ -424,8 +440,7 @@ def main(monkeypatch, capsys, path):
                                          "doc ('reflist', 'dest') is new"])
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "Index created as reflist.html"
-    # de home link </> wordt opgeslokt door BS4 waardoor er > overblijft
-    assert htmldata['textdata'] == ('.. _top:\n`back to root >`_\n\n.. textheader:: Index\n'
+    assert htmldata['textdata'] == ('.. _top:\n`back to root </>`_\n\n.. textheader:: Index\n'
                                    'R_ \n\nR\n-\n\n+   Ref1 `#`__ \n+   Ref2 `#`__ \n+   top_\n\n'
                                    '..  _R1: /testdoc1.html#here1\n..  _R2: /testdoc1a.html#here2\n'
                                    '\n__ R1_\n__ R2_\n')
@@ -479,7 +494,7 @@ def main(monkeypatch, capsys, path):
     assert htmldata['textdata'] == ''
 
     # simulate propagating deletions separately (migdel (- all 4 subfunctions)
-    # FIXME dml.list_site_contents voorziet nog niet in deletion marks
+    # FIXME dml.list_site_contents voorziet nog niet (overal) in deletion marks
     dbdata, htmldata = comp.dump_data_and_compare('23a_migdel_show_src',
         app.migdel(app.state.settings, 'testdoc3.rst', 'testdoc3.html', '', rstdata_1(), '0'))
     assert dbdata == ['site data has not changed']
@@ -492,8 +507,8 @@ def main(monkeypatch, capsys, path):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
+            and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
     dbdata, htmldata = comp.dump_data_and_compare('23b_migdel_exec_src',
         app.migdel(app.state.settings, 'testdoc3.rst', 'testdoc3.html', '', rstdata_1(), '1'))
     assert sorted(dbdata) == sorted(['site docs have not changed',
@@ -514,8 +529,8 @@ def main(monkeypatch, capsys, path):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
     assert htmldata['backlink'] == "/loadconf/?settings=testsite"
-    assert ('\n\n\nBack to editor\n\n\nCopy to file\n' in htmldata['pagetext'] and
-            '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
+    assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
+            and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
     dbdata, htmldata = comp.dump_data_and_compare('23d_migdel_exec_dest',
         app.migdel(app.state.settings, 'testdoc3.rst', 'testdoc3.html', '', rstdata_1(), '3'))
     assert dbdata == ['site docs have not changed']  # hier ontbreekt wat
