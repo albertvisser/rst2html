@@ -98,7 +98,10 @@ for _name, _code in language_map:
 def get_text(keyword, lang=LANG):
     """look up text in language data"""
     data = languages[lang]
-    return data[keyword]
+    try:
+        return data[keyword]
+    except KeyError:
+        return keyword
 ## gettext stuff to use instead
 ## app_title = 'Rst2HTML'
 ## locale = HERE / 'locale'
