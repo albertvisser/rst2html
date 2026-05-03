@@ -33,6 +33,8 @@ class Comparer:
         with fname.open('w') as _out:
             _out.write(data)
         htmldata = self.analyze_html_data(fname)
+        if not self.writer_used:
+            self.writer_used = htmldata['textdata'].split('writer: ')[1].strip()
 
         if self.loc == 'fs' and name.startswith('23'):
             with (self.outfileroot / f'{name}_filelist.html').open('w') as _out:
@@ -43,8 +45,6 @@ class Comparer:
                 print('files in mirror:', [x for x in (WEBROOT / sitename).iterdir()], file=_out)
 
         db_data = list_site_contents(sitename, self.outfileroot / f'db_{name}')
-        if not self.writer_used and db_data[0]:
-            self.writer_used = db_data[0]['settings']['writer']
 
         if self.namelist:
             old, new = self.namelist[-1], name
