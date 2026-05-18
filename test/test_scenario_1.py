@@ -105,7 +105,7 @@ def main(monkeypatch, capsys, path):
 
     # simulate loading a document where none exist yet
     # special case first: no source name (doesn't normally happen)
-    dbdata, htmldata = comp.dump_data_and_compare('06a_loadrst_nonexistant',
+    dbdata, htmldata = comp.dump_data_and_compare('06a_loadrst_notreloaded',
         app.loadrst(app.state.settings, '', app.state.htmlfile,
                     app.state.newfile, app.state.rstdata))
     assert dbdata, ['site data has not changed']
