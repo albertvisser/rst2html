@@ -1307,12 +1307,38 @@ class TestDocLevel:
                 'called path.glob() for index.html* in directory/file1\n'
                 f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
                 f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in directory/file2\n'
+                f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n")
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: not x.name.endswith('.html'))
+        testee.apply_deletions_mirror('sitename', 'directory')
+        loc = testee.WEBROOT / 'sitename' / '.target' / 'directory'
+        dest = testee.WEBROOT / 'sitename' / 'directory'
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target/directory\n'
+                f'deleted file `{loc}/file1.deleted` {{}}\n'
+                f"deleted file `{loc}/file1.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/directory/file1\n'
+                f"deleted file `{loc}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{loc}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{loc}/file1`\n"
+                f'deleted file `{loc}/file2.deleted` {{}}\n'
+                f"deleted file `{loc}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/directory/file2\n'
+                f"deleted file `{loc}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{loc}/file2/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{loc}/file2`\n"
+                'called path.glob() for index.html* in directory/file1\n'
+                f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
                 f"deleted directory `{dest}/file1`\n"
                 'called path.glob() for index.html* in directory/file2\n'
                 f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
                 f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{dest}/file2`\n")
+                f"deleted directory `{dest}/file2`\n"
+                )
 
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(testee.pathlib.Path, 'iterdir', lambda x: ['x'])
         testee.apply_deletions_mirror('sitename', 'directory')
         assert capsys.readouterr().out == (

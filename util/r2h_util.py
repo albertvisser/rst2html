@@ -142,5 +142,6 @@ def restore_some(filename, *sitename):
         if sitename in sites_to_restore:
             _restore_site(sitename, sitedoc, data)
 
+
 if __name__ == '__main__':
     run(backup_some, backup_all, restore_all, restore_some, description=__doc__)

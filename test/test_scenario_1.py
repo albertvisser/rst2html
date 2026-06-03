@@ -21,7 +21,7 @@ conf_root = os.path.expanduser('~/nginx-config/')
 
 def test_main(monkeypatch, capsys, tmp_path):
     "call main() using pytest, to make monkeypatching possible"
-    destdir = tmp_path /  DML
+    destdir = tmp_path / DML
     for conf in confs_to_restore_after_changing:
         (tmp_path / os.path.dirname(conf)).mkdir()
         shutil.copyfile(os.path.join(conf_root, conf), str(tmp_path / conf))
@@ -121,7 +121,7 @@ def main(monkeypatch, capsys, path):
     # assert htmldata['mld_text'] == "Source file does not exist"
     if DML == 'fs':
         message = f"[Errno 2] No such file or directory: '{doc}'"
-    else:  #  DML == 'mongo' or DML == 'postgres'
+    else:  # DML == 'mongo' or DML == 'postgres'
         message = "Document 'x' not found in collection"
     assert htmldata['mld_text'] == message
 
@@ -136,7 +136,7 @@ def main(monkeypatch, capsys, path):
 
     # simulate saving the new document
     dbdata, htmldata = comp.dump_data_and_compare('08a_saverst_new',
-        app.saverst(app.state.settings, '-- new --', 'testdoc1.rst', rstdata_1(),''))
+        app.saverst(app.state.settings, '-- new --', 'testdoc1.rst', rstdata_1(), ''))
     assert dbdata == ['new doc in subdir /: testdoc1', "doc ('testdoc1', 'src') is new"]
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "Rst source saved as testdoc1.rst"
@@ -337,7 +337,7 @@ def main(monkeypatch, capsys, path):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['htmlfile']['selected'] == 'testdoc1.html'
-    assert htmldata['mld_text'] ==  "Not executed: can only save HTML under the same name"
+    assert htmldata['mld_text'] == "Not executed: can only save HTML under the same name"
     # zit wel in de HTML, maar BS4 pikt het niet op (HTML binnen HTML)
     # assert ('<div class="document" id="test-document">\n<h1 class="title">test document</h1>\n\n'
     #         "<p>This is the (slightly changed) first document</p>\n<p>It's been changed even"
@@ -366,9 +366,9 @@ def main(monkeypatch, capsys, path):
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['rstfile']['selected'] == 'testdoc1.rst'
-    assert ('/testdoc1.rst: last modified: ' in htmldata['mld_text'] and
-            ' - last converted: ' in htmldata['mld_text'] and
-            ' - last migrated: ' in htmldata['mld_text'])
+    assert ('/testdoc1.rst: last modified: ' in htmldata['mld_text']
+            and ' - last converted: ' in htmldata['mld_text']
+            and ' - last migrated: ' in htmldata['mld_text'])
     assert htmldata['textdata'] == rstdata_2()
 
     # change some documents by adding references
@@ -412,7 +412,7 @@ def main(monkeypatch, capsys, path):
     assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
             and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
     # TODO controleren dat dit file aangemaakt wordt in alle versies
-    #18a copy overzicht to file
+    # 18a copy overzicht to file
     dbdata, htmldata = comp.dump_data_and_compare('18a_copy_overview', app.copystand(order='name'))
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
@@ -420,7 +420,7 @@ def main(monkeypatch, capsys, path):
     assert ('\n\n\nBack to editor\n\n\nOrder by date\n\n\nCopy to file\n' in htmldata['pagetext']
             and 'Overview exported to ' in htmldata['pagetext']
             and '\n\n\n\npagina\nsource\ntarget\nmirror' in htmldata['pagetext'])
-    #18b copy reordered overzicht to file
+    # 18b copy reordered overzicht to file
     dbdata, htmldata = comp.dump_data_and_compare('18b_copy_overview', app.copystand(order='date'))
     assert dbdata == ['site data has not changed']
     assert htmldata['title'] == 'Rst2Html stand van zaken overzicht'
@@ -486,7 +486,7 @@ def main(monkeypatch, capsys, path):
     # simulate deleting a document
     dbdata, htmldata = comp.dump_data_and_compare('22_saverst_delete',
         app.saverst(app.state.settings, 'testdoc3.rst', '', rstdata_1(), 'delete'))
-    assert sorted(dbdata) == sorted([ "doc ('testdoc3', 'src') is removed",
+    assert sorted(dbdata) == sorted(["doc ('testdoc3', 'src') is removed",
                                      '/ testdoc3 src was marked as deleted'])
     assert htmldata['title'] == 'ReStructured Text translator'
     assert htmldata['mld_text'] == "testdoc3.rst deleted"

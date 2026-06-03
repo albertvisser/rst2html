@@ -1,16 +1,20 @@
 def rstdata_1():
     return 'test document\n=============\n\nThis is the first document'
 
+
 def rstdata_2():
     return 'test document\n=============\n\nThis is the (slightly changed) first document'
+
 
 def rstdata_3():
     return ('test document\n=============\n\nThis is the (slightly changed) first document\n\n'
             "It's been changed even more")
 
+
 def rstdata_4():
     return ('test document\n=============\n\nThis is the (slightly changed) first document\n\n'
             "It's been changed even more")
+
 
 def htmldata_1():
     return ('<?xml version="1.0" encoding="utf-8" ?>\n'
@@ -24,6 +28,7 @@ def htmldata_1():
             '<h1 class="title">test document</h1>\n\n'
             '<p>This is the (slightly changed) first document</p>\n'
             "<p>It's been changed even more</p>\n</main>\n</body>\n</html>")
+
 
 def htmldata_2():
     return ('<?xml version="1.0" encoding="utf-8" ?>\n'

@@ -5,7 +5,7 @@ import collections
 
 # specify which data backend to use
 dtypes = ['fs', 'mongo', 'postgres']  # resp. file system, NoSQL, SQL
-DML = dtypes[i]
+DML = dtypes[i]                       # replace i with the index appropriate for your backend
 # database connection parameters (needed for postgresql)
 user = '<username>'
 password = '<password>'

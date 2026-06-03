@@ -22,7 +22,6 @@ class Comparer:
         self.writer_used = ''
         self.outfileroot = path
 
-
     def dump_data_and_compare(self, name, data):
         """main processing"""
         self.name = name
@@ -39,9 +38,9 @@ class Comparer:
         if self.loc == 'fs' and name.startswith('23'):
             with (self.outfileroot / f'{name}_filelist.html').open('w') as _out:
                 print('files in source:', [x for x in (WEBROOT / sitename / '.source').iterdir()],
-                        file=_out)
+                      file=_out)
                 print('files in target:', [x for x in (WEBROOT / sitename / '.target').iterdir()],
-                        file=_out)
+                      dw  file=_out)
                 print('files in mirror:', [x for x in (WEBROOT / sitename).iterdir()], file=_out)
 
         db_data = list_site_contents(sitename, self.outfileroot / f'db_{name}')
@@ -63,11 +62,9 @@ class Comparer:
             self.htmldatalist.append(htmldata)
         return dbresult, htmlresult
 
-
     def analyze_db_data(self, name):
         "convert text dump to datastructure"
-        # not necessary, the original stuff works as well (or better)
-
+        # not necessary, the dml version works as well (or better)
 
     def get_db_diff(self, old, new, olddata, newdata):
         """compare site data dumps
@@ -93,7 +90,6 @@ class Comparer:
         result.extend(self._compare_docs(olddocs, newdocs))
         return result
 
-
     def _compare_settings(self, oldsite, newsite):
         result = []
         for setting in newsite['settings']:
@@ -104,7 +100,6 @@ class Comparer:
                 result.append('setting {} changed from {} to {}'.format(
                     setting, oldsite['settings'], newsite['settings']))
         return result
-
 
     def _compare_docstats(self, oldsite, newsite):
         result = []
@@ -137,7 +132,6 @@ class Comparer:
                                 result.append(f'{subdir} {doc} {doctype} was marked as deleted')
         return result
 
-
     def _compare_docs(self, olddocs, newdocs):
         # document ids are sorted, but not necessarily in creation order
         result = []
@@ -157,11 +151,10 @@ class Comparer:
                     if doc['_id'] == _id:
                         newdoc = doc
                         break
-                if (newdoc['current'] != olddoc['current'] or
-                        newdoc['previous'] != olddoc['previous']):
+                if (newdoc['current'] != olddoc['current']
+                        or newdoc['previous'] != olddoc['previous']):
                     result.append(f'doc {_id} is changed')
         return result
-
 
     def analyze_html_data(self, name):
         "convert HTML to datastructure"
@@ -175,19 +168,19 @@ class Comparer:
         # ander resultaat als we op een niet-editor pagina zitten
         for btn in soup.find_all('button'):
             test = btn.parent
-            if (''.join(x for x in btn.stripped_strings) == 'Back to editor' and
-                    test.name == 'a' and
-                    'href' in test.attrs and
-                    (test['href'].startswith('/loadrst/?rstfile=') or
-                     test['href'].startswith('/loadhtml/?htmlfile=') or
-                     test['href'].startswith('/loadconf/?settings='))):
-                        result['backlink'] = test['href']
-                        # `div class="document"` is vervangen door `main`
-                        if self.writer_used == 'html4':
-                            result['pagetext'] = soup.find('div', 'document').get_text()
-                        else:  # self.writer_used == 'html5'
-                            result['pagetext'] = soup.find('main').get_text()
-                        return result
+            if (''.join(x for x in btn.stripped_strings) == 'Back to editor'
+                and test.name == 'a'
+                and 'href' in test.attrs
+                and (test['href'].startswith('/loadrst/?rstfile=')
+                     or test['href'].startswith('/loadhtml/?htmlfile=')
+                     or test['href'].startswith('/loadconf/?settings='))):
+                result['backlink'] = test['href']
+                # `div class="document"` is vervangen door `main`
+                if self.writer_used == 'html4':
+                    result['pagetext'] = soup.find('div', 'document').get_text()
+                else:  # self.writer_used == 'html5'
+                    result['pagetext'] = soup.find('main').get_text()
+                return result
         # select elementen inspecteren
         for selector in soup.find_all('select'):
             options = []
@@ -211,14 +204,11 @@ class Comparer:
         result["textdata"] = soup.find('textarea').string or ''
         return result
 
-
-    # verschillen tussen de htmls zijn eigenlijk niet zo interessant
-    # daarom wordt deze ook niet meer gebruikt
     def get_html_diff(self, old, new, olddata, newdata):
         "compare html output"
+        # verschillen tussen de htmls zijn eigenlijk niet zo interessant
+        # daarom wordt deze ook niet meer gebruikt
         diff = []
-        ## olddata = analyze_html_data('/tmp/{}.html'.format(old))
-        ## newdata = analyze_html_data('/tmp/{}.html'.format(new))
         if 'different_page' in olddata:
             return ['no diff possible: olddata is different_page']
         for key in olddata:

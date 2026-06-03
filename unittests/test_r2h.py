@@ -108,17 +108,17 @@ def test_format_progress_list():
     tfoot, rest = rest.split('{% else %}', 1)
     no_data, end = rest.split('{% endif %}', 1)
     assert testee.format_progress_list([], 'html5') == (
-            begin.replace('{out}','date').replace('{oldout}', 'name') + no_data + end)
+            begin.replace('{out}', 'date').replace('{oldout}', 'name') + no_data + end)
     dates = datetime.datetime.min, datetime.datetime.max, datetime.datetime.max
     data = [('q', 'r', 2, dates)]
     middle = data_stuff.replace('{row.0}', 'q/r').replace('{row.1}', 'n/a').replace('{row.2}',
             '31-12-9999 23:59:59').replace('{row.3}', '<strong>31-12-9999 23:59:59</strong>')
     assert testee.format_progress_list(data, 'html5', 'date') == (
-            begin.replace('{out}','name').replace('{oldout}', 'date') + thead + middle + tfoot + end)
+            begin.replace('{out}', 'name').replace('{oldout}', 'date') + thead + middle + tfoot + end)
     begin = begin.replace('main', 'div class="document"')
     end = end.replace('main', 'div')
     assert testee.format_progress_list(data, 'html4', 'name') == (
-            begin.replace('{out}','date').replace('{oldout}', 'name') + thead + middle + tfoot + end)
+            begin.replace('{out}', 'date').replace('{oldout}', 'name') + thead + middle + tfoot + end)
 
 
 def test_resolve_images():

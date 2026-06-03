@@ -56,12 +56,20 @@ class TestLangRelated:
         lang_string_en = ('Select a settings file, indicating the site to work on and other'
                           ' parameters')
 
+        # keyword bekend in language files
         assert testee.get_text(lang_keyword, 'en') == lang_string_en
         assert testee.get_text(lang_keyword, 'nl') == lang_string_nl
         if LANG == 'en':
             assert testee.get_text(lang_keyword) == lang_string_en
         elif LANG == 'nl':
             assert testee.get_text(lang_keyword) == lang_string_nl
+        # vaste meldingtekst
+        assert testee.get_text('lang_keyword', 'en') == 'lang_keyword'
+        assert testee.get_text('lang_keyword', 'nl') == 'lang_keyword'
+        if LANG == 'en':
+            assert testee.get_text('lang_keyword') == 'lang_keyword'
+        elif LANG == 'nl':
+            assert testee.get_text('lang_keyword') == 'lang_keyword'
 
     def test_translate_action(self, monkeypatch):
         """unittest for rst2html_functions.translate_action
