@@ -109,7 +109,7 @@ class TestMainFrame:
         """unittest for MainFrame.setup_actions
         """
         def mock_add(arg):
-            print(f'called MainFrame.addaction')
+            print('called MainFrame.addaction')
         monkeypatch.setattr(testee.gui, 'QAction', mockqtw.MockAction)
         testobj = self.setup_testobj(monkeypatch, capsys)
         testobj.addAction = mock_add

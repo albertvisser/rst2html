@@ -14,16 +14,15 @@ import datetime
 import subprocess
 import collections
 
-from app_settings import DFLT, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
-writers = BASIC_CSS.keys()
-from app.backend import dml
-from app.docs2fs import load_config_data, ParserError, save_config_data, rename_mirror_subdir
-#
-# docutils stuff (including directives
-#
 from docutils.core import publish_string
 import docutils.parsers.rst as rd
 import app.rst2html_directives as rhdir
+
+from app_settings import DFLT, WEBROOT, LOC2EXT, BASIC_CSS, LANG, LOCAL_SERVER_CONFIG
+from app.backend import dml
+from app.docs2fs import load_config_data, ParserError, save_config_data, rename_mirror_subdir
+
+writers = BASIC_CSS.keys()
 standard_directives = {"startc": rhdir.StartCols,
                        "endc": rhdir.EndCols,
                        "firstc": rhdir.FirstCol,
@@ -57,9 +56,6 @@ standard_directives = {"startc": rhdir.StartCols,
                        "endcenter": rhdir.EndMarginless,
                        "bottomnav": rhdir.BottomNav,
                        "endbody": rhdir.EndBody}
-#
-# internals
-#
 HERE = pathlib.Path(__file__).parent
 CSS_LINK = '<link rel="stylesheet" type="text/css" media="all" href="{}" />'
 # settings stuff
@@ -194,7 +190,7 @@ def get_idcls(directives_used):
     result = set()
     for directive in directives_used:
         if directive in rhdir.directive_selectors:  # we don't check the standard docutils ones
-            for selector, stuff in rhdir.directive_selectors[directive]:
+            for _selector, stuff in rhdir.directive_selectors[directive]:
                 result.add(stuff)
     return result
 
@@ -964,7 +960,7 @@ class UpdateAll:
         "main line"
         messages = []
         result = build_progress_list(self.sitename, self.conf.get('do-not-generate', []))
-        for dirname, filename, phase, stats in result:
+        for dirname, filename, _phase, stats in result:
             self.path = WEBROOT / self.sitename
             if dirname == '/':
                 self.fname = dirname + filename

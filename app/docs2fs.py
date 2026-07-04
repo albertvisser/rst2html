@@ -5,12 +5,12 @@ import datetime
 import shutil
 import pathlib
 import contextlib
+from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 import yaml
 save_config_data = yaml.dump
 load_config_data = yaml.safe_load  # let's be paranoid
 ParserError = yaml.parser.ParserError
 
-from app_settings import WEBROOT, LOC2EXT, LOCS, Stats
 HERE = pathlib.Path(__file__).parent
 SETTFILE = 'settings.yml'
 DELMARK = '.deleted'

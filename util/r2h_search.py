@@ -1,3 +1,5 @@
+"""stand-alone search utility for rst2html
+"""
 import argparse
 import collections
 import docs2fs as dmlf

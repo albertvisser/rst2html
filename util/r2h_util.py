@@ -20,6 +20,8 @@ class CustomJSONEncoder(json.JSONEncoder):
     """Processing class for doing the backup
     """
     def default(self, obj):
+        """handle dates and document texts
+        """
         if isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, bson.objectid.ObjectId):

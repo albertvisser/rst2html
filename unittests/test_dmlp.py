@@ -1102,7 +1102,7 @@ class TestDocLevel:
             """
             print(f'called list_deletions() met {args=}')
             retval = []
-            for x, y in args[0]:
+            for x, _y in args[0]:
                 if x == '/':
                     retval.append('doc1')
                 else:
@@ -1140,7 +1140,7 @@ class TestDocLevel:
             """
             print(f'called apply_deletions() met {args=}')
             retval = []
-            for x, y in args[0]:
+            for x, _y in args[0]:
                 if x == '/':
                     retval.append('doc1')
                 else:
@@ -1302,7 +1302,7 @@ class TestDocLevel:
             """
             print(f'called list_deletions() met {args=}')
             retval = []
-            for x, y in args[0]:
+            for x, _y in args[0]:
                 if x == '/':
                     retval.append('doc1')
                 else:
@@ -1340,7 +1340,7 @@ class TestDocLevel:
             """
             print(f'called apply_deletions() met {args=}')
             retval = []
-            for x, y in args[0]:
+            for x, _y in args[0]:
                 if x == '/':
                     retval.append('doc1')
                 else:

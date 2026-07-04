@@ -1,22 +1,23 @@
+"""testfixture for test_scenario1.py
+"""
 def rstdata_1():
+    "return data containing one source document"
     return 'test document\n=============\n\nThis is the first document'
 
 
 def rstdata_2():
+    "return data containing one source document"
     return 'test document\n=============\n\nThis is the (slightly changed) first document'
 
 
 def rstdata_3():
-    return ('test document\n=============\n\nThis is the (slightly changed) first document\n\n'
-            "It's been changed even more")
-
-
-def rstdata_4():
+    "return data containing one source document"
     return ('test document\n=============\n\nThis is the (slightly changed) first document\n\n'
             "It's been changed even more")
 
 
 def htmldata_1():
+    "return data containing one converted document"
     return ('<?xml version="1.0" encoding="utf-8" ?>\n'
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"'
             ' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n'
@@ -31,6 +32,7 @@ def htmldata_1():
 
 
 def htmldata_2():
+    "return data containing one converted document"
     return ('<?xml version="1.0" encoding="utf-8" ?>\n'
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"'
             ' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n'

@@ -40,7 +40,7 @@ class Comparer:
                 print('files in source:', [x for x in (WEBROOT / sitename / '.source').iterdir()],
                       file=_out)
                 print('files in target:', [x for x in (WEBROOT / sitename / '.target').iterdir()],
-                      dw  file=_out)
+                      file=_out)
                 print('files in mirror:', [x for x in (WEBROOT / sitename).iterdir()], file=_out)
 
         db_data = list_site_contents(sitename, self.outfileroot / f'db_{name}')

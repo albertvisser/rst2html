@@ -4,18 +4,15 @@ vergelijken
 omdat het anders dan bij unittests de bedoeling is deze achter elkaar en in een vaste volgorde
 uit te voeren
  """
-import sys
 import os
 import shutil
-import pytest  # kijken of ik rhfn.check_url kan monkeypatchen
 ## import pprint
-print(sys.path)
 import app.rst2html as r2h   # from rst2html import Rst2Html
 # import test.analyze_testdata
 from test import analyze_testdata
 from test.test_dml import DML, clear_site_contents  # , list_site_contents
 
-from test.fixtures import rstdata_1, rstdata_2, rstdata_3, rstdata_4, htmldata_1, htmldata_2
+from test.fixtures import rstdata_1, rstdata_2, rstdata_3, htmldata_2
 confs_to_restore_after_changing = ['misc/hosts', 'nginx/flatpages']
 conf_root = os.path.expanduser('~/nginx-config/')
 
