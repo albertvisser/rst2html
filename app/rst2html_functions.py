@@ -1850,7 +1850,6 @@ class R2hState:
 
     def search(self, search, replace):
         "do a search and optionally replace action for all documents on the site"
-        # TODO: wat te doen bij een achterlijk groot aantal zoekresultaten (bv. bij zoeken op "de")?
         if replace:
             items_found = search_site(self.sitename, search, replace)
         else:
