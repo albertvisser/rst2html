@@ -7,10 +7,10 @@ import pytest
 import app.docs2fs as testee
 
 
-def mock_copyfile(*args):
+def mock_rename(*args):
     """stub
     """
-    print(f'called copyfile: from `{args[0]}` to `{args[1]}`')
+    print(f'called rename: from `{args[0]}` to `{args[1]}`')
 
 
 def test_locify():
@@ -204,21 +204,53 @@ class TestNonApiFunctions:
                           'mirror': {'deleted': True},
                           'src': {'deleted': True}}}
 
-    def test_get_sitedoc_data(self, monkeypatch):
+    def test_get_sitedoc_data(self, monkeypatch, capsys, tmp_path):
         """unittest for docs2fs.get_sitedoc_data
         """
         def mock_get_docitem_stats(*args):
             """stub
             """
+            print('called _get_dir_stats_for_docitem with args', args)
             return 'hello, world!'
         def mock_list_dirs(*args):
             """stub
             """
+            print('called list_dirs with args', args)
             return 'x', 'y'
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
         monkeypatch.setattr(testee, '_get_dir_stats_for_docitem', mock_get_docitem_stats)
         monkeypatch.setattr(testee, 'list_dirs', mock_list_dirs)
-        assert testee._get_sitedoc_data('sitename') == {'/': 'hello, world!', 'x': 'hello, world!',
-                                                      'y': 'hello, world!'}
+        (tmp_path / 'sitename' / testee.SRC_LOC).mkdir(parents=True)
+        (tmp_path / 'sitename' / testee.DEST_LOC).mkdir()
+        assert testee._get_sitedoc_data('sitename') == {
+                '/': 'hello, world!', 'x': 'hello, world!', 'y': 'hello, world!'}
+        assert capsys.readouterr().out == (
+                "called _get_dir_stats_for_docitem with args ('sitename',)\n"
+                "called list_dirs with args ('sitename', 'src')\n"
+                "called _get_dir_stats_for_docitem with args ('sitename', 'x')\n"
+                "called _get_dir_stats_for_docitem with args ('sitename', 'y')\n")
+
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'subdir1').mkdir()
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'file1').touch()
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'file2.deleted').touch()
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'subdir2.deleted').mkdir()
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'subdir3.deleted').mkdir()
+        (tmp_path / 'sitename' / testee.DEST_LOC / 'subdir1').mkdir()
+        (tmp_path / 'sitename' / testee.DEST_LOC / 'file1').touch()
+        (tmp_path / 'sitename' / testee.SRC_LOC / 'file2.deleted').touch()
+        (tmp_path / 'sitename' / testee.DEST_LOC / 'subdir3.deleted').mkdir()
+        (tmp_path / 'sitename' / testee.DEST_LOC / 'subdir4.deleted').mkdir()
+        assert testee._get_sitedoc_data('sitename') == {
+                '/': 'hello, world!',
+                'subdir2': {'': {'src': {'deleted': True}}},
+                'subdir3': {'': {'src': {'deleted': True}, 'dest': {'deleted': True}}},
+                'subdir4': {'': {'src': {'deleted': True}, 'dest': {'deleted': True}}},
+                'x': 'hello, world!', 'y': 'hello, world!'}
+        assert capsys.readouterr().out == (
+                "called _get_dir_stats_for_docitem with args ('sitename',)\n"
+                "called list_dirs with args ('sitename', 'src')\n"
+                "called _get_dir_stats_for_docitem with args ('sitename', 'x')\n"
+                "called _get_dir_stats_for_docitem with args ('sitename', 'y')\n")
 
     def test_read_data(self, monkeypatch, capsys, tmp_path):
         """unittest for docs2fs.read_data
@@ -294,6 +326,8 @@ class TestNonApiFunctions:
             """stub
             """
             print(f'called mkdir for `{self}`')
+        def mock_rename(*args):
+            print('called path.rename with args', args)
         def mock_replace(self, *args, **kwargs):
             """stub
             """
@@ -315,7 +349,8 @@ class TestNonApiFunctions:
         assert testee.save_to(fulldocname, 'data') == 'OSError without message'
 
         monkeypatch.setattr(testee, 'read_settings', lambda x: {'seflinks': True})
-        monkeypatch.setattr(testee.shutil, 'copyfile', mock_copyfile)
+        # monkeypatch.setattr(testee.shutil, 'copyfile', mock_copyfile)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
         monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
         monkeypatch.setattr(testee.pathlib.Path, 'open', mock_open)
         assert testee.save_to(fulldocname, 'data') == ''
@@ -323,9 +358,11 @@ class TestNonApiFunctions:
         assert read_and_remove(tmpfilename) == 'data'
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
         fulldocname = testee.WEBROOT / 'testsite' / 'docname.rst'
+        backupname = testee.WEBROOT / 'testsite' / 'docname.rst.bak'
         assert testee.save_to(fulldocname, 'data') == ''
         assert capsys.readouterr().out == (
-                f'called copyfile: from `{fulldocname}` to `{fulldocname}.bak`\n')
+                # f'called copyfile: from `{fulldocname}` to `{fulldocname}.bak`\n')
+                f'called path.rename with args ({fulldocname!r}, {backupname!r})\n')
         assert read_and_remove(tmpfilename) == 'data'
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
         fulldocname = testee.WEBROOT / 'testsite' / 'docname.html'
@@ -345,9 +382,9 @@ class TestNonApiFunctions:
             'called replace for `{}` with `{}`\n'.format(
                 str(fulldocname).replace('.html', ''), str(fulldocname).replace('.html', '.bak')),
             'called mkdir for `{}`\n'.format(str(fulldocname).replace('.html', '')),
-            'called copyfile: from `{}` to `{}`\n'.format(
-                str(fulldocname).replace('.html', '/index.html'),
-                str(fulldocname).replace('.html', '/index.html.bak'))))
+            'called path.rename with args ({}, {})\n'.format(
+                repr(fulldocname).replace('.html', '/index.html'),
+                repr(fulldocname).replace('.html', '/index.html.bak'))))
         assert read_and_remove(tmpfilename) == 'data'
 
     def test_rename_mirror_subdir(self, monkeypatch, capsys, tmp_path):
@@ -390,7 +427,10 @@ class TestTestApi:
         with pytest.raises(NotImplementedError):
             testee.read_db()
 
-    def test_list_site_data(self, monkeypatch):
+# 735->741 list_site_data templates directory aanwezig
+# 738 template file aanwezig
+# 740 templates aanwezig
+    def test_list_site_data(self, monkeypatch, capsys, tmp_path):
         """unittest for docs2fs.list_site_data
         """
         def mock_read_settings(*args):
@@ -404,41 +444,146 @@ class TestTestApi:
         def mock_list_docs(*args):
             """stub
             """
+            print('called list_docs with args', args)
             # rest = f'/{args[2]}' if len(args) > 2 else ''  # why if this is not used?
-            return ['doc1']
+            return ['doc1', 'doc2']
         def mock_list_dirs(*args):
             """stub
             """
+            print('called list_dirs with args', args)
             return ['dir1']
         def mock_read_data(*args):
             """stub
             """
-            return '', f'called read_data for {args[0]}'
-        # formeel kloppen deze returns maar hou er rekening mee dat dit niks zegt over hoe
-        # de gegevens er uit zien
+            print(f'called read_data for {args[0]}')
+            return ('' if args[0].stem == 'doc1' else 'doc not found',
+                    'oldtext' if args[0].suffix == '.bak' else 'currtext')
+        orig_exists = testee.pathlib.Path.exists
+        def mock_exists(self, *args, **kwargs):
+            print('called path.exists with args', self, args, kwargs)
+            return orig_exists(self, *args, **kwargs)
         sitename = 'testsite'
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        siteloc = testee.WEBROOT / sitename
         monkeypatch.setattr(testee, 'read_settings', mock_read_settings)
         monkeypatch.setattr(testee, '_get_sitedoc_data', mock_get_sitedoc_data)
         monkeypatch.setattr(testee, 'list_docs', mock_list_docs)
         monkeypatch.setattr(testee, 'list_dirs', mock_list_dirs)
         monkeypatch.setattr(testee, 'read_data', mock_read_data)
-        siteloc = testee.WEBROOT / sitename
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', mock_exists)
         assert testee.list_site_data(sitename) == (
             {'_id': 0, 'name': 'testsite',
              'settings': 'called read_settings for `testsite`',
              'docs': 'called get_sitedoc_data for `testsite`'},
-            [{'_id': ('dir1/doc1', 'dest'),
-              'current': f'called read_data for {siteloc}/.target/dir1/doc1.html',
-              'previous': f'called read_data for {siteloc}/.target/dir1/doc1.html.bak'},
-             {'_id': ('dir1/doc1', 'src'),
-              'current': f'called read_data for {siteloc}/.source/dir1/doc1.rst',
-              'previous': f'called read_data for {siteloc}/.source/dir1/doc1.rst.bak'},
-             {'_id': ('doc1', 'dest'),
-              'current': f'called read_data for {siteloc}/.target/doc1.html',
-              'previous': f'called read_data for {siteloc}/.target/doc1.html.bak'},
-             {'_id': ('doc1', 'src'),
-              'current': f'called read_data for {siteloc}/.source/doc1.rst',
-              'previous': f'called read_data for {siteloc}/.source/doc1.rst.bak'}])
+            [{'_id': ('dir1/doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'}])
+        assert capsys.readouterr().out == (
+                "called list_docs with args ('testsite', 'src')\n"
+                "called list_dirs with args ('testsite', 'src')\n"
+                "called list_docs with args ('testsite', 'src', 'dir1')\n"
+                "called list_docs with args ('testsite', 'dest')\n"
+                "called list_dirs with args ('testsite', 'dest')\n"
+                "called list_docs with args ('testsite', 'dest', 'dir1')\n"
+                f'called read_data for {siteloc}/.target/dir1/doc1.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc1.html\n'
+                f'called read_data for {siteloc}/.target/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc2.html\n'
+                f'called read_data for {siteloc}/.target/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/doc2.rst.bak\n'
+                f'called path.exists with args {siteloc}/.templates () {{}}\n')
+        (siteloc / '.templates').mkdir(parents=True)
+        assert testee.list_site_data(sitename) == (
+            {'_id': 0, 'name': 'testsite',
+             'settings': 'called read_settings for `testsite`',
+             'docs': 'called get_sitedoc_data for `testsite`'},
+            [{'_id': ('dir1/doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'}])
+        assert capsys.readouterr().out == (
+                "called list_docs with args ('testsite', 'src')\n"
+                "called list_dirs with args ('testsite', 'src')\n"
+                "called list_docs with args ('testsite', 'src', 'dir1')\n"
+                "called list_docs with args ('testsite', 'dest')\n"
+                "called list_dirs with args ('testsite', 'dest')\n"
+                "called list_docs with args ('testsite', 'dest', 'dir1')\n"
+                f'called read_data for {siteloc}/.target/dir1/doc1.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc1.html\n'
+                f'called read_data for {siteloc}/.target/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc2.html\n'
+                f'called read_data for {siteloc}/.target/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/doc2.rst.bak\n'
+                f'called path.exists with args {siteloc}/.templates () {{}}\n')
+
+        (siteloc / '.templates' / 'tpl1.tpl').write_text('xxxx')
+        (siteloc / '.templates' / 'tpl2.tpl').write_text('yyyy')
+        assert testee.list_site_data(sitename) == (
+            {'_id': 0, 'name': 'testsite',
+             'settings': 'called read_settings for `testsite`',
+             'docs': 'called get_sitedoc_data for `testsite`',
+             'templates': {'tpl1.tpl': 'xxxx', 'tpl2.tpl': 'yyyy'}},
+            [{'_id': ('dir1/doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('dir1/doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'dest'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc1', 'src'), 'current': 'currtext', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'dest'), 'current': 'doc not found', 'previous': 'doc not found'},
+             {'_id': ('doc2', 'src'), 'current': 'doc not found', 'previous': 'doc not found'}])
+        assert capsys.readouterr().out == (
+                "called list_docs with args ('testsite', 'src')\n"
+                "called list_dirs with args ('testsite', 'src')\n"
+                "called list_docs with args ('testsite', 'src', 'dir1')\n"
+                "called list_docs with args ('testsite', 'dest')\n"
+                "called list_dirs with args ('testsite', 'dest')\n"
+                "called list_docs with args ('testsite', 'dest', 'dir1')\n"
+                f'called read_data for {siteloc}/.target/dir1/doc1.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html\n'
+                f'called read_data for {siteloc}/.target/dir1/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/dir1/doc2.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc1.html\n'
+                f'called read_data for {siteloc}/.target/doc1.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc1.rst\n'
+                f'called read_data for {siteloc}/.source/doc1.rst.bak\n'
+                f'called read_data for {siteloc}/.target/doc2.html\n'
+                f'called read_data for {siteloc}/.target/doc2.html.bak\n'
+                f'called read_data for {siteloc}/.source/doc2.rst\n'
+                f'called read_data for {siteloc}/.source/doc2.rst.bak\n'
+                f'called path.exists with args {siteloc}/.templates () {{}}\n')
 
     def test_clear_site_data(self, monkeypatch, capsys):
         """unittest for docs2fs.clear_site_data
@@ -585,8 +730,11 @@ class TestSiteLevel:
             """stub
             """
             print('called save_config_data')
+        def mock_rename(*args):
+            print('called path.rename with args', args)
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
         monkeypatch.setattr(testee.pathlib.Path, 'open', mock_open)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
         monkeypatch.setattr(testee, 'save_config_data', mock_save_config_data)
         sitename = 'testsite'
         settfile = testee.WEBROOT / sitename / testee.SETTFILE
@@ -594,11 +742,14 @@ class TestSiteLevel:
         assert capsys.readouterr().out == (f'called open() for file `{settfile}`\n'
                                            'called save_config_data\n')
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
-        monkeypatch.setattr(testee.shutil, 'copyfile', mock_copyfile)
+        # monkeypatch.setattr(testee.shutil, 'copyfile', mock_copyfile)
         assert testee.update_settings(sitename, {'x': 'y'}) == 'ok'
-        assert capsys.readouterr().out == (f'called copyfile: from `{settfile}` to `{settfile}.bak`\n'
-                                           f'called open() for file `{settfile}`\n'
-                                           'called save_config_data\n')
+        assert capsys.readouterr().out == (
+                # f'called copyfile: from `{settfile}` to `{settfile}.bak`\n'
+                'called path.rename with args'
+                f' ({settfile!r}, {settfile.with_suffix('.yml.bak')!r})\n'
+                f'called open() for file `{settfile}`\n'
+                'called save_config_data\n')
 
     def test_clear_settings(self):
         """unittest for docs2fs.clear_settings
@@ -629,7 +780,10 @@ class TestSiteLevel:
         monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: True)
         assert testee.list_dirs(sitename) == ['.x', 'css', 'subdir']
         sitepath = testee.WEBROOT / sitename
-        assert capsys.readouterr().out == f'called iterdir for path `{sitepath}`\n'
+        assert capsys.readouterr().out == (f'called iterdir for path `{sitepath}`\n'
+                                           "called iterdir for path `.x`\n"
+                                           "called iterdir for path `css`\n"
+                                           "called iterdir for path `subdir`\n")
         monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: False)
         assert testee.list_dirs(sitename, loc='dest') == []
         sitepath = testee.WEBROOT / sitename / 'dest'
@@ -961,6 +1115,14 @@ class TestDocLevel:
             """stub
             """
             return ['doc_name', 'doc_name.rst']
+        def mock_list_dirs(*args):
+            """stub
+            """
+            return []
+        def mock_list_dirs_2(*args):
+            """stub
+            """
+            return ['xx', 'yy']
         def mock_rename(self, *args):
             """stub
             """
@@ -971,6 +1133,7 @@ class TestDocLevel:
         with pytest.raises(FileNotFoundError):
             testee.mark_src_deleted('sitename', 'doc_name', 'contents')
         monkeypatch.setattr(testee, 'list_docs', mock_list_docs)
+        monkeypatch.setattr(testee, 'list_dirs', mock_list_dirs)
         monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
         testee.mark_src_deleted('sitename', 'doc_name')
         path = testee.WEBROOT / 'sitename' / '.source' / 'doc_name.rst'
@@ -979,6 +1142,15 @@ class TestDocLevel:
         testee.mark_src_deleted('sitename', 'doc_name.rst', 'directory')
         path = testee.WEBROOT / 'sitename' / '.source' / 'directory' / 'doc_name.rst'
         path_n = testee.WEBROOT / 'sitename' / '.source' / 'directory' / ('doc_name' + testee.DELMARK)
+        assert capsys.readouterr().out == f'call rename(): from `{path}` to `{path_n}`\n'
+        with pytest.raises(FileNotFoundError) as e:
+            testee.mark_src_deleted('sitename', 'docname')
+        assert str(e.value) == 'no_document'
+        assert capsys.readouterr().out == ""
+        monkeypatch.setattr(testee, 'list_dirs', mock_list_dirs_2)
+        testee.mark_src_deleted('sitename', 'yy')
+        path = testee.WEBROOT / 'sitename' / '.source' / 'yy'
+        path_n = testee.WEBROOT / 'sitename' / '.source' / ('yy' + testee.DELMARK)
         assert capsys.readouterr().out == f'call rename(): from `{path}` to `{path_n}`\n'
 
     def test_update_html(self, monkeypatch, capsys):
@@ -1027,11 +1199,12 @@ class TestDocLevel:
         def mock_build_dirlist(*args):
             """stub
             """
-            if args[1] == '':
-                return ['/']
-            if args[1] == '*':
-                return ['/', 'subdir']
-            return [args[1]]
+            # if args[1] == '':
+            #     return ['/']
+            # if args[1] == '*':
+            #     return ['/', 'subdir']
+            # return [args[1]]
+            return ['/', 'subdir']
         def mock_glob(self, *args):
             """stub
             """
@@ -1040,26 +1213,18 @@ class TestDocLevel:
             return [self / 'file1.deleted', self / 'file2.deleted']
         monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
-        assert testee.list_deletions_target('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == "called path.glob() for *.deleted in .source\n"
-        assert testee.list_deletions_target('sitename', '*') == ['file1', 'file2', 'subdir/file1',
-                                                               'subdir/file2']
+        assert testee.list_deletions_target('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                            'subdir/file2']
         assert capsys.readouterr().out == ("called path.glob() for *.deleted in .source\n"
                                            "called path.glob() for *.deleted in .source/subdir\n")
-        assert testee.list_deletions_target('sitename', 'dirname') == ['dirname/file1', 'dirname/file2']
-        assert capsys.readouterr().out == "called path.glob() for *.deleted in .source/dirname\n"
 
-    def test_apply_deletions_target(self, monkeypatch, capsys):
+    def test_apply_deletions_target_1(self, monkeypatch, capsys, tmp_path):
         """unittest for docs2fs.apply_deletions_target
         """
         def mock_build_dirlist(*args):
             """stub
             """
-            if args[1] == '':
-                return ['/']
-            if args[1] == '*':
-                return ['/', 'subdir']
-            return [args[1]]
+            return ['/', 'subdir']
         def mock_glob(self, *args, **kwargs):
             """stub
             """
@@ -1078,6 +1243,7 @@ class TestDocLevel:
             """stub
             """
             print(f'created file `{self}`')
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
         monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
         monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
@@ -1086,19 +1252,10 @@ class TestDocLevel:
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
         old = testee.WEBROOT / 'sitename' / '.source'
         loc = testee.WEBROOT / 'sitename' / '.target'
-        assert testee.apply_deletions_target('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .source\n'
-                f"called unlink with args `{old}/file1.deleted` () {{}}\n"
-                f"called unlink with args `{old}/file1.rst.bak` () {{'missing_ok': True}}\n"
-                f"called unlink with args `{old}/file2.deleted` () {{}}\n"
-                f"called unlink with args `{old}/file2.rst.bak` () {{'missing_ok': True}}\n"
-                f"called rename with args `{loc}/file1.html` ({loc / 'file1.deleted'!r},) {{}}\n"
-                f"called rename with args `{loc}/file2.html` ({loc / 'file2.deleted'!r},) {{}}\n")
         oldsub = testee.WEBROOT / 'sitename' / '.source' / 'subdir'
         locsub = testee.WEBROOT / 'sitename' / '.target' / 'subdir'
-        assert testee.apply_deletions_target('sitename', '*') == ['file1', 'file2', 'subdir/file1',
-                                                                'subdir/file2']
+        assert testee.apply_deletions_target('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                             'subdir/file2']
         assert capsys.readouterr().out == (
                 'called path.glob() for *.deleted in .source\n'
                 f'called unlink with args `{old}/file1.deleted` () {{}}\n'
@@ -1116,30 +1273,228 @@ class TestDocLevel:
                 " {}\n"
                 f"called rename with args `{locsub}/file2.html` ({locsub / 'file2.deleted'!r},)"
                 " {}\n")
-        oldsub = testee.WEBROOT / 'sitename' / '.source' / 'dirname'
-        locsub = testee.WEBROOT / 'sitename' / '.target' / 'dirname'
-        assert testee.apply_deletions_target('sitename', 'dirname') == ['dirname/file1',
-                                                                      'dirname/file2']
-        assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .source/dirname\n'
-                f'called unlink with args `{oldsub}/file1.deleted` () {{}}\n'
-                f"called unlink with args `{oldsub}/file1.rst.bak` () {{'missing_ok': True}}\n"
-                f'called unlink with args `{oldsub}/file2.deleted` () {{}}\n'
-                f"called unlink with args `{oldsub}/file2.rst.bak` () {{'missing_ok': True}}\n"
-                f"called rename with args `{locsub}/file1.html` ({locsub / 'file1.deleted'!r},)"
-                " {}\n"
-                f"called rename with args `{locsub}/file2.html` ({locsub / 'file2.deleted'!r},)"
-                " {}\n")
+
+    def test_apply_deletions_target_2(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.apply_deletions_target
+        """
+        def mock_build_dirlist(*args):
+            """stub
+            """
+            return ['/', 'subdir']
+        def mock_glob(self, *args, **kwargs):
+            """stub
+            """
+            name = str(self.relative_to(testee.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            return [self / 'file1.deleted', self / 'file2.deleted']
+        def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called unlink with args `{self}`', args, kwargs)
+        def mock_rename(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rename with args `{self}`', args, kwargs)
+        def mock_touch(self, *args, **kwargs):
+            """stub
+            """
+            print(f'created file `{self}`')
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
+        monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(testee.pathlib.Path, 'touch', mock_touch)
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
-        testee.apply_deletions_target('sitename', 'dirname')
+        old = testee.WEBROOT / 'sitename' / '.source'
+        loc = testee.WEBROOT / 'sitename' / '.target'
+        oldsub = testee.WEBROOT / 'sitename' / '.source' / 'subdir'
+        locsub = testee.WEBROOT / 'sitename' / '.target' / 'subdir'
+        assert testee.apply_deletions_target('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                             'subdir/file2']
         assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .source/dirname\n'
+                'called path.glob() for *.deleted in .source\n'
+                f'called unlink with args `{old}/file1.deleted` () {{}}\n'
+                f"called unlink with args `{old}/file1.rst.bak` () {{'missing_ok': True}}\n"
+                f'called unlink with args `{old}/file2.deleted` () {{}}\n'
+                f"called unlink with args `{old}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                'called path.glob() for *.deleted in .source/subdir\n'
                 f'called unlink with args `{oldsub}/file1.deleted` () {{}}\n'
                 f"called unlink with args `{oldsub}/file1.rst.bak` () {{'missing_ok': True}}\n"
                 f'called unlink with args `{oldsub}/file2.deleted` () {{}}\n'
                 f"called unlink with args `{oldsub}/file2.rst.bak` () {{'missing_ok': True}}\n"
+                f'created file `{loc}/file1.deleted`\n'
+                f'created file `{loc}/file2.deleted`\n'
                 f'created file `{locsub}/file1.deleted`\n'
                 f'created file `{locsub}/file2.deleted`\n')
+
+    def test_apply_deletions_target_3(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.apply_deletions_target
+        """
+        def mock_build_dirlist(*args):
+            """stub
+            """
+            return ['/', 'subdir']
+        def mock_glob(self, *args, **kwargs):
+            """stub
+            """
+            name = str(self.relative_to(testee.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            if name != '.source':
+                return []
+            return [self / 'subdir1.deleted', self / 'subdir2.deleted']
+        def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called unlink with args `{self}`', args, kwargs)
+        def mock_rmdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rmdir with args `{self}`', args, kwargs)
+        def mock_rename(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rename with args `{self}`', args, kwargs)
+        def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'created directory `{self}`')
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
+        monkeypatch.setattr(testee.pathlib.Path, 'rmdir', mock_rmdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: True)
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
+        old = testee.WEBROOT / 'sitename' / '.source'
+        loc = testee.WEBROOT / 'sitename' / '.target'
+        assert testee.apply_deletions_target('sitename') == ['subdir1/', 'subdir2/']
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source\n'
+                f'called unlink with args `{old}/subdir1.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir1.deleted` () {{}}\n'
+                f'called unlink with args `{old}/subdir2.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir2.deleted` () {{}}\n'
+                'called path.glob() for *.deleted in .source/subdir\n'
+                f"called rename with args `{loc}/subdir1.deleted` ({loc / 'subdir1.deleted'!r},)"
+                " {}\n"
+                f"called rename with args `{loc}/subdir2.deleted` ({loc / 'subdir2.deleted'!r},)"
+                " {}\n")
+
+    def test_apply_deletions_target_4(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.apply_deletions_target
+        """
+        def mock_build_dirlist(*args):
+            """stub
+            """
+            return ['/', 'subdir']
+        def mock_glob(self, *args, **kwargs):
+            """stub
+            """
+            name = str(self.relative_to(testee.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            if name != '.source':
+                return []
+            return [self / 'subdir1.deleted', self / 'subdir2.deleted']
+        def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called unlink with args `{self}`', args, kwargs)
+        def mock_rmdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rmdir with args `{self}`', args, kwargs)
+        def mock_rename(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rename with args `{self}`', args, kwargs)
+        def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'created directory `{self}`')
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
+        monkeypatch.setattr(testee.pathlib.Path, 'rmdir', mock_rmdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: True)
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
+        old = testee.WEBROOT / 'sitename' / '.source'
+        loc = testee.WEBROOT / 'sitename' / '.target'
+        assert testee.apply_deletions_target('sitename') == ['subdir1/', 'subdir2/']
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source\n'
+                f'called unlink with args `{old}/subdir1.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir1.deleted` () {{}}\n'
+                f'called unlink with args `{old}/subdir2.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir2.deleted` () {{}}\n'
+                'called path.glob() for *.deleted in .source/subdir\n'
+                f'created directory `{loc}/subdir1.deleted`\n'
+                f'created directory `{loc}/subdir2.deleted`\n')
+
+    def test_apply_deletions_target_5(self, monkeypatch, capsys, tmp_path):
+        """unittest for docs2fs.apply_deletions_target
+        """
+        def mock_build_dirlist(*args):
+            """stub
+            """
+            return ['/', 'subdir']
+        def mock_glob(self, *args, **kwargs):
+            """stub
+            """
+            name = str(self.relative_to(testee.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            if name != '.source':
+                return []
+            return [self / 'subdir1.deleted', self / 'subdir2.deleted']
+        def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called unlink with args `{self}`', args, kwargs)
+        def mock_rmdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rmdir with args `{self}`', args, kwargs)
+        def mock_rename(self, *args, **kwargs):
+            """stub
+            """
+            print(f'called rename with args `{self}`', args, kwargs)
+        def mock_mkdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'created directory `{self}`')
+        def mock_exists(self, *args, **kwargs):
+            nonlocal counter
+            counter += 1
+            return counter > 1
+        monkeypatch.setattr(testee, 'WEBROOT', tmp_path)
+        monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
+        monkeypatch.setattr(testee.pathlib.Path, 'rmdir', mock_rmdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(testee.pathlib.Path, 'rename', mock_rename)
+        monkeypatch.setattr(testee.pathlib.Path, 'mkdir', mock_mkdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: True)
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', mock_exists)
+        old = testee.WEBROOT / 'sitename' / '.source'
+        loc = testee.WEBROOT / 'sitename' / '.target'
+        counter = 0
+        assert testee.apply_deletions_target('sitename') == ['subdir1/', 'subdir2/']
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .source\n'
+                f'called unlink with args `{old}/subdir1.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir1.deleted` () {{}}\n'
+                f'called unlink with args `{old}/subdir2.deleted/.files` () {{}}\n'
+                f'called rmdir with args `{old}/subdir2.deleted` () {{}}\n'
+                'called path.glob() for *.deleted in .source/subdir\n'
+                f'called rmdir with args `{loc}/subdir1` () {{}}\n'
+                f'created directory `{loc}/subdir1.deleted`\n'
+                f"called rename with args `{loc}/subdir2.deleted` ({loc / 'subdir2.deleted'!r},)"
+                " {}\n")
 
     def test_update_mirror(self, monkeypatch, capsys):
         """unittest for docs2fs.update_mirror
@@ -1178,11 +1533,7 @@ class TestDocLevel:
         def mock_build_dirlist(*args):
             """stub
             """
-            if args[1] == '':
-                return ['/']
-            if args[1] == '*':
-                return ['/', 'subdir']
-            return [args[1]]
+            return ['/', 'subdir']
         def mock_glob(self, *args):
             """stub
             """
@@ -1191,14 +1542,10 @@ class TestDocLevel:
             return [self / 'file1.deleted', self / 'file2.deleted']
         monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
-        assert testee.list_deletions_mirror('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == "called path.glob() for *.deleted in .target\n"
-        assert testee.list_deletions_mirror('sitename', '*') == ['file1', 'file2', 'subdir/file1',
-                                                               'subdir/file2']
+        assert testee.list_deletions_mirror('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                            'subdir/file2']
         assert capsys.readouterr().out == ("called path.glob() for *.deleted in .target\n"
                                            "called path.glob() for *.deleted in .target/subdir\n")
-        assert testee.list_deletions_mirror('sitename', 'dirname') == ['dirname/file1', 'dirname/file2']
-        assert capsys.readouterr().out == "called path.glob() for *.deleted in .target/dirname\n"
 
     def test_apply_deletions_mirror(self, monkeypatch, capsys):
         """unittest for docs2fs.apply_deletions_mirror
@@ -1206,11 +1553,7 @@ class TestDocLevel:
         def mock_build_dirlist(*args):
             """stub
             """
-            if args[1] == '':
-                return ['/']
-            if args[1] == '*':
-                return ['/', 'subdir']
-            return [args[1]]
+            return ['/', 'subdir']
         def mock_glob(self, *args, **kwargs):
             """stub
             """
@@ -1227,6 +1570,18 @@ class TestDocLevel:
             """stub
             """
             print(f'deleted directory `{self}`')
+        # def mock_iterdir(*args):
+        #     nonlocal counter
+        #     counter += 1
+        #     if counter == 1:
+        #         return ['x']
+        #     return []
+        def mock_exists(*args):
+            nonlocal counter
+            counter += 1
+            if counter == 1:
+                return False
+            return True
         monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
         monkeypatch.setattr(testee, 'read_settings', lambda x: {'seflinks': False})
         monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
@@ -1236,21 +1591,10 @@ class TestDocLevel:
         monkeypatch.setattr(testee.pathlib.Path, 'iterdir', lambda x: [])
         src = testee.WEBROOT / 'sitename' / '.target'
         dest = testee.WEBROOT / 'sitename'
-        assert testee.apply_deletions_mirror('sitename', '') == ['file1', 'file2']
-        assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .target\n'
-                f'deleted file `{src}/file1.deleted` {{}}\n'
-                f"deleted file `{src}/file1.html.bak` {{'missing_ok': True}}\n"
-                f'deleted file `{src}/file2.deleted` {{}}\n'
-                f"deleted file `{src}/file2.html.bak` {{'missing_ok': True}}\n"
-                f'deleted file `{dest}/file1.html` {{}}\n'
-                f"deleted file `{dest}/file1.html.bak` {{'missing_ok': True}}\n"
-                f'deleted file `{dest}/file2.html` {{}}\n'
-                f"deleted file `{dest}/file2.html.bak` {{'missing_ok': True}}\n")
         srcsub = testee.WEBROOT / 'sitename' / '.target' / 'subdir'
         destsub = testee.WEBROOT / 'sitename' / 'subdir'
-        assert testee.apply_deletions_mirror('sitename', '*') == ['file1', 'file2', 'subdir/file1',
-                                                                'subdir/file2']
+        assert testee.apply_deletions_mirror('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                             'subdir/file2']
         assert capsys.readouterr().out == (
                 'called path.glob() for *.deleted in .target\n'
                 f'deleted file `{src}/file1.deleted` {{}}\n'
@@ -1270,16 +1614,28 @@ class TestDocLevel:
                 f"deleted file `{destsub}/file1.html.bak` {{'missing_ok': True}}\n"
                 f'deleted file `{destsub}/file2.html` {{}}\n'
                 f"deleted file `{destsub}/file2.html.bak` {{'missing_ok': True}}\n")
-        srcsub = testee.WEBROOT / 'sitename' / '.target' / 'dirname'
-        destsub = testee.WEBROOT / 'sitename' / 'dirname'
-        assert testee.apply_deletions_mirror('sitename', 'dirname') == ['dirname/file1',
-                                                                      'dirname/file2']
+        counter = 0
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', mock_exists)
+        # breakpoint()
+        assert testee.apply_deletions_mirror('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                             'subdir/file2']
         assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .target/dirname\n'
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted file `{src}/file1.deleted` {{}}\n'
+                f"deleted file `{src}/file1.html.bak` {{'missing_ok': True}}\n"
+                f'deleted file `{src}/file2.deleted` {{}}\n'
+                f"deleted file `{src}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for *.deleted in .target/subdir\n'
                 f'deleted file `{srcsub}/file1.deleted` {{}}\n'
                 f"deleted file `{srcsub}/file1.html.bak` {{'missing_ok': True}}\n"
                 f'deleted file `{srcsub}/file2.deleted` {{}}\n'
                 f"deleted file `{srcsub}/file2.html.bak` {{'missing_ok': True}}\n"
+                "called path.glob() for index.html* in file1\n"
+                f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f'deleted directory `{dest}/file1`\n'
+                f"deleted file `{dest}/file2.html` {{}}\n"
+                f"deleted file `{dest}/file2.html.bak` {{'missing_ok': True}}\n"
                 f'deleted file `{destsub}/file1.html` {{}}\n'
                 f"deleted file `{destsub}/file1.html.bak` {{'missing_ok': True}}\n"
                 f'deleted file `{destsub}/file2.html` {{}}\n'
@@ -1287,78 +1643,96 @@ class TestDocLevel:
 
         monkeypatch.setattr(testee, 'read_settings', lambda x: {'seflinks': True})
         monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
-        testee.apply_deletions_mirror('sitename', 'directory')
-        loc = testee.WEBROOT / 'sitename' / '.target' / 'directory'
-        dest = testee.WEBROOT / 'sitename' / 'directory'
+        monkeypatch.setattr(testee.pathlib.Path, 'iterdir', lambda x: [])
+        assert testee.apply_deletions_mirror('sitename') == ['file1', 'file2', 'subdir/file1',
+                                                             'subdir/file2']
         assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .target/directory\n'
-                f'deleted file `{loc}/file1.deleted` {{}}\n'
-                f"deleted file `{loc}/file1.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file1\n'
-                f"deleted file `{loc}/file1/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{loc}/file1`\n"
-                f'deleted file `{loc}/file2.deleted` {{}}\n'
-                f"deleted file `{loc}/file2.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file2\n'
-                f"deleted file `{loc}/file2/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file2/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{loc}/file2`\n"
-                'called path.glob() for index.html* in directory/file1\n'
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted file `{src}/file1.deleted` {{}}\n'
+                f"deleted file `{src}/file1.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/file1\n'
+                f"deleted file `{src}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{src}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{src}/file1`\n"
+                f'deleted file `{src}/file2.deleted` {{}}\n'
+                f"deleted file `{src}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/file2\n'
+                f"deleted file `{src}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{src}/file2/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{src}/file2`\n"
+                'called path.glob() for *.deleted in .target/subdir\n'
+                f'deleted file `{srcsub}/file1.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file1.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/subdir/file1\n'
+                f"deleted file `{srcsub}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{srcsub}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{srcsub}/file1`\n"
+                f'deleted file `{srcsub}/file2.deleted` {{}}\n'
+                f"deleted file `{srcsub}/file2.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in .target/subdir/file2\n'
+                f"deleted file `{srcsub}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{srcsub}/file2/index.html.bak` {{'missing_ok': True}}\n"
+                f"deleted directory `{srcsub}/file2`\n"
+                'called path.glob() for index.html* in file1\n'
                 f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
                 f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in directory/file2\n'
-                f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n")
-        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: not x.name.endswith('.html'))
-        testee.apply_deletions_mirror('sitename', 'directory')
-        loc = testee.WEBROOT / 'sitename' / '.target' / 'directory'
-        dest = testee.WEBROOT / 'sitename' / 'directory'
-        assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .target/directory\n'
-                f'deleted file `{loc}/file1.deleted` {{}}\n'
-                f"deleted file `{loc}/file1.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file1\n'
-                f"deleted file `{loc}/file1/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{loc}/file1`\n"
-                f'deleted file `{loc}/file2.deleted` {{}}\n'
-                f"deleted file `{loc}/file2.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file2\n'
-                f"deleted file `{loc}/file2/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file2/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{loc}/file2`\n"
-                'called path.glob() for index.html* in directory/file1\n'
-                f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{dest}/file1`\n"
-                'called path.glob() for index.html* in directory/file2\n'
+                'called path.glob() for index.html* in file2\n'
                 f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
                 f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n"
-                f"deleted directory `{dest}/file2`\n"
-                )
+                'called path.glob() for index.html* in subdir/file1\n'
+                f"deleted file `{destsub}/file1/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{destsub}/file1/index.html.bak` {{'missing_ok': True}}\n"
+                'called path.glob() for index.html* in subdir/file2\n'
+                f"deleted file `{destsub}/file2/index.html` {{'missing_ok': True}}\n"
+                f"deleted file `{destsub}/file2/index.html.bak` {{'missing_ok': True}}\n")
 
-        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: False)
+    def test_apply_deletions_mirror_2(self, monkeypatch, capsys):
+        """unittest for docs2fs.apply_deletions_mirror
+        """
+        def mock_build_dirlist(*args):
+            """stub
+            """
+            return ['/', 'subdir']
+        def mock_glob(self, *args, **kwargs):
+            """stub
+            """
+            name = str(self.relative_to(testee.WEBROOT / 'sitename'))
+            print('called path.glob() for', args[0], 'in', name)
+            if self.name != '.target':
+                return []
+            return [self / 'xxx.deleted']
+        def mock_unlink(self, *args, **kwargs):
+            """stub
+            """
+            print(f'deleted file `{self}`', kwargs)
+        def mock_rmdir(self, *args, **kwargs):
+            """stub
+            """
+            print(f'deleted directory `{self}`')
+        monkeypatch.setattr(testee, 'build_dirlist', mock_build_dirlist)
+        monkeypatch.setattr(testee, 'read_settings', lambda x: {'seflinks': False})
+        monkeypatch.setattr(testee.pathlib.Path, 'glob', mock_glob)
+        monkeypatch.setattr(testee.pathlib.Path, 'unlink', mock_unlink)
+        monkeypatch.setattr(testee.pathlib.Path, 'rmdir', mock_rmdir)
+        monkeypatch.setattr(testee.pathlib.Path, 'exists', lambda x: True)
+        monkeypatch.setattr(testee.pathlib.Path, 'is_dir', lambda x: True)
         monkeypatch.setattr(testee.pathlib.Path, 'iterdir', lambda x: ['x'])
-        testee.apply_deletions_mirror('sitename', 'directory')
+        src = testee.WEBROOT / 'sitename' / '.target'
+        dest = testee.WEBROOT / 'sitename'
+        assert testee.apply_deletions_mirror('sitename') == ['xxx/']
         assert capsys.readouterr().out == (
-                'called path.glob() for *.deleted in .target/directory\n'
-                f'deleted file `{loc}/file1.deleted` {{}}\n'
-                f"deleted file `{loc}/file1.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file1\n'
-                f"deleted file `{loc}/file1/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                f'deleted file `{loc}/file2.deleted` {{}}\n'
-                f"deleted file `{loc}/file2.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in .target/directory/file2\n'
-                f"deleted file `{loc}/file2/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{loc}/file2/index.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in directory/file1\n'
-                f"deleted file `{dest}/file1/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{dest}/file1/index.html.bak` {{'missing_ok': True}}\n"
-                'called path.glob() for index.html* in directory/file2\n'
-                f"deleted file `{dest}/file2/index.html` {{'missing_ok': True}}\n"
-                f"deleted file `{dest}/file2/index.html.bak` {{'missing_ok': True}}\n")
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted directory `{src}/xxx.deleted`\n'
+                'called path.glob() for *.deleted in .target/subdir\n'
+                f'deleted directory `{dest}/xxx.deleted`\n')
+        monkeypatch.setattr(testee, 'read_settings', lambda x: {'seflinks': True})
+        assert testee.apply_deletions_mirror('sitename') == ['xxx/']
+        assert capsys.readouterr().out == (
+                'called path.glob() for *.deleted in .target\n'
+                f'deleted directory `{src}/xxx.deleted`\n'
+                'called path.glob() for index.html* in .target/xxx\n'
+                'called path.glob() for *.deleted in .target/subdir\n'
+                f'deleted directory `{dest}/xxx.deleted`\n')
 
     def test_build_dirlist(self, monkeypatch):
         """unittest for docs2fs.build_dirlist
@@ -1368,9 +1742,10 @@ class TestDocLevel:
             """
             return ['subdir1', 'subdir2']
         monkeypatch.setattr(testee, 'list_dirs', mock_list_dirs)
-        assert testee.build_dirlist('sitename', '') == ['/']
-        assert testee.build_dirlist('sitename', '*') == ['/', 'subdir1', 'subdir2']
-        assert testee.build_dirlist('sitename', 'dirname') == ['dirname']
+        # assert testee.build_dirlist('sitename', '') == ['/']
+        # assert testee.build_dirlist('sitename', '*') == ['/', 'subdir1', 'subdir2']
+        # assert testee.build_dirlist('sitename', 'dirname') == ['dirname']
+        assert testee.build_dirlist('sitename') == ['/', 'subdir1', 'subdir2']
 
     def test_remove_doc(self):
         """unittest for docs2fs.remove_doc

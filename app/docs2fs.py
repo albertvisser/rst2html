@@ -119,7 +119,6 @@ def _get_dir_stats_for_docitem(site_name, dirname=''):
                 value[ftype].pop('updated')
         result[name] = value
     ## return sorted((x, y) for x, y in result.items())
-
     return result
 
 
@@ -128,7 +127,16 @@ def _get_sitedoc_data(sitename):
     filedict = {'/': _get_dir_stats_for_docitem(sitename)}
     for item in list_dirs(sitename, 'src'):
         filedict[item] = _get_dir_stats_for_docitem(sitename, item)
-    return filedict
+    # deleted directories
+    deleted_in_src = [x.stem for x in (WEBROOT / sitename / SRC_LOC).iterdir()
+                      if x.is_dir() and x.suffix == DELMARK]
+    deleted_in_dest = [x.stem for x in (WEBROOT / sitename / DEST_LOC).iterdir()
+                       if x.is_dir() and x.suffix == DELMARK]
+    for dirname in deleted_in_src:
+        filedict[dirname] = {'': {'src': {'deleted': True}}}
+    for dirname in deleted_in_dest:
+        filedict[dirname] = {'': {'src': {'deleted': True}, 'dest': {'deleted': True}}}
+    return {x: filedict[x] for x in sorted(filedict)}
 
 
 def read_data(fname):   # to be used for actual file system data
@@ -179,7 +187,8 @@ def save_to(fullname, data, seflinks=None):  # to be used for actual file system
     #
     mld = ''
     if fullname.exists():
-        shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
+        # shutil.copyfile(str(fullname), str(fullname.with_suffix(fullname.suffix + '.bak')))
+        fullname.rename(fullname.with_suffix(fullname.suffix + '.bak'))
     try:
         with fullname.open("w", encoding='utf-8') as f_out:
             f_out.write(data)
@@ -270,7 +279,8 @@ def update_settings(sitename, conf):
     "update (save) settings file"
     path = WEBROOT / sitename / SETTFILE
     if path.exists():
-        shutil.copyfile(str(path), str(path.with_suffix(path.suffix + '.bak')))
+        # shutil.copyfile(str(path), str(path.with_suffix(path.suffix + '.bak')))
+        path.rename(path.with_suffix(path.suffix + '.bak'))
     with path.open('w', encoding='utf-8') as _out:
         save_config_data(conf, _out, default_flow_style=False)
     return 'ok'
@@ -293,7 +303,8 @@ def list_dirs(sitename, loc=''):
         lines = [f.stem for f in path.iterdir() if f.is_dir() and (f / '.files').exists()
                  and f.suffix != DELMARK]
     else:
-        lines = [f.stem for f in path.iterdir() if f.is_dir() and f.suffix != DELMARK]
+        lines = [f.stem for f in path.iterdir() if f.is_dir() and f.suffix != DELMARK
+                 and len(list(f.iterdir())) > 0]
     return lines
 
 
@@ -480,20 +491,24 @@ def revert_rst(sitename, doc_name, directory=''):
 def mark_src_deleted(sitename, doc_name, directory=''):
     """in the source environment, mark a directory or a document in the given directory as deleted
 
-    doc_name is the name if the item to delete
+    doc_name is the name of the item to delete
     """
     if not doc_name:
         raise AttributeError('no_name')
-    if doc_name not in list_docs(sitename, 'src', directory):
+    is_dir = False
+    if doc_name in list_dirs(sitename, 'src'):
+        is_dir = True
+    elif doc_name not in list_docs(sitename, 'src', directory):
         ## raise FileNotFoundError("Document {} doesn't exist".format(doc_name))
         raise FileNotFoundError("no_document")  # .format(doc_name))
     path = WEBROOT / sitename / SRC_LOC
     if directory:
         path /= directory
     path = path / doc_name
-    ext = LOC2EXT['src']
-    if path.suffix != ext:
-        path = path.with_suffix(ext)
+    if not is_dir:
+        ext = LOC2EXT['src']
+        if path.suffix != ext:
+            path = path.with_suffix(ext)
     path.rename(path.with_suffix(DELMARK))
 
 
@@ -523,42 +538,50 @@ def update_html(sitename, doc_name, contents, directory='', dry_run=True):
     save_to(path, contents)
 
 
-def list_deletions_target(sitename, directory=''):
+def list_deletions_target(sitename):  # , directory=''):
     """list pending deletions in source environment"""
     to_delete = []
     root = WEBROOT / sitename / SRC_LOC
-    for dirname in build_dirlist(sitename, directory):
+    for dirname in build_dirlist(sitename):  # , directory):
         path = root / dirname if dirname != '/' else root
-        filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
+        filelist = [x.name.replace(DELMARK, '/' if x.is_dir() else '')
+                    for x in path.glob('*' + DELMARK)]
         if dirname != '/':
             filelist = [f'{dirname}/{x}' for x in filelist]
         to_delete.extend(filelist)
     return sorted(to_delete)
 
 
-def apply_deletions_target(sitename, directory=''):
+def apply_deletions_target(sitename):  # , directory=''):
     """Copy deletion markers from source to target environment
     """
     deleted = []
     root = WEBROOT / sitename / SRC_LOC
-    for dirname in build_dirlist(sitename, directory):
+    for dirname in build_dirlist(sitename):  # , directory):
         path = root / dirname if dirname != '/' else root
         for item in path.glob('*' + DELMARK):
-            if dirname != '/':
-                deleted.append(f'{dirname}/{item.name}')
+            name = f'{dirname}/{item.name}' if dirname != '/' else item.name
+            deleted.append((name, item.is_dir()))
+            if item.is_dir():
+                (item / '.files').unlink()
+                item.rmdir()
             else:
-                deleted.append(item.name)
-            item.unlink()
-            item.with_suffix('.rst.bak').unlink(missing_ok=True)
+                item.unlink()
+                item.with_suffix('.rst.bak').unlink(missing_ok=True)
     root = WEBROOT / sitename / DEST_LOC
-    for item in deleted:
+    for item, isdir in deleted:
         path = root / item
-        to_delete = path.with_suffix(LOC2EXT['dest'])
+        to_delete = path if isdir else path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():  # als seflinks False
             to_delete.rename(path)
         else:
-            path.touch()  # en dan gaat-ie deze uitvoeren
-    return sorted([x.replace(DELMARK, '') for x in deleted])
+            if isdir:
+                if path.with_suffix('').exists():
+                    path.with_suffix('').rmdir()
+                path.mkdir()
+            else:
+                path.touch()  # en dan gaat-ie deze uitvoeren
+    return sorted([x[0].replace(DELMARK, '/' if x[1] else '') for x in deleted])
 
 
 def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
@@ -587,33 +610,36 @@ def update_mirror(sitename, doc_name, data, directory='', dry_run=True):
     save_to(path, data)
 
 
-def list_deletions_mirror(sitename, directory=''):
+def list_deletions_mirror(sitename):  # , directory=''):
     """list pending deletions in target environment"""
     to_delete = []
     root = WEBROOT / sitename / DEST_LOC
-    for dirname in build_dirlist(sitename, directory):
+    for dirname in build_dirlist(sitename):  # , directory):
         path = root / dirname if dirname != '/' else root
-        filelist = [x.name.replace(DELMARK, '') for x in path.glob('*' + DELMARK)]
+        filelist = [x.name.replace(DELMARK, '/' if x.is_dir() else '')
+                    for x in path.glob('*' + DELMARK)]
         if dirname != '/':
             filelist = [f'{dirname}/{x}' for x in filelist]
         to_delete.extend(filelist)
     return sorted(to_delete)
 
 
-def apply_deletions_mirror(sitename, directory=''):
+def apply_deletions_mirror(sitename):  # , directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
     deleted = []
     root = WEBROOT / sitename / DEST_LOC
-    for dirname in build_dirlist(sitename, directory):
+    for dirname in build_dirlist(sitename):  # , directory):
         path = root / dirname if dirname != '/' else root
         for item in path.glob('*' + DELMARK):
-            if dirname != '/':
-                deleted.append(f'{dirname}/{item.name}')
+            name = f'{dirname}/{item.name}' if dirname != '/' else item.name
+            deleted.append((name, item.is_dir()))
+            if item.is_dir():
+                # (item / '.files').unlink()
+                item.rmdir()
             else:
-                deleted.append(item.name)
-            item.unlink()
-            item.with_suffix('.html.bak').unlink(missing_ok=True)
+                item.unlink()
+                item.with_suffix('.html.bak').unlink(missing_ok=True)
 
             if read_settings(sitename).get('seflinks', False):
                 delpath = item.with_suffix('')
@@ -623,30 +649,34 @@ def apply_deletions_mirror(sitename, directory=''):
                     delpath.rmdir()
 
     root = WEBROOT / sitename
-    for item in deleted:
+    for item, isdir in deleted:
         path = root / item
-        to_delete = path.with_suffix(LOC2EXT['dest'])
+        to_delete = path if isdir else path.with_suffix(LOC2EXT['dest'])
         if to_delete.exists():
-            to_delete.unlink()
-            to_delete.with_suffix('.html.bak').unlink(missing_ok=True)
+            if isdir:
+                to_delete.rmdir()
+            else:
+                to_delete.unlink()
+                to_delete.with_suffix('.html.bak').unlink(missing_ok=True)
         else:
             delpath = to_delete.with_suffix('')
             for subitem in delpath.glob('index.html*'):
                 subitem.unlink(missing_ok=True)
             if delpath.exists() and not list(delpath.iterdir()):
                 delpath.rmdir()
-    return sorted([x.replace(DELMARK, '') for x in deleted])
+    return sorted([x[0].replace(DELMARK, '/' if x[1] else '') for x in deleted])
 
 
-def build_dirlist(sitename, directory):
+def build_dirlist(sitename):  # , directory):
     "build a list of site (sub)directories"
-    if directory == '':
-        dirlist = ['/']
-    elif directory == '*':
-        dirlist = ['/'] + list_dirs(sitename)
-    else:
-        dirlist = [directory]
-    return dirlist
+    # if directory == '':
+    #     dirlist = ['/']
+    # elif directory == '*':
+    #     dirlist = ['/'] + list_dirs(sitename)
+    # else:
+    #     dirlist = [directory]
+    # return dirlist
+    return ['/'] + list_dirs(sitename)
 
 
 def remove_doc(sitename, docname, directory=''):
@@ -701,6 +731,7 @@ def list_site_data(sitename):
             names = list_docs(sitename, ftype, dirname)
             fnames.extend([(f'{dirname}/{x}', ftype) for x in names])
     base = WEBROOT / sitename
+    # vinden we zo wel de als deleted aangemerkte documenten? Nee maar blijkbaar hoeft dat niet?
     for name, ftype in sorted(fnames):
         path = base / SRC_LOC if ftype == 'src' else base / DEST_LOC
         path /= name
@@ -709,6 +740,14 @@ def list_site_data(sitename):
         data.append({'_id': (name, ftype),
                      'current': mld1 or data1,
                      'previous': mld2 or data2})
+    # templates
+    path = base / '.templates'
+    if path.exists():
+        templates = {}
+        for x in path.iterdir():
+            templates[x.name] = (path / x).read_text()
+        if templates:
+            sitedoc['templates'] = templates
     return sitedoc, data
 
 

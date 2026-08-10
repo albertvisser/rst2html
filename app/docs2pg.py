@@ -36,8 +36,6 @@ def clear_db(cur):
     """remove all data from the database
     """
     for name in TABLES:
-        ## sql = 'truncate table {};'.format(name)
-        ## cur.execute(sql)
         cur.execute(f'truncate table {name};')
 
 
@@ -140,7 +138,7 @@ def update_settings(site_name, settings_dict):
     return _get_settings(siteid)
 
 
-def clear_settings(site_name):  # untested - do I need/want this?
+def clear_settings(site_name):
     """update settings to empty dict instead of initialized)
     """
     return update_settings(site_name, {})
@@ -175,15 +173,13 @@ def create_new_dir(site_name, directory):
     _make_dir(siteid, directory)
 
 
-@with_cursor
-def rename_dir(cur, site_name, oldname, newname):
+def rename_dir(site_name, oldname, newname):
     """rename the entry for the given directory name
     """
     mld = ''
     siteid = _get_site_id(site_name)
     dirid = _get_dir_id(siteid, oldname)
-    cur.execute(f'update {TABLES[2]} set dirname = %s where site_id = %s and id = %s;',
-                (newname, siteid, dirid))
+    _do_rename_dir(dirid, newname)
     return mld
 
 
@@ -207,7 +203,6 @@ def list_docs(site_name, doctype='', directory='', deleted=False):
     dirid = _get_dir_id(siteid, directory)
     if dirid is None:
         raise FileNotFoundError('no_subdir')
-    ## doclist = _get_docs_in_dir(dirid)
     return _get_doclist(dirid, doctype, deleted)
 
 
@@ -379,7 +374,7 @@ def mark_src_deleted(site_name, doc_name, directory=''):
         raise FileNotFoundError('no_subdir')
     test_dirid = _get_dir_id(siteid, doc_name)  # is dit een directory?
     if test_dirid:
-        _mark_dir_deleted(siteid, dirid)
+        _mark_dir_deleted(test_dirid)
     else:
         doc_id = _get_doc_ids(dirid, doc_name)[0]
         if doc_id is None:
@@ -423,17 +418,18 @@ def update_html(site_name, doc_name, contents, directory='', dry_run=True):
     _put_html(html_id, new_html_id, doc_id, contents, oldtext)
 
 
-def list_deletions_target(sitename, directory=''):
+def list_deletions_target(sitename):  # , directory=''):
     """list pending deletions in source environment"""
-    return list_deletions(get_dirlist_for_site(sitename, directory), 'source')
+    # return list_deletions(_get_dirlist_for_site(sitename, directory), 'source')
+    return list_deletions(_get_dirlist_for_site(sitename), 'source')
 
 
-def apply_deletions_target(site_name, directory=''):
+def apply_deletions_target(site_name):  # , directory=''):
     """Copy deletion markers from source to target environment (if not already there)
     """
-    dirlist = get_dirlist_for_site(site_name, directory)
-    deleted, deleted_names = apply_deletions(dirlist, 'source')
-    _update_target_directory(deleted)
+    dirlist = _get_dirlist_for_site(site_name)  # , directory)
+    deleted_names = apply_deletions(dirlist, 'source')[1]
+    # _update_target_directory(deleted)
     return sorted(deleted_names)
 
 
@@ -482,21 +478,22 @@ def update_mirror(site_name, doc_name, data, directory='', dry_run=True):
     save_to(path, data, seflinks)
 
 
-def list_deletions_mirror(sitename, directory=''):
+def list_deletions_mirror(sitename):  # , directory=''):
     """list pending deletions in target environment"""
-    return list_deletions(get_dirlist_for_site(sitename, directory), 'target')
+    # return list_deletions(_get_dirlist_for_site(sitename, directory), 'target')
+    return list_deletions(_get_dirlist_for_site(sitename), 'target')
 
 
-def apply_deletions_mirror(site_name, directory=''):
+def apply_deletions_mirror(site_name):  # , directory=''):
     """Copy deletion markers from target to mirror environment and remove in all envs
     """
-    dirlist = get_dirlist_for_site(site_name, directory)
+    dirlist = _get_dirlist_for_site(site_name)  # , directory)
     deleted, deleted_names = apply_deletions(dirlist, 'target')
     # cur = conn.cursor()
     deleted = [(x[3],) for x in deleted]
     # regels komen terug als None, 1, True, row['id']
     # effectief gebeurt er niks met source_id
-    _update_mirror_directory(deleted)
+    # _update_mirror_directory(deleted)
 
     path = WEBROOT / site_name
     # if directory != '/':
@@ -504,77 +501,95 @@ def apply_deletions_mirror(site_name, directory=''):
     for doc_name in deleted_names:
         docpath = path / doc_name
         ext = LOC2EXT['dest']
-        if docpath.suffix != ext:
-            docpath = docpath.with_suffix(ext)
-        if docpath.exists():
-            docpath.unlink()
+        if docpath.is_dir() and docpath.exists():
+            docpath.rmdir()
+        else:
+            if docpath.suffix != ext:
+                docpath = docpath.with_suffix(ext)
+            if docpath.exists():
+                docpath.unlink()
+                docpath.with_suffix(ext + '.bak').unlink(missing_ok=True)
     return sorted(deleted_names)
 
 
-def get_dirlist_for_site(sitename, directory):
-    "get a list of dirids (can be just one)"
-    siteid = _get_site_id(sitename)
-    if siteid is None:
-        raise FileNotFoundError('no_site')
-    if not directory:
-        dirlist = ['/']
-    elif directory == '*':
-        dirlist = ['/'] + list_dirs(sitename, 'src')
-    else:
-        dirlist = [directory]
-    for ix, directory in enumerate(dirlist):
-        dirid = _get_dir_id(siteid, directory)
-        if dirid is None:
-            raise FileNotFoundError('no_subdir')
-        dirlist[ix] = (directory, dirid)
-    return dirlist
+# def _get_dirlist_for_site_old(sitename):  # , directory):
+#     "get a list of dirids (can be just one)"
+#     siteid = _get_site_id(sitename)
+#     if siteid is None:
+#         raise FileNotFoundError('no_site')
+# #     if not directory:
+# #         dirlist = ['/']
+# #     elif directory == '*':
+#     dirlist = ['/'] + list_dirs(sitename, 'src')
+# #     else:
+# #         dirlist = [directory]
+#     for ix, directory in enumerate(dirlist):
+#         dirid = _get_dir_id(siteid, directory)
+#         if dirid is None:
+#             raise FileNotFoundError('no_subdir')
+#         dirlist[ix] = (directory, dirid)
+#     return dirlist
 
 
 def list_deletions(dirlist, stage):
     "list pending deletions for given directories in a given environment"
     deletions = []
     for directory, dirid in dirlist:
-        to_be_deleted = get_deletion_ids(dirid, stage)
+        # to_be_deleted = get_deletion_ids(dirid, stage)
         if directory == '/':  # alleen op dit niveau hebben we directory deletions
-            deletions = get_deletion_names(to_be_deleted)  # werkt zolang deze het eerst komt
+            # deletions = get_deletion_names(to_be_deleted)  # werkt zolang deze het eerst komt
+            deletions.extend([x[1] for x in get_deletions(dirid, stage)])
         else:
-            deletions.extend([f"{directory}/{row['docname']}" for row in to_be_deleted])
+            # deletions.extend([f"{directory}/{row['docname']}" for row in to_be_deleted])
+            deletions.extend([f"{directory}/{x[1]}" for x in get_deletions(dirid, stage)])
     return sorted(deletions)
 
 
 def apply_deletions(dirlist, stage):
     "apply deletions for given directories in the given environment"
-    docids, deleted, deleted_names = [], [], []
+    docids, dirids, deleted, deleted_names = [], [], [], []
     for directory, dirid in dirlist:
-        to_delete = get_deletion_ids(dirid, stage)
+        to_delete = get_deletions(dirid, stage)
         if stage == 'source':
-            docids += [(row['target_docid'],) for row in to_delete]
+            # docids += [(row['target_docid'],) for row in to_delete]
+            for x in to_delete:
+                if x[1] == '':
+                    dirids.append(x[0])
+                else:
+                    docids.append((x[0], x[2]))
         else:
-            docids = [(row['id'],) for row in to_delete]
+            # docids = [(row['id'],) for row in to_delete]
+            for x in to_delete:
+                if x[1] == '':
+                    dirids.append((x[0], x[2]))
+                else:
+                    docids.append(x[0])
         if directory == '/':
             # deleted_names += [row['docname'] for row in to_delete]
-            deleted_names = get_deletion_names(to_delete)
+            # deleted_names = get_deletion_names(to_delete)
+            deleted_names.extend([x[1] for x in to_delete])
         else:
-            deleted_names += [f"{directory}/{row['docname']}" for row in to_delete]
-        deleted += [(None, 1, True, row['id']) for row in to_delete]
+            # deleted_names += [f"{directory}/{row['docname']}" for row in to_delete]
+            deleted_names.extend([f"{directory}/{x[1]}" for x in to_delete])
 
-    execute_deletions(stage, docids)
+    if any((docids, dirids)):
+        execute_deletions(stage, docids, dirids)
     return deleted, deleted_names
 
 
-def get_deletion_names(curlist):
-    """build list of names, converting dirid to dirname where applicable
-    """
-    result = []
-    for row in curlist:
-        try:
-            dirid = int(row['docname'])
-        except ValueError:
-            name = row['docname']
-        else:
-            name = _get_dir_name(dirid)
-        result.append(name)
-    return result
+# def get_deletion_names(curlist):
+#     """build list of names, converting dirid to dirname where applicable
+#     """
+#     result = []
+#     for row in curlist:
+#         try:
+#             dirid = int(row['docname'])
+#         except ValueError:
+#             name = row['docname']
+#         else:
+#             name = _get_dir_name(dirid)
+#         result.append(name)
+#     return result
 
 
 def get_doc_stats(site_name, docname, dirname=''):
@@ -620,15 +635,20 @@ def list_site_data(site_name):
         raise FileNotFoundError('no_site')
 
     sitedoc = {'_id': siteid, 'name': site_name, 'settings': _get_settings(siteid)}
+    sitedoc['templates'] = _get_templates_for_site(siteid)
 
     dirmap = _fetch_dirmap(siteid)
     dirids = list(dirmap)
     sitedoc['docs'] = {x: {} for x in dirmap.values()}
 
+    all_dirids = _get_all_dir_ids(siteid)
     docstats, docnames = [], {}
     for row in _fetch_site_data(dirids):
         doc, dir = row['docname'], dirmap[row['dir_id']]
+        # if doc in all_dirids:       # verwijderde directory? Dan is de docname toch leeg?
+        #     continue  # het maakt denkelijk niet uit want ondertsande rubrieken zijn toch None
         docitem = doc if dir == '/' else f'{dir}/{doc}'
+
         ## docstats.append((dir, doc,
             ## ('src', {'docid': row['source_docid'], 'updated': row['source_updated']}),
             ## ('dest', {'docid': row['target_docid'], 'updated': row['target_updated']}),
@@ -660,7 +680,7 @@ def list_site_data(site_name):
     for dir, doc, *items in sorted(docstats):
         sitedoc['docs'][dir][doc] = dict(items)
 
-    data = _fetch_doc_data(siteid, docnames)
+    data = _fetch_doc_data(docnames)
     return sitedoc, sorted(data, key=lambda x: x['_id'])
 
 
@@ -839,13 +859,30 @@ def _make_site(cur, site_name):
 @with_cursor
 def _make_dir(cur, siteid, directory):
     "add the directory to the database"
-    cur.execute(f'insert into {TABLES[2]} (site_id, dirname) values (%s, %s)', (siteid, directory))
+    cur.execute(f'insert into {TABLES[2]} (site_id, dirname) values (%s, %s) returning id',
+                (siteid, directory))
+    return cur.fetchone()['id']
+
+# @with_cursor
+# def _update_dir(cur, dir_id):
+#     """mark directory as containing html
+#     """
+#     cur.execute(f'update {TABLES[3]} set target_deleted = %s where dir_id = %s and docname = %s',
+#                 (False, dir_id, ''))
 
 
 @with_cursor
 def _do_rename(cur, siteid, site_name):
     "rename the new site in the database"
-    cur.execute('update sites set sitename = %s where id = %s;', (site_name, siteid))
+    cur.execute(f'update {TABLES[0]} set sitename = %s where id = %s;', (site_name, siteid))
+
+
+@with_cursor
+# def _do_rename_dir(cur, siteid, dirid, newname):
+#     cur.execute(f'update {TABLES[2]} set dirname = %s where site_id = %s and id = %s;',
+#                 (newname, siteid, dirid))
+def _do_rename_dir(cur, dirid, newname):
+    cur.execute(f'update {TABLES[2]} set dirname = %s where id = %s;', (newname, dirid))
 
 
 @with_cursor
@@ -872,19 +909,34 @@ def _get_dirlist(cur, siteid, doctype):
     cur.execute(f'select id, dirname from {TABLES[2]} where site_id = %s;', (siteid,))
     dirmap = {row['id']: row['dirname'] for row in cur}
     dirids = list(dirmap)
-    if doctype == 'dest':
-        cur.execute(f'select dir_id, target_docid from {TABLES[3]} where dir_id = any(%s);',
-                    (dirids,))
-        dirids = set()
-        for row in cur:
-            if row['target_docid'] is not None:
-                dirids.add(row['dir_id'])
+    cur.execute('select dir_id, docname, source_deleted, target_docid, target_deleted'
+                f' from {TABLES[3]} where dir_id = any(%s);', (dirids,))
+    data = list(cur)
+    src_deleted = [x['dir_id'] for x in data if x['docname'] == '' and x['source_deleted']]
+    dest_deleted = [x['dir_id'] for x in data if x['docname'] == '' and x['target_deleted']]
+    if doctype in ('', 'src'):
+        primary_selection = dirids
+    else:
+        primary_selection = list({x['dir_id'] for x in data if x['target_docid']})
     dirlist = []
-    for id in dirids:
-        test = dirmap[id]
-        if test != '/':
-            dirlist.append(test)
+    for dirid in primary_selection:
+        if ((doctype in ('', 'src') and dirid not in src_deleted)
+                or (doctype == 'dest' and dirid not in dest_deleted)):
+            test = dirmap[dirid]
+            if test != '/':
+                dirlist.append(test)
     return dirlist
+
+
+@with_cursor
+def _get_dirlist_for_site(cur, sitename):
+    """returns all existing dirs
+    """
+    siteid = _get_site_id(sitename)
+    if siteid is None:
+        raise FileNotFoundError('no_site')
+    cur.execute(f'select id, dirname from {TABLES[2]} where site_id = %s;', (siteid,))
+    return [(row['dirname'], row['id']) for row in cur]
 
 
 @with_cursor
@@ -910,7 +962,7 @@ def _get_doclist(cur, dirid, doctype, deleted):
 
 @with_cursor
 def _get_tpllist(cur, siteid):
-    """returns a list of al templates in the database"""
+    """returns a list of all templates for a given site"""
     cur.execute(f'select id, name from {TABLES[5]} where site_id = %s;', (siteid,))
     return [row['name'] for row in cur]
 
@@ -918,15 +970,24 @@ def _get_tpllist(cur, siteid):
 @with_cursor
 def _get_template(cur, siteid, doc_name):
     """returns the contents of a given template (name)"""
-    cur.execute(f'select text from {TABLES[5]} where site_id = %s and name = %s;', (siteid, doc_name))
+    cur.execute(f'select text from {TABLES[5]} where site_id = %s and name = %s;',
+                (siteid, doc_name))
     row = cur.fetchone()
     return row['text']
 
 
 @with_cursor
+def _get_templates_for_site(cur, siteid):
+    """returns a dict of names and contents for all templates for a given site"""
+    cur.execute(f'select name, text from {TABLES[5]} where site_id = %s;', (siteid,))
+    return {x['name']: x['text'] for x in cur}
+
+
+@with_cursor
 def _put_template(cur, siteid, doc_name, data):
     "store the updated template in the database"
-    cur.execute(f'select text from {TABLES[5]} where site_id = %s and name = %s;', (siteid, doc_name))
+    cur.execute(f'select text from {TABLES[5]} where site_id = %s and name = %s;',
+                (siteid, doc_name))
     if not cur.fetchone():
         cur.execute(f'insert into {TABLES[5]} (site_id, name, text) values (%s, %s, %s);',
                     (siteid, doc_name, data))
@@ -960,7 +1021,7 @@ def _do_delete_template(cur, siteid, tplid):
 @with_cursor
 def _add_dts(cur, dir_id, docname, doc_id):
     "create the date-time stamp for the new document"
-    dts = datetime.datetime.utcnow()
+    dts = datetime.datetime.now()
     cur.execute(f'insert into {TABLES[3]} (dir_id, docname, source_docid, source_updated)'
                 ' values (%s, %s, %s, %s);', (dir_id, docname, doc_id, dts))
 
@@ -979,7 +1040,7 @@ def _put_update(cur, doc_id, rst_id, contents, oldtext):
     "add update doc to database"
     cur.execute(f'update {TABLES[4]} set previous = %s, currtext = %s where id = %s;',
                 (oldtext, contents, rst_id))
-    dts = datetime.datetime.utcnow()
+    dts = datetime.datetime.now()
     cur.execute(f'update {TABLES[3]} set source_updated = %s where id = %s;', (dts, doc_id))
 
 
@@ -991,16 +1052,15 @@ def _do_revert(cur, rst_id, doc_id):
     oldtext = cur.fetchone()['previous']
     cur.execute(f'update {TABLES[4]} set previous = %s, currtext = %s where id = %s;',
                 ('', oldtext, rst_id))
-    dts = datetime.datetime.utcnow()
+    dts = datetime.datetime.now()
     cur.execute(f'update {TABLES[3]} set source_updated = %s where id = %s;', (dts, doc_id))
 
 
 @with_cursor
-def _mark_dir_deleted(cur, site_id, dir_id):
+def _mark_dir_deleted(cur, dir_id):
     "mark a directory as deleted in the database"
-    parentdir_id = _get_dir_id(site_id, '/')
     cur.execute(f'insert into {TABLES[3]} (dir_id, docname, source_deleted)'
-                ' values (%s, %s, %s);', (parentdir_id, str(dir_id), True))
+                ' values (%s, %s, %s);', (dir_id, '', True))
 
 
 @with_cursor
@@ -1013,25 +1073,47 @@ def _mark_doc_deleted(cur, doc_id):
 
 
 @with_cursor
-def get_deletion_ids(cur, dirid, stage):
+def get_deletions(cur, dirid, stage):
     """return a list of document ids that are to be deleted
     """
+    result = []
     cur.execute(f'select id, docname, target_docid from {TABLES[3]}'
                 f' where dir_id = %s and {stage}_deleted = %s;', (dirid, True))
-    return list(cur)
+    for row in cur:
+        if row['docname'] == '':
+            # naamloos document dat de deletion status van de directory aangeeft
+            result.append((row['id'], '', dirid))
+        else:
+            result.append((row['id'], row['docname'], row['target_docid']))
+    return result
 
 
 @with_cursor
-def execute_deletions(cur, stage, docids):
-    """actually do the deleting"""
-    from_table = TABLES[4] if stage == 'source' else TABLES[3]
-    cur.executemany(f'delete from {from_table} where id = %s;', docids)
+def execute_deletions(cur, stage, docids, dirids):
+    """do the actual deleting"""
+    if stage == 'source':
+        if docids:
+            cur.executemany(f'delete from {TABLES[4]} where id = %s;',
+                            [(x[1],) for x in docids if x[1]])
+            deleted = [(None, None, None, 1, True, x[0]) for x in docids]
+            cur.executemany(f'update {TABLES[3]} set source_docid = %s, source_updated = %s,'
+                            ' source_deleted = %s, target_docid = %s, target_deleted = %s'
+                            ' where id = %s;', deleted)
+        if dirids:
+            cur.executemany(f'update {TABLES[3]} set target_deleted = %s where id = %s;',
+                            [(True, x) for x in dirids])
+    else:
+        if docids:
+            cur.executemany(f'delete from {TABLES[3]} where id = %s;', [(x,) for x in docids])
+        if dirids:
+            cur.executemany(f'delete from {TABLES[3]} where id = %s;', [(x[0],) for x in dirids])
+            cur.executemany(f'delete from {TABLES[2]} where id = %s;', [(x[1],) for x in dirids])
 
 
 @with_cursor
 def _put_html(cur, html_id, new_html_id, doc_id, contents, oldtext):
     "add the new or updated html to the database"
-    dts = datetime.datetime.utcnow()
+    dts = datetime.datetime.now()
     if html_id is None:
         cur.execute(f'update {TABLES[4]} set currtext = %s where id = %s;', (contents, new_html_id))
         cur.execute(f'update {TABLES[3]} set target_docid = %s, target_updated = %s where id = %s;',
@@ -1045,8 +1127,6 @@ def _put_html(cur, html_id, new_html_id, doc_id, contents, oldtext):
 @with_cursor
 def _update_target_directory(cur, deleted):
     "update directory in database after deletion from target"
-    # regels komen binnen als None, 1, True, row['id']
-    # effectief gebeurt er niks met source_id
     deleted = [(x[0], x[0], x[0], x[1], x[2], x[3]) for x in deleted]
     cur.executemany(f'update {TABLES[3]} set source_docid = %s, source_updated = %s,'
                     ' source_deleted = %s, target_docid = %s, target_deleted = %s'
@@ -1056,7 +1136,7 @@ def _update_target_directory(cur, deleted):
 @with_cursor
 def _update_mirror_dts(cur, doc_id):
     "update date-time stamp in database"
-    dts = datetime.datetime.utcnow()
+    dts = datetime.datetime.now()
     cur.execute(f'update {TABLES[3]} set mirror_updated = %s where id = %s;', (dts, doc_id))
 
 
@@ -1090,13 +1170,14 @@ def _get_stats_for_dirs(cur, siteid, dirids):
 
 @with_cursor
 def _fetch_dirmap(cur, siteid):
-    cur = conn.cursor(cursor_factory=pgx.RealDictCursor)
+    "build a map of directory ids and names for the site"
     cur.execute(f'select id, dirname from {TABLES[2]} where site_id = %s;', (siteid,))
     return {row['id']: row['dirname'] for row in cur}
 
 
 @with_cursor
 def _fetch_site_data(cur, dirids):
+    "get a list odf statisticcs for documents in a site directory"
     cur.execute('select docname, source_docid, source_updated, source_deleted, target_docid,'
                 f' target_updated, target_deleted, mirror_updated, dir_id from {TABLES[3]}'
                 ' where dir_id = any(%s);', (dirids,))
@@ -1104,7 +1185,8 @@ def _fetch_site_data(cur, dirids):
 
 
 @with_cursor
-def _fetch_doc_data(cur, siteid, docnames):
+def _fetch_doc_data(cur, docnames):
+    "get a list of current and previous texts for documents in a site directory"
     data = []
     cur.execute(f'select id, currtext, previous from {TABLES[4]} where id = any(%s)',
                 (list(docnames),))
@@ -1112,9 +1194,9 @@ def _fetch_doc_data(cur, siteid, docnames):
         data.append({'_id': docnames[row['id']], 'current': row['currtext'],
                      'previous': row['previous']})
 
-    cur.execute(f'select name, text from {TABLES[5]} where site_id = %s;', (siteid,))
-    for row in cur:
-        data.append({'_id': (row['name'],), 'template contents': row['text']})
+    # cur.execute(f'select name, text from {TABLES[5]} where site_id = %s;', (siteid,))
+    # for row in cur:
+    #     data.append({'_id': (row['name'],), 'template contents': row['text']})
     return data
 
 
@@ -1150,3 +1232,4 @@ def _delete_dir_data(cur, siteid, dirids):
     sel = 'id = %s'
     sql = base_sql.format(TABLES[0], sel)
     cur.execute(sql, (siteid,))
+    # cur.execute(sql, (siteid,))

@@ -792,7 +792,7 @@ def mark_deleted(sitename, current, fname):
 
 def save_html_data(sitename, current, fname, data, dry_run=False):
     "save the converted data on the server"
-    dml.apply_deletions_target(sitename, current)  # always do pending deletions
+    # dml.apply_deletions_target(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'html_filename_error'
@@ -839,7 +839,7 @@ def complete_header(conf, rstdata):
 def save_to_mirror(sitename, current, fname, conf, dry_run=False):
     """store the actual html on the server
     """
-    dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
+    # dml.apply_deletions_mirror(sitename, current)  # always do pending deletions
     path = pathlib.Path(fname)
     if path.suffix not in ('', '.html'):
         return 'html_filename_error'
@@ -1392,6 +1392,8 @@ class R2hState:
         """load rest source into page
         """
         mld = ""
+        fmtdata = ''  # wordt alleen gevuld bij een melding met format targets erin
+        data = ''     # krijgt een waarde als alles goed gaat (en wordt alleen dan gebruikt)
         if rstfile == "":
             mld = 'unlikely_1'
         elif rstfile.startswith('--'):
@@ -1640,7 +1642,7 @@ class R2hState:
             if mld == "":
                 rstdata = preprocess_includes(self.sitename, self.current, rstdata)
                 newdata = rst2html(self.sitename, rstdata, self.conf['css'])
-                if 'Docutils System Message' in newdata:
+                if 'System Message' in newdata:
                     mld = 'html_gen_error'
                 if not mld:
                     mld = save_html_data(self.sitename, self.current, self.htmlfile, newdata)
@@ -1786,7 +1788,7 @@ class R2hState:
         #         return "deleted from mirror: " + ', '.join(list(results))
         if mode in ('0', '1', '2', '3'):
             mode = int(mode)
-            results = functions[mode](self.sitename, '*')
+            results = functions[mode](self.sitename)
             if results:
                 return messages[mode] + ', '.join(list(results))
         else:

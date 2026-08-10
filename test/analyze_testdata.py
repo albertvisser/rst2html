@@ -1,8 +1,20 @@
 """helper program for Rst2HTML tests: interpreting differences
 """
+import pprint
 import datetime
 from bs4 import BeautifulSoup
-from test.test_dml import list_site_contents, WEBROOT
+# from test.test_dml import list_site_contents, WEBROOT
+# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app_settings import DML
+if DML == 'fs':
+    print('using file system dml')
+    import app.docs2fs as dml
+elif DML == 'mongo':
+    print('using mongodb dml')
+    import app.docs2mongo as dml
+elif DML == 'postgres':
+    print('using postgresql dml')
+    import app.docs2pg as dml
 sitename = 'testsite'
 
 
@@ -35,14 +47,6 @@ class Comparer:
         if not self.writer_used:
             self.writer_used = htmldata['textdata'].split('writer: ')[1].strip()
 
-        if self.loc == 'fs' and name.startswith('23'):
-            with (self.outfileroot / f'{name}_filelist.html').open('w') as _out:
-                print('files in source:', [x for x in (WEBROOT / sitename / '.source').iterdir()],
-                      file=_out)
-                print('files in target:', [x for x in (WEBROOT / sitename / '.target').iterdir()],
-                      file=_out)
-                print('files in mirror:', [x for x in (WEBROOT / sitename).iterdir()], file=_out)
-
         db_data = list_site_contents(sitename, self.outfileroot / f'db_{name}')
 
         if self.namelist:
@@ -52,7 +56,7 @@ class Comparer:
             # print('new =', new)
             # print('db_data old =', self.dbdatalist[-1])
             # print('db_data new =', db_data)
-            dbresult = self.get_db_diff(old, new, self.dbdatalist[-1], db_data)
+            dbresult = self.get_db_diff(self.dbdatalist[-1], db_data)
         else:
             dbresult = db_data  # {}
         htmlresult = htmldata  # []
@@ -66,7 +70,7 @@ class Comparer:
         "convert text dump to datastructure"
         # not necessary, the dml version works as well (or better)
 
-    def get_db_diff(self, old, new, olddata, newdata):
+    def get_db_diff(self, olddata, newdata):
         """compare site data dumps
         """
         result = []
@@ -75,7 +79,7 @@ class Comparer:
         newsite, newdocs = newdata
         if newsite == oldsite and not self.name.startswith('20c'):
             result.append('site data has not changed')
-            return result
+            # return result
         if newdocs == olddocs:
             result.append('site docs have not changed')
         # with open('/tmp/get_db_diff_print_old_and_new', 'w') as f:
@@ -83,10 +87,12 @@ class Comparer:
         #     print('\n\n--- newsite: ---\n' + newsite, file=f)
         ## print(olddocs, newdocs)
         if oldsite == {}:
-            result.append('new site has been added')
+            if newsite != {}:
+                result.append('new site has been added')
             return result
         result.extend(self._compare_settings(oldsite, newsite))
         result.extend(self._compare_docstats(oldsite, newsite))
+        result.extend(self._compare_templates(oldsite, newsite))
         result.extend(self._compare_docs(olddocs, newdocs))
         return result
 
@@ -94,11 +100,24 @@ class Comparer:
         result = []
         for setting in newsite['settings']:
             if setting not in oldsite['settings']:
-                result.append('new setting: {} {}'.format(setting, newsite['settings']))
+                result.append(f'new setting: {setting} {newsite['settings']}')
                 continue
             if newsite['settings'] != oldsite['settings']:
-                result.append('setting {} changed from {} to {}'.format(
-                    setting, oldsite['settings'], newsite['settings']))
+                result.append(f"setting {setting} changed from {oldsite['settings']}"
+                              f" to {newsite['settings']}")
+        # dit voorziet niet in verwijderde settings (komt waarschijnlijk niet veel voor)
+        return result
+
+    def _compare_templates(self, oldsite, newsite):
+        result = []
+        for name in newsite.get('templates', []):
+            if name not in oldsite.get('templates', []):
+                result.append(f'new template {name} added')
+            elif newsite['templates'][name] != oldsite['templates'][name]:
+                result.append(f'template {name} was changed')
+        for name in oldsite.get('templates', ''):
+            if name not in newsite.get('templates', []):
+                result.append(f'template {name} removed')
         return result
 
     def _compare_docstats(self, oldsite, newsite):
@@ -109,6 +128,12 @@ class Comparer:
                 continue
             olddir = oldsite['docs'][subdir]
             for doc in newsite['docs'][subdir]:
+                # in momgodb en postgres versies is hier bij verwijderen van de directory
+                # een naamloos document toegevoegd
+                if doc == '':
+                    locs = ' and '.join(doctype for doctype in newsite['docs'][subdir][doc])
+                    result.append(f"subdir '{subdir}' is removed in {locs}")
+                    continue
                 if doc not in olddir:
                     result.append(f'new doc in subdir {subdir}: {doc}')
                     continue
@@ -130,6 +155,15 @@ class Comparer:
                                 result.append(f'{subdir} {doc} {doctype} was deleted')
                             else:
                                 result.append(f'{subdir} {doc} {doctype} was marked as deleted')
+            newdir = newsite['docs'][subdir]
+            for doc in oldsite['docs'][subdir]:
+                if doc not in newdir:
+                    result.append(f'doc removed from subdir {subdir}: {doc}')
+                    continue
+        for subdir in list(oldsite['docs']):
+            if subdir not in newsite['docs']:
+                result.append(f'subdir removed: {subdir}')
+                continue
         return result
 
     def _compare_docs(self, olddocs, newdocs):
@@ -204,7 +238,7 @@ class Comparer:
         result["textdata"] = soup.find('textarea').string or ''
         return result
 
-    def get_html_diff(self, old, new, olddata, newdata):
+    def get_html_diff(self, olddata, newdata):
         "compare html output"
         # verschillen tussen de htmls zijn eigenlijk niet zo interessant
         # daarom wordt deze ook niet meer gebruikt
@@ -230,3 +264,38 @@ class Comparer:
                 else:
                     diff.append(f'{key}: value was "{olddata[key]}", is now "{newdata[key]}"')
         return diff
+
+
+def list_site_contents(sitename, filename=''):
+    """show site contents in a standard structure, independent of the data backend
+    """
+    errs = ''
+    try:
+        sitedoc, docdata = dml.list_site_data(sitename)
+    except FileNotFoundError as e:
+        errs = str(e)
+        sitedoc, docdata = {}, []
+    if not filename:
+        print(f'\n--------- Listing contents of site {sitename} ----------')
+        if errs:
+            print(errs)
+        else:
+            pprint.pprint(sitedoc)
+            print("----")
+            for doc in docdata:
+                pprint.pprint(doc)
+            print("----")
+    else:
+        with open(filename, 'w') as _out:
+            if errs:
+                print(errs, file=_out)
+            else:
+                pprint.pprint(sitedoc, stream=_out)
+                for doc in docdata:
+                    pprint.pprint(doc, stream=_out)
+    return sitedoc, docdata
+
+
+def clear_site_contents(sitename):
+    "remove site"
+    dml.clear_site_data(sitename)

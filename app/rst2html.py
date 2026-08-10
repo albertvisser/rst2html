@@ -342,7 +342,7 @@ class Rst2Html:
     def convert_all(self, settings="", rstfile="", htmlfile="", newfile="", rstdata="", **kwargs):
         """regenerate all html files
         """
-        regsubj = kwargs.get('regsubj', '')
+        regsubj = kwargs.get('regsubj', '')   # default is eigenlijk niet nodig, komt uit selector
         mld, rstdata = self.state.convert_all(option=regsubj)
         outdata = format_output(rstfile, htmlfile, newfile, mld, rstdata, settings, self.state)
         selector_text = 'select name="regsubj"'

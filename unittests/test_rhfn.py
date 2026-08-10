@@ -1308,53 +1308,62 @@ class TestTargetRelated:
     def test_save_html_data(self, monkeypatch, capsys):
         """unittest for rst2html_functions.save_html_data
         """
-        def mock_apply_deletions_target(*args):
-            """stub
-            """
-            print('args for apply_deletions:', args)
+        # def mock_apply_deletions_target(*args):
+        #     """stub
+        #     """
+        #     print('args for apply_deletions:', args)
         def mock_update_html(*args, **kwargs):
             """stub
             """
-            print(f'args for update_html: `{args[0]}` `{args[1]}` `{args[2]}`'
-                  f" `{kwargs['directory']}` `{kwargs['dry_run']}`")
+            print('called dml.update_html with args', args, kwargs)
+            # print(f'args for update_html: `{args[0]}` `{args[1]}` `{args[2]}`'
+            #       f" `{kwargs['directory']}` `{kwargs['dry_run']}`")
         def mock_update_html_error_1(*args, **kwargs):
             """stub
             """
+            print('called dml.update_html with args', args, kwargs)
             raise AttributeError('name')
         def mock_update_html_error_2(*args, **kwargs):
             """stub
             """
+            print('called dml.update_html with args', args, kwargs)
             raise AttributeError('contents')
         def mock_update_html_error_3(*args, **kwargs):
             """stub
             """
+            print('called dml.update_html with args', args, kwargs)
             raise FileNotFoundError('not-found')
 
-        monkeypatch.setattr(testee.dml, 'apply_deletions_target', mock_apply_deletions_target)
         assert testee.save_html_data(self.sitename, '', self.filename + '.x', '...') == (
                 'html_filename_error')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == ""
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == ''
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
-                                           'args for update_html: `testsite` `testname` `...` '
-                                           '`` `False`\n')
+        assert capsys.readouterr().out == (
+                "called dml.update_html with args"
+                " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...', True) == ''
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
-                                           'args for update_html: `testsite` `testname` `...` '
-                                           '`` `True`\n')
+        assert capsys.readouterr().out == (
+                "called dml.update_html with args"
+                " ('testsite', 'testname', '...') {'directory': '', 'dry_run': True}\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_1)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'html_name_missing')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == (
+                "called dml.update_html with args"
+                " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_2)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'supply_text')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == (
+                "called dml.update_html with args"
+                " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
         monkeypatch.setattr(testee.dml, 'update_html', mock_update_html_error_3)
         assert testee.save_html_data(self.sitename, '', self.filename + '.html', '...') == (
             'not-found')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == (
+                "called dml.update_html with args"
+                " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
 
     def test_complete_header(self):
         """unittest for rst2html_functions.complete_header
@@ -1381,63 +1390,66 @@ class TestTargetRelated:
     def test_save_to_mirror(self, monkeypatch, capsys):
         """unittest for rst2html_functions.save_to_mirror
         """
-        def mock_apply_deletions_mirror(*args):
-            """stub
-            """
-            print('args for apply_deletions:', args)
         def mock_read_html_data(*args):
             """stub
             """
-            print('args for read_html_data:', args)
+            print('called read_html_data with args', args)
             return '', '...'
         def mock_read_html_data_error(*args):
             """stub
             """
+            print('called read_html_data with args', args)
             return 'read_html_data failed', ''
         def mock_complete_header(*args):
             """stub
             """
-            print('args for complete_header:', args)
+            print('called complete_header with args', args)
             return '...'
         def mock_update_mirror(*args, **kwargs):
             """stub
             """
-            print(f'args for update_mirror: `{args[0]}` `{args[1]}` `{args[2]}`'
-                  f" `{kwargs['directory']}` `{kwargs['dry_run']}`")
+            print('called update_mirror with args', args, kwargs)
         def mock_update_mirror_failed_1(*args, **kwargs):
             """stub
             """
+            print('called update_mirror with args', args, kwargs)
             raise AttributeError('name')
         def mock_update_mirror_failed_2(*args, **kwargs):
             """stub
             """
+            print('called update_mirror with args', args, kwargs)
             raise AttributeError('error')
-        monkeypatch.setattr(testee.dml, 'apply_deletions_mirror', mock_apply_deletions_mirror)
         assert testee.save_to_mirror(self.sitename, '', self.filename + '.x', {}) == (
                 'html_filename_error')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == ''
         monkeypatch.setattr(testee, 'read_html_data', mock_read_html_data_error)
         assert testee.save_to_mirror(self.sitename, '', self.filename, {}) == (
                 'read_html_data failed')
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n")
+        assert capsys.readouterr().out == (
+            "called read_html_data with args ('testsite', '', 'testname')\n")
         monkeypatch.setattr(testee, 'read_html_data', mock_read_html_data)
         monkeypatch.setattr(testee, 'complete_header', mock_complete_header)
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror)
         assert testee.save_to_mirror(self.sitename, '', self.filename, {}) == ''
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
-            "args for read_html_data: ('testsite', '', 'testname')\n"
-            "args for complete_header: ({}, '...')\n"
-            'args for update_mirror: `testsite` `testname` `...` `` `False`\n')
+        assert capsys.readouterr().out == (
+            "called read_html_data with args ('testsite', '', 'testname')\n"
+            "called complete_header with args ({}, '...')\n"
+            "called update_mirror with args"
+            " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror_failed_1)
         assert testee.save_to_mirror(self.sitename, 'en', self.filename, {}) == 'html_name_missing'
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', 'en')\n"
-            "args for read_html_data: ('testsite', 'en', 'testname')\n"
-            "args for complete_header: ({}, '...')\n")
+        assert capsys.readouterr().out == (
+            "called read_html_data with args ('testsite', 'en', 'testname')\n"
+            "called complete_header with args ({}, '...')\n"
+            "called update_mirror with args"
+            " ('testsite', 'testname', '...') {'directory': 'en', 'dry_run': False}\n")
         monkeypatch.setattr(testee.dml, 'update_mirror', mock_update_mirror_failed_2)
         assert testee.save_to_mirror(self.sitename, '', self.filename + '.html', {}) == 'error'
-        assert capsys.readouterr().out == ("args for apply_deletions: ('testsite', '')\n"
-            "args for read_html_data: ('testsite', '', 'testname')\n"
-            "args for complete_header: ({}, '...')\n")
+        assert capsys.readouterr().out == (
+            "called read_html_data with args ('testsite', '', 'testname')\n"
+            "called complete_header with args ({}, '...')\n"
+            "called update_mirror with args"
+            " ('testsite', 'testname', '...') {'directory': '', 'dry_run': False}\n")
 
 
 class TestProgressList:
