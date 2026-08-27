@@ -300,7 +300,8 @@ class Transcript(Directive):
                  "     else {\n       e.style.height = '1px';\n",
                  "       e.style.visibility = 'hidden'; }\n   }</script>\n",
                  '<div class="transcript-border" style="border: solid"> <div id="transcript">',
-                 '<a href="javascript:toggle_expander(' "'transcript-content'" ');" ',
+                 # '<a href="javascript:toggle_expander(' "'transcript-content'" ');" ',
+                 '<a href="javascript:toggle_expander(\'transcript-content\');" ',
                  'class="transcript-title">&darr; Transcript</a><div id="transcript-content">',
                  '<div class="transcript">']
         name = old_name = ''
